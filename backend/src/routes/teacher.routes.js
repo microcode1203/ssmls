@@ -1,31 +1,43 @@
-// ── teacher.routes.js ──────────────────────────────────────────────────────
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { logAction } = require('../utils/audit');
 
 router.use(authenticate);
 
+// GET all teachers
 router.get('/', authorize('admin'), async (req, res) => {
-  const [rows] = await pool.execute(
-    `SELECT t.id, t.employee_id, t.department, t.phone,
-       u.first_name, u.last_name, u.email, u.is_active
-     FROM teachers t JOIN users u ON u.id = t.user_id
-     ORDER BY u.last_name`
-  );
-  res.json({ success: true, data: rows });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT t.id, t.employee_id, t.department, t.phone,
+         u.id as user_id, u.first_name, u.last_name, u.email, u.is_active
+       FROM teachers t JOIN users u ON u.id = t.user_id
+       ORDER BY u.last_name`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 });
 
+// GET single teacher
 router.get('/:id', authorize('admin', 'teacher'), async (req, res) => {
-  const [rows] = await pool.execute(
-    `SELECT t.*, u.first_name, u.last_name, u.email
-     FROM teachers t JOIN users u ON u.id=t.user_id WHERE t.id=?`,
-    [req.params.id]
-  );
-  if (!rows.length) return res.status(404).json({ success: false, message: 'Teacher not found.' });
-  res.json({ success: true, data: rows[0] });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT t.*, u.first_name, u.last_name, u.email
+       FROM teachers t JOIN users u ON u.id=t.user_id WHERE t.id=?`,
+      [req.params.id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 });
 
+// POST create teacher
 router.post('/', authorize('admin'), async (req, res) => {
   const bcrypt = require('bcryptjs');
   const conn   = await pool.getConnection();
@@ -42,6 +54,7 @@ router.post('/', authorize('admin'), async (req, res) => {
       [u.insertId, employeeId, department || null, phone || null]
     );
     await conn.commit();
+    await logAction(req.user.id, 'CREATE_TEACHER', 'teachers', u.insertId, { employeeId }, req.ip);
     res.status(201).json({ success: true, message: 'Teacher created. Default password: Teacher@2026' });
   } catch (err) {
     await conn.rollback();
@@ -49,6 +62,49 @@ router.post('/', authorize('admin'), async (req, res) => {
       return res.status(409).json({ success: false, message: 'Email or Employee ID already exists.' });
     res.status(500).json({ success: false, message: 'Server error.' });
   } finally { conn.release(); }
+});
+
+// DELETE teacher — deactivates account
+router.delete('/:id', authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get teacher info
+    const [rows] = await pool.execute(
+      `SELECT t.id, t.user_id, u.first_name, u.last_name
+       FROM teachers t JOIN users u ON u.id = t.user_id
+       WHERE t.id = ?`,
+      [id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+
+    const teacher = rows[0];
+
+    // Check if teacher has active schedules
+    const [[schedCount]] = await pool.execute(
+      `SELECT COUNT(*) as cnt FROM schedules WHERE teacher_id=? AND status='approved'`,
+      [id]
+    );
+    if (schedCount.cnt > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete — this teacher has ${schedCount.cnt} active schedule(s). Remove their schedules first.`
+      });
+    }
+
+    // Deactivate user account
+    await pool.execute(`UPDATE users SET is_active=0 WHERE id=?`, [teacher.user_id]);
+    await logAction(
+      req.user.id, 'DELETE_TEACHER', 'teachers', id,
+      { name: `${teacher.first_name} ${teacher.last_name}` }, req.ip
+    );
+
+    res.json({ success: true, message: `Teacher account deactivated successfully.` });
+  } catch (err) {
+    console.error('Delete teacher error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 });
 
 module.exports = router;
