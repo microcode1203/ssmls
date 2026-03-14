@@ -2,14 +2,33 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
-import { Plus, Search, Filter, Edit2, Trash2, X, User } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X } from 'lucide-react'
+
+// ─── StudentModal is defined OUTSIDE StudentsPage ────────────────────────────
+// This is critical — defining it inside causes focus loss on every keystroke
+// because React recreates the component on every re-render
 
 function StudentModal({ student, sections, onClose, onSave }) {
-  const [form, setForm] = useState(student || {
-    firstName:'', lastName:'', email:'', lrn:'', gradeLevel:'Grade 11',
-    sectionId:'', strand:'STEM', phone:'', guardianName:'', guardianPhone:''
+  const [form, setForm] = useState(student ? {
+    firstName:    student.first_name     || '',
+    lastName:     student.last_name      || '',
+    email:        student.email          || '',
+    lrn:          student.lrn            || '',
+    gradeLevel:   student.grade_level    || 'Grade 11',
+    sectionId:    student.section_id     || '',
+    strand:       student.strand         || 'STEM',
+    phone:        student.phone          || '',
+    guardianName: student.guardian_name  || '',
+    guardianPhone:student.guardian_phone || '',
+  } : {
+    firstName:'', lastName:'', email:'', lrn:'',
+    gradeLevel:'Grade 11', sectionId:'', strand:'STEM',
+    phone:'', guardianName:'', guardianPhone:''
   })
   const [saving, setSaving] = useState(false)
+
+  // Stable onChange handler — does NOT recreate sub-components
+  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,44 +44,110 @@ function StudentModal({ student, sections, onClose, onSave }) {
       onSave()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save student.')
-    } finally { setSaving(false) }
+    } finally {
+      setSaving(false)
+    }
   }
-
-  const F = ({ label, name, type='text', options, required }) => (
-    <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
-      {options
-        ? <select className="input-field" value={form[name]||''} onChange={e=>setForm(p=>({...p,[name]:e.target.value}))}>
-            <option value="">— Select —</option>
-            {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        : <input type={type} className="input-field" value={form[name]||''} onChange={e=>setForm(p=>({...p,[name]:e.target.value}))} required={required} />
-      }
-    </div>
-  )
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h2 className="font-display font-bold text-slate-900">{student ? 'Edit Student' : 'Add Student'}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+          <h2 className="font-display font-bold text-slate-900">
+            {student ? 'Edit Student' : 'Add Student'}
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+            <X size={18} />
+          </button>
         </div>
+
         <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-4">
-          <F label="First Name" name="firstName" required />
-          <F label="Last Name"  name="lastName"  required />
-          {!student && <F label="Email"    name="email"    type="email" required />}
-          <F label="LRN (12 digits)" name="lrn" required />
-          <F label="Grade Level" name="gradeLevel" options={[{value:'Grade 11',label:'Grade 11'},{value:'Grade 12',label:'Grade 12'}]} required />
-          <F label="Strand" name="strand" options={['STEM','HUMSS','ABM','TVL','GAS'].map(s=>({value:s,label:s}))} required />
-          <F label="Section" name="sectionId" options={(sections||[]).map(s=>({value:s.id, label:`${s.grade_level} · ${s.section_name}`}))} />
-          <F label="Phone"   name="phone" />
-          <F label="Guardian Name"  name="guardianName" />
-          <F label="Guardian Phone" name="guardianPhone" />
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              First Name <span className="text-red-500">*</span>
+            </label>
+            <input className="input-field" value={form.firstName} onChange={set('firstName')} required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Last Name <span className="text-red-500">*</span>
+            </label>
+            <input className="input-field" value={form.lastName} onChange={set('lastName')} required />
+          </div>
+
+          {!student && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input type="email" className="input-field" value={form.email} onChange={set('email')} required />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              LRN (12 digits) <span className="text-red-500">*</span>
+            </label>
+            <input className="input-field" value={form.lrn} onChange={set('lrn')} maxLength={12} required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Grade Level <span className="text-red-500">*</span>
+            </label>
+            <select className="input-field" value={form.gradeLevel} onChange={set('gradeLevel')}>
+              <option value="Grade 11">Grade 11</option>
+              <option value="Grade 12">Grade 12</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Strand <span className="text-red-500">*</span>
+            </label>
+            <select className="input-field" value={form.strand} onChange={set('strand')}>
+              {['STEM','HUMSS','ABM','TVL','GAS'].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Section</label>
+            <select className="input-field" value={form.sectionId} onChange={set('sectionId')}>
+              <option value="">— Select Section —</option>
+              {(sections || []).map(s => (
+                <option key={s.id} value={s.id}>{s.grade_level} · {s.section_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
+            <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={set('phone')} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Guardian Name</label>
+            <input className="input-field" value={form.guardianName} onChange={set('guardianName')} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Guardian Phone</label>
+            <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.guardianPhone} onChange={set('guardianPhone')} />
+          </div>
+
           <div className="col-span-2 flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">
+              Cancel
+            </button>
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
-              {saving ? 'Saving…' : student ? 'Update Student' : 'Add Student'}
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</>
+                : student ? 'Update Student' : 'Add Student'
+              }
             </button>
           </div>
         </form>
@@ -71,11 +156,12 @@ function StudentModal({ student, sections, onClose, onSave }) {
   )
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function StudentsPage() {
   const qc = useQueryClient()
-  const [search,  setSearch]  = useState('')
-  const [grade,   setGrade]   = useState('')
-  const [modal,   setModal]   = useState(null) // null | 'add' | student object
+  const [search, setSearch] = useState('')
+  const [grade,  setGrade]  = useState('')
+  const [modal,  setModal]  = useState(null)
 
   const { data: students, isLoading } = useQuery({
     queryKey: ['students', search, grade],
@@ -98,7 +184,10 @@ export default function StudentsPage() {
     deleteMut.mutate(s.id)
   }
 
-  const statusBadge = { active:'badge-green', inactive:'badge-slate', transferred:'badge-amber', graduated:'badge-blue' }
+  const statusBadge = {
+    active:'badge-green', inactive:'badge-slate',
+    transferred:'badge-amber', graduated:'badge-blue'
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -112,7 +201,6 @@ export default function StudentsPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="card p-4 mb-5 flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -130,10 +218,11 @@ export default function StudentsPage() {
         </select>
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" /></div>
+          <div className="p-12 text-center">
+            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -145,7 +234,7 @@ export default function StudentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {(students||[]).map(s => (
+                {(students || []).map(s => (
                   <tr key={s.id} className="hover:bg-slate-50 group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -159,9 +248,9 @@ export default function StudentsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{s.lrn}</td>
-                    <td className="px-4 py-3 text-slate-600">{s.grade_level} · {s.section_name||'—'}</td>
+                    <td className="px-4 py-3 text-slate-600">{s.grade_level} · {s.section_name || '—'}</td>
                     <td className="px-4 py-3"><span className="badge-blue">{s.strand}</span></td>
-                    <td className="px-4 py-3"><span className={statusBadge[s.status]||'badge-slate'}>{s.status}</span></td>
+                    <td className="px-4 py-3"><span className={statusBadge[s.status] || 'badge-slate'}>{s.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => setModal(s)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Edit2 size={14} /></button>
@@ -170,7 +259,9 @@ export default function StudentsPage() {
                     </td>
                   </tr>
                 ))}
-                {!students?.length && <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">No students found.</td></tr>}
+                {!students?.length && (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">No students found.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
