@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
@@ -155,6 +155,17 @@ function SectionModal({ section, onClose, onSave }) {
 
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 function DeleteModal({ section, onClose, onConfirm, deleting }) {
+  // Keyboard shortcuts: Enter = confirm delete, Escape = cancel
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (deleting) return
+      if (e.key === 'Enter')  { e.preventDefault(); onConfirm() }
+      if (e.key === 'Escape') { e.preventDefault(); onClose()   }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [deleting, onConfirm, onClose])
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -175,7 +186,10 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-secondary flex-1 justify-center">
-            Cancel
+            <span className="flex items-center gap-1.5">
+              Cancel
+              <kbd className="text-xs bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-mono hidden sm:inline">Esc</kbd>
+            </span>
           </button>
           <button
             onClick={onConfirm}
@@ -184,7 +198,10 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
           >
             {deleting
               ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting…</>
-              : <><Trash2 size={14} />Delete</>
+              : <span className="flex items-center gap-1.5">
+                  <Trash2 size={14} />Delete
+                  <kbd className="text-xs bg-red-400/30 border border-red-300/50 rounded px-1.5 py-0.5 font-mono hidden sm:inline">Enter</kbd>
+                </span>
             }
           </button>
         </div>
