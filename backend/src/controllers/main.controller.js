@@ -8,21 +8,68 @@ const getDashboard = async (req, res) => {
     if (role === 'admin') {
       const [[totals]] = await pool.execute(`
         SELECT
-          (SELECT COUNT(*) FROM students WHERE status='active') as total_students,
-          (SELECT COUNT(*) FROM teachers) as total_teachers,
-          (SELECT COUNT(*) FROM sections) as total_sections,
-          (SELECT COUNT(*) FROM schedules WHERE status='approved') as total_classes,
-          (SELECT COUNT(*) FROM schedules WHERE status='pending') as pending_schedules
+          (SELECT COUNT(*) FROM students   WHERE status='active')    AS total_students,
+          (SELECT COUNT(*) FROM teachers)                             AS total_teachers,
+          (SELECT COUNT(*) FROM sections)                             AS total_sections,
+          (SELECT COUNT(*) FROM schedules  WHERE status='approved')  AS total_classes,
+          (SELECT COUNT(*) FROM schedules  WHERE status='pending')   AS pending_schedules,
+          (SELECT COUNT(*) FROM assignments WHERE due_date >= NOW()) AS active_assignments,
+          (SELECT COUNT(*) FROM submissions WHERE status='submitted') AS ungraded_submissions
       `);
-      const [recentLogs] = await pool.execute(
-        `SELECT l.*, u.first_name, u.last_name FROM audit_logs l JOIN users u ON u.id=l.user_id ORDER BY l.timestamp DESC LIMIT 8`
-      );
-      const [attendanceToday] = await pool.execute(
-        `SELECT COUNT(*) as count, status FROM attendance a
-         JOIN classes c ON c.id=a.class_id
-         WHERE DATE(c.class_date)=CURDATE() GROUP BY a.status`
-      );
-      return res.json({ success:true, data:{ totals, recentLogs, attendanceToday } });
+
+      const [[attRate]] = await pool.execute(`
+        SELECT
+          COUNT(*)                                      AS total_scans,
+          SUM(status IN ('present','late'))             AS attended,
+          SUM(status = 'present')                       AS present_count,
+          SUM(status = 'late')                          AS late_count,
+          SUM(status = 'absent')                        AS absent_count,
+          ROUND(SUM(status IN ('present','late')) * 100.0 / NULLIF(COUNT(*),0), 1) AS attendance_rate
+        FROM attendance
+      `);
+
+      const [attendanceToday] = await pool.execute(`
+        SELECT COUNT(*) AS count, a.status
+        FROM attendance a JOIN classes c ON c.id=a.class_id
+        WHERE DATE(c.class_date)=CURDATE() GROUP BY a.status
+      `);
+
+      const [weeklyAtt] = await pool.execute(`
+        SELECT DATE_FORMAT(c.class_date,'%a') AS day_label, c.class_date,
+          COUNT(*) AS total,
+          SUM(a.status IN ('present','late')) AS attended
+        FROM attendance a JOIN classes c ON c.id=a.class_id
+        WHERE c.class_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY c.class_date ORDER BY c.class_date ASC
+      `);
+
+      const [gradeBreakdown] = await pool.execute(`
+        SELECT grade_level, COUNT(*) AS count FROM students
+        WHERE status='active' GROUP BY grade_level
+      `);
+
+      const [strandBreakdown] = await pool.execute(`
+        SELECT strand, COUNT(*) AS count FROM students
+        WHERE status='active' GROUP BY strand ORDER BY count DESC
+      `);
+
+      const [recentLogs] = await pool.execute(`
+        SELECT l.*, u.first_name, u.last_name, u.role
+        FROM audit_logs l JOIN users u ON u.id=l.user_id
+        ORDER BY l.timestamp DESC LIMIT 8
+      `);
+
+      return res.json({ success:true, data:{
+        totals: {
+          ...totals,
+          attendance_rate: attRate.attendance_rate || 0,
+          present_count:   attRate.present_count   || 0,
+          late_count:      attRate.late_count       || 0,
+          absent_count:    attRate.absent_count     || 0,
+          total_scans:     attRate.total_scans      || 0,
+        },
+        attendanceToday, weeklyAtt, gradeBreakdown, strandBreakdown, recentLogs,
+      }});
     }
 
     if (role === 'teacher') {
