@@ -230,8 +230,8 @@ async function migrate() {
   console.log('🔄 Running SSMLS database migrations...\n');
   try {
     const conn = await pool.getConnection();
-    await conn.execute(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``);
-    await conn.execute(`USE \`${process.env.DB_NAME}\``);
+    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``);
+await conn.query(`USE \`${process.env.DB_NAME}\``);
 
     for (let i = 0; i < migrations.length; i++) {
       await conn.execute(migrations[i]);
