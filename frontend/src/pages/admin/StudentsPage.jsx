@@ -27,8 +27,20 @@ function StudentModal({ student, sections, onClose, onSave }) {
   })
   const [saving, setSaving] = useState(false)
 
-  // Stable onChange handler — does NOT recreate sub-components
+  // Stable onChange handler
   const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
+
+  // When section is selected → auto-fill Grade Level and Strand
+  const handleSectionChange = (e) => {
+    const selectedId = e.target.value
+    const selectedSection = (sections || []).find(s => String(s.id) === String(selectedId))
+    setForm(p => ({
+      ...p,
+      sectionId:  selectedId,
+      gradeLevel: selectedSection ? selectedSection.grade_level : p.gradeLevel,
+      strand:     selectedSection ? selectedSection.strand      : p.strand,
+    }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -97,29 +109,48 @@ function StudentModal({ student, sections, onClose, onSave }) {
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Grade Level <span className="text-red-500">*</span>
             </label>
-            <select className="input-field" value={form.gradeLevel} onChange={set('gradeLevel')}>
+            <select
+              className={`input-field ${form.sectionId ? 'bg-blue-50 border-blue-200 text-blue-800 font-semibold' : ''}`}
+              value={form.gradeLevel}
+              onChange={set('gradeLevel')}
+            >
               <option value="Grade 11">Grade 11</option>
               <option value="Grade 12">Grade 12</option>
             </select>
+            {form.sectionId && (
+              <p className="text-xs text-blue-500 mt-1 font-medium">✓ Auto-filled from section</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Strand <span className="text-red-500">*</span>
             </label>
-            <select className="input-field" value={form.strand} onChange={set('strand')}>
+            <select
+              className={`input-field ${form.sectionId ? 'bg-blue-50 border-blue-200 text-blue-800 font-semibold' : ''}`}
+              value={form.strand}
+              onChange={set('strand')}
+            >
               {['STEM','HUMSS','ABM','TVL','GAS'].map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {form.sectionId && (
+              <p className="text-xs text-blue-500 mt-1 font-medium">✓ Auto-filled from section</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Section</label>
-            <select className="input-field" value={form.sectionId} onChange={set('sectionId')}>
+          <div className="col-span-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Section
+              <span className="ml-2 text-xs font-normal text-primary">(auto-fills Grade & Strand)</span>
+            </label>
+            <select className="input-field" value={form.sectionId} onChange={handleSectionChange}>
               <option value="">— Select Section —</option>
               {(sections || []).map(s => (
-                <option key={s.id} value={s.id}>{s.grade_level} · {s.section_name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.grade_level} · {s.section_name} ({s.strand})
+                </option>
               ))}
             </select>
           </div>
