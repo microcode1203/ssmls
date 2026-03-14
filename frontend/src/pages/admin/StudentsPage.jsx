@@ -1,0 +1,190 @@
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '../../api/client'
+import toast from 'react-hot-toast'
+import { Plus, Search, Filter, Edit2, Trash2, X, User } from 'lucide-react'
+
+function StudentModal({ student, sections, onClose, onSave }) {
+  const [form, setForm] = useState(student || {
+    firstName:'', lastName:'', email:'', lrn:'', gradeLevel:'Grade 11',
+    sectionId:'', strand:'STEM', phone:'', guardianName:'', guardianPhone:''
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      if (student?.id) {
+        await api.put(`/students/${student.id}`, form)
+        toast.success('Student updated.')
+      } else {
+        await api.post('/students', form)
+        toast.success('Student created.')
+      }
+      onSave()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save student.')
+    } finally { setSaving(false) }
+  }
+
+  const F = ({ label, name, type='text', options, required }) => (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      {options
+        ? <select className="input-field" value={form[name]||''} onChange={e=>setForm(p=>({...p,[name]:e.target.value}))}>
+            <option value="">— Select —</option>
+            {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        : <input type={type} className="input-field" value={form[name]||''} onChange={e=>setForm(p=>({...p,[name]:e.target.value}))} required={required} />
+      }
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <h2 className="font-display font-bold text-slate-900">{student ? 'Edit Student' : 'Add Student'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-4">
+          <F label="First Name" name="firstName" required />
+          <F label="Last Name"  name="lastName"  required />
+          {!student && <F label="Email"    name="email"    type="email" required />}
+          <F label="LRN (12 digits)" name="lrn" required />
+          <F label="Grade Level" name="gradeLevel" options={[{value:'Grade 11',label:'Grade 11'},{value:'Grade 12',label:'Grade 12'}]} required />
+          <F label="Strand" name="strand" options={['STEM','HUMSS','ABM','TVL','GAS'].map(s=>({value:s,label:s}))} required />
+          <F label="Section" name="sectionId" options={(sections||[]).map(s=>({value:s.id, label:`${s.grade_level} · ${s.section_name}`}))} />
+          <F label="Phone"   name="phone" />
+          <F label="Guardian Name"  name="guardianName" />
+          <F label="Guardian Phone" name="guardianPhone" />
+          <div className="col-span-2 flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
+              {saving ? 'Saving…' : student ? 'Update Student' : 'Add Student'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default function StudentsPage() {
+  const qc = useQueryClient()
+  const [search,  setSearch]  = useState('')
+  const [grade,   setGrade]   = useState('')
+  const [modal,   setModal]   = useState(null) // null | 'add' | student object
+
+  const { data: students, isLoading } = useQuery({
+    queryKey: ['students', search, grade],
+    queryFn: () => api.get('/students', { params: { search, gradeLevel: grade } }).then(r => r.data.data),
+    keepPreviousData: true,
+  })
+  const { data: sections } = useQuery({
+    queryKey: ['sections'],
+    queryFn: () => api.get('/sections').then(r => r.data.data),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => api.delete(`/students/${id}`),
+    onSuccess: () => { toast.success('Student deactivated.'); qc.invalidateQueries(['students']) },
+    onError: () => toast.error('Failed to delete student.'),
+  })
+
+  const handleDelete = (s) => {
+    if (!confirm(`Deactivate ${s.first_name} ${s.last_name}?`)) return
+    deleteMut.mutate(s.id)
+  }
+
+  const statusBadge = { active:'badge-green', inactive:'badge-slate', transferred:'badge-amber', graduated:'badge-blue' }
+
+  return (
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="page-title">Students</h1>
+          <p className="text-slate-500 text-sm mt-1">{students?.length || 0} students found</p>
+        </div>
+        <button onClick={() => setModal('add')} className="btn-primary">
+          <Plus size={16} /> Add Student
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="card p-4 mb-5 flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            className="input-field pl-9"
+            placeholder="Search by name or LRN…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <select className="input-field w-40" value={grade} onChange={e => setGrade(e.target.value)}>
+          <option value="">All Grades</option>
+          <option>Grade 11</option>
+          <option>Grade 12</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="card overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  {['Student','LRN','Grade & Section','Strand','Status','Actions'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {(students||[]).map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50 group">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                          {s.first_name?.[0]}{s.last_name?.[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800">{s.first_name} {s.last_name}</p>
+                          <p className="text-xs text-slate-400">{s.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{s.lrn}</td>
+                    <td className="px-4 py-3 text-slate-600">{s.grade_level} · {s.section_name||'—'}</td>
+                    <td className="px-4 py-3"><span className="badge-blue">{s.strand}</span></td>
+                    <td className="px-4 py-3"><span className={statusBadge[s.status]||'badge-slate'}>{s.status}</span></td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setModal(s)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDelete(s)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!students?.length && <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">No students found.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {modal && (
+        <StudentModal
+          student={modal === 'add' ? null : modal}
+          sections={sections}
+          onClose={() => setModal(null)}
+          onSave={() => { setModal(null); qc.invalidateQueries(['students']) }}
+        />
+      )}
+    </div>
+  )
+}
