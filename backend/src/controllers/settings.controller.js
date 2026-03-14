@@ -1,30 +1,66 @@
-const { pool } = require('../config/database');
+const { pool } = require('./backend/src/config/database');
 const bcrypt = require('bcryptjs');
-const { logAction } = require('../utils/audit');
+const { logAction } = require('./backend/src/utils/audit');
 
-// Run once to ensure all columns exist
-const ensureColumns = async () => {
+// Safe column adder — works on ALL MySQL versions
+const safeAddColumn = async (table, column, definition) => {
   try {
-    await pool.execute(`ALTER TABLE users     ADD COLUMN IF NOT EXISTS avatar_url  VARCHAR(500) NULL`);
-    await pool.execute(`ALTER TABLE students  ADD COLUMN IF NOT EXISTS birthday    DATE NULL`);
-    await pool.execute(`ALTER TABLE students  ADD COLUMN IF NOT EXISTS address     TEXT NULL`);
-    await pool.execute(`ALTER TABLE teachers  ADD COLUMN IF NOT EXISTS bio         TEXT NULL`);
-  } catch (err) {
-    // Ignore if columns already exist
-    if (!err.message.includes('Duplicate column')) {
-      console.warn('ensureColumns warning:', err.message);
+    // Check if column exists first
+    const [rows] = await pool.execute(
+      `SELECT COUNT(*) as cnt
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME   = ?
+         AND COLUMN_NAME  = ?`,
+      [table, column]
+    );
+    if (rows[0].cnt === 0) {
+      await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+      console.log(`✅ Added column ${table}.${column}`);
     }
+  } catch (err) {
+    console.warn(`⚠️  safeAddColumn(${table}.${column}):`, err.message);
   }
+};
+
+const ensureColumns = async () => {
+  await safeAddColumn('users',    'avatar_url', 'VARCHAR(500) NULL');
+  await safeAddColumn('students', 'birthday',   'DATE NULL');
+  await safeAddColumn('students', 'address',    'TEXT NULL');
+  await safeAddColumn('teachers', 'bio',        'TEXT NULL');
 };
 ensureColumns();
 
 // GET /api/settings/profile
 const getProfile = async (req, res) => {
   try {
+    // Build query dynamically based on what columns exist
+    const [cols] = await pool.execute(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'`
+    );
+    const userCols = cols.map(c => c.COLUMN_NAME);
+    const hasAvatar = userCols.includes('avatar_url');
+
+    const [sCols] = await pool.execute(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='students'`
+    );
+    const stuCols = sCols.map(c => c.COLUMN_NAME);
+    const hasBirthday = stuCols.includes('birthday');
+    const hasAddress  = stuCols.includes('address');
+
+    const [tCols] = await pool.execute(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='teachers'`
+    );
+    const teachCols = tCols.map(c => c.COLUMN_NAME);
+    const hasBio = teachCols.includes('bio');
+
     const [rows] = await pool.execute(
       `SELECT
          u.id, u.first_name, u.last_name, u.email, u.role, u.last_login,
-         IFNULL(u.avatar_url, '')          AS avatar_url,
+         ${hasAvatar ? "IFNULL(u.avatar_url,'')" : "''"} AS avatar_url,
          s.id                              AS student_db_id,
          IFNULL(s.lrn,           '')       AS lrn,
          IFNULL(s.grade_level,   '')       AS grade_level,
@@ -32,15 +68,15 @@ const getProfile = async (req, res) => {
          IFNULL(s.phone,         '')       AS student_phone,
          IFNULL(s.guardian_name, '')       AS guardian_name,
          IFNULL(s.guardian_phone,'')       AS guardian_phone,
-         IFNULL(s.address,       '')       AS address,
-         IFNULL(s.birthday,      '')       AS birthday,
+         ${hasAddress  ? "IFNULL(s.address,'')"  : "''"} AS address,
+         ${hasBirthday ? "IFNULL(s.birthday,'')" : "''"} AS birthday,
          IFNULL(sec.section_name,'')       AS section_name,
-         IFNULL(sec.id,          0)        AS section_id,
+         IFNULL(sec.id, 0)                 AS section_id,
          t.id                              AS teacher_db_id,
          IFNULL(t.employee_id,   '')       AS employee_id,
          IFNULL(t.department,    '')       AS department,
          IFNULL(t.phone,         '')       AS teacher_phone,
-         IFNULL(t.bio,           '')       AS bio
+         ${hasBio ? "IFNULL(t.bio,'')" : "''"} AS bio
        FROM users u
        LEFT JOIN students s   ON s.user_id  = u.id
        LEFT JOIN sections sec ON sec.id     = s.section_id
@@ -62,29 +98,27 @@ const getProfile = async (req, res) => {
         email:        u.email,
         role:         u.role,
         lastLogin:    u.last_login,
-        avatarUrl:    u.avatar_url || null,
-        // student
-        studentId:    u.student_db_id,
-        lrn:          u.lrn          || null,
-        gradeLevel:   u.grade_level  || null,
-        strand:       u.strand       || null,
-        sectionName:  u.section_name || null,
-        sectionId:    u.section_id   || null,
-        birthday:     u.birthday     || null,
-        address:      u.address      || null,
+        avatarUrl:    u.avatar_url    || null,
+        studentId:    u.student_db_id || null,
+        lrn:          u.lrn           || null,
+        gradeLevel:   u.grade_level   || null,
+        strand:       u.strand        || null,
+        sectionName:  u.section_name  || null,
+        sectionId:    u.section_id    || null,
+        birthday:     u.birthday      || null,
+        address:      u.address       || null,
         guardianName: u.guardian_name  || null,
         guardianPhone:u.guardian_phone || null,
         studentPhone: u.student_phone  || null,
-        // teacher
-        teacherId:    u.teacher_db_id,
-        employeeId:   u.employee_id  || null,
-        department:   u.department   || null,
-        teacherPhone: u.teacher_phone|| null,
-        bio:          u.bio          || null,
+        teacherId:    u.teacher_db_id || null,
+        employeeId:   u.employee_id   || null,
+        department:   u.department    || null,
+        teacherPhone: u.teacher_phone || null,
+        bio:          u.bio           || null,
       }
     });
   } catch (err) {
-    console.error('getProfile error:', err);
+    console.error('getProfile error:', err.message);
     res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 };
@@ -110,7 +144,7 @@ const changePassword = async (req, res) => {
     await logAction(req.user.id, 'CHANGE_PASSWORD', 'users', req.user.id, null, req.ip);
     res.json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {
-    console.error('changePassword error:', err);
+    console.error('changePassword error:', err.message);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -121,49 +155,50 @@ const updateAvatar = async (req, res) => {
     const { avatarUrl } = req.body;
     if (!avatarUrl)
       return res.status(400).json({ success: false, message: 'Avatar URL required.' });
-
-    await pool.execute(
-      `UPDATE users SET avatar_url = ? WHERE id = ?`, [avatarUrl, req.user.id]
-    );
+    await safeAddColumn('users', 'avatar_url', 'VARCHAR(500) NULL');
+    await pool.execute(`UPDATE users SET avatar_url = ? WHERE id = ?`, [avatarUrl, req.user.id]);
     await logAction(req.user.id, 'UPDATE_AVATAR', 'users', req.user.id, null, req.ip);
     res.json({ success: true, message: 'Profile photo updated.' });
   } catch (err) {
-    console.error('updateAvatar error:', err);
+    console.error('updateAvatar error:', err.message);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
-// PUT /api/settings/student-profile  (student only)
+// PUT /api/settings/student-profile
 const updateStudentProfile = async (req, res) => {
   try {
     const { birthday, address, phone, guardianName, guardianPhone } = req.body;
+    await safeAddColumn('students', 'birthday', 'DATE NULL');
+    await safeAddColumn('students', 'address',  'TEXT NULL');
     await pool.execute(
       `UPDATE students
-       SET birthday = ?, address = ?, phone = ?, guardian_name = ?, guardian_phone = ?
-       WHERE user_id = ?`,
-      [birthday || null, address || null, phone || null,
-       guardianName || null, guardianPhone || null, req.user.id]
+       SET birthday=?, address=?, phone=?, guardian_name=?, guardian_phone=?
+       WHERE user_id=?`,
+      [birthday||null, address||null, phone||null,
+       guardianName||null, guardianPhone||null, req.user.id]
     );
     await logAction(req.user.id, 'UPDATE_STUDENT_PROFILE', 'students', null, null, req.ip);
     res.json({ success: true, message: 'Profile updated successfully.' });
   } catch (err) {
-    console.error('updateStudentProfile error:', err);
+    console.error('updateStudentProfile error:', err.message);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
-// PUT /api/settings/teacher-profile  (teacher only)
+// PUT /api/settings/teacher-profile
 const updateTeacherProfile = async (req, res) => {
   try {
     const { phone, department, bio } = req.body;
+    await safeAddColumn('teachers', 'bio', 'TEXT NULL');
     await pool.execute(
-      `UPDATE teachers SET phone = ?, department = ?, bio = ? WHERE user_id = ?`,
-      [phone || null, department || null, bio || null, req.user.id]
+      `UPDATE teachers SET phone=?, department=?, bio=? WHERE user_id=?`,
+      [phone||null, department||null, bio||null, req.user.id]
     );
     await logAction(req.user.id, 'UPDATE_TEACHER_PROFILE', 'teachers', null, null, req.ip);
     res.json({ success: true, message: 'Profile updated successfully.' });
   } catch (err) {
-    console.error('updateTeacherProfile error:', err);
+    console.error('updateTeacherProfile error:', err.message);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -172,4 +207,3 @@ module.exports = {
   getProfile, changePassword, updateAvatar,
   updateStudentProfile, updateTeacherProfile
 };
-
