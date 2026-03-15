@@ -116,6 +116,72 @@ const getDashboard = async (req, res) => {
         LIMIT 8
       `);
 
+      // Monthly attendance trend (last 6 months)
+      const [monthlyTrend] = await pool.execute(`
+        SELECT
+          DATE_FORMAT(c.class_date, '%b') AS month,
+          DATE_FORMAT(c.class_date, '%Y-%m') AS month_key,
+          COUNT(*) AS total,
+          SUM(a.status IN ('present','late')) AS attended,
+          ROUND(SUM(a.status IN ('present','late')) * 100.0 / NULLIF(COUNT(*),0),1) AS rate
+        FROM attendance a
+        JOIN classes c ON c.id = a.class_id
+        JOIN students s ON s.id = a.student_id
+        JOIN users u ON u.id = s.user_id
+        WHERE c.class_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+          AND u.is_active = 1
+        GROUP BY month_key, month
+        ORDER BY month_key ASC
+      `);
+
+      // Top absent students (at-risk)
+      const [atRiskStudents] = await pool.execute(`
+        SELECT u.first_name, u.middle_name, u.last_name,
+          s.grade_level, s.strand, sec.section_name,
+          COUNT(*) AS absences
+        FROM attendance a
+        JOIN students s ON s.id = a.student_id
+        JOIN users u ON u.id = s.user_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        WHERE a.status = 'absent' AND u.is_active = 1
+        GROUP BY s.id
+        ORDER BY absences DESC
+        LIMIT 5
+      `);
+
+      // Grade distribution (how many students per grade range)
+      const [gradeDistribution] = await pool.execute(`
+        SELECT
+          CASE
+            WHEN final_grade >= 90 THEN 'Outstanding'
+            WHEN final_grade >= 85 THEN 'Very Satisfactory'
+            WHEN final_grade >= 80 THEN 'Satisfactory'
+            WHEN final_grade >= 75 THEN 'Fairly Satisfactory'
+            ELSE 'Did Not Meet'
+          END AS category,
+          COUNT(*) AS count
+        FROM grades
+        WHERE final_grade IS NOT NULL
+        GROUP BY category
+        ORDER BY MIN(final_grade) DESC
+      `);
+
+      // Submission rate per assignment (last 5)
+      const [submissionStats] = await pool.execute(`
+        SELECT a.title, a.type,
+          COUNT(DISTINCT sub.id) AS submitted,
+          COUNT(DISTINCT st.id) AS enrolled
+        FROM assignments a
+        JOIN schedules sc ON sc.id = a.schedule_id
+        JOIN sections sec ON sec.id = sc.section_id
+        JOIN students st ON st.section_id = sec.id
+        LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = st.id
+        WHERE a.due_date <= NOW()
+        GROUP BY a.id
+        ORDER BY a.due_date DESC
+        LIMIT 5
+      `);
+
       return res.json({ success: true, data: {
         totals: {
           ...totals,
@@ -130,6 +196,10 @@ const getDashboard = async (req, res) => {
         gradeBreakdown,
         strandBreakdown,
         recentLogs,
+        monthlyTrend,
+        atRiskStudents,
+        gradeDistribution,
+        submissionStats,
       }});
     }
 
@@ -163,7 +233,38 @@ const getDashboard = async (req, res) => {
          WHERE s.teacher_id=? AND sub2.status='submitted'`,
         [teacherId]
       );
-      return res.json({ success:true, data:{ myClasses, attStats, pendingGradesCount: pendingGrades[0].count } });
+      // Weekly attendance chart for teacher
+      const [teacherWeeklyAtt] = await pool.execute(`
+        SELECT DATE_FORMAT(c.class_date,'%a') AS day,
+          COUNT(*) AS total,
+          SUM(a.status IN ('present','late')) AS attended
+        FROM attendance a
+        JOIN classes c ON c.id = a.class_id
+        JOIN schedules sc ON sc.id = c.schedule_id
+        WHERE sc.teacher_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY c.class_date ORDER BY c.class_date ASC
+      `, [teacherId]);
+
+      // Submission rate per assignment
+      const [teacherSubmissions] = await pool.execute(`
+        SELECT a.title, a.type,
+          COUNT(DISTINCT sub.id) AS submitted,
+          COUNT(DISTINCT st.id) AS enrolled
+        FROM assignments a
+        JOIN schedules sc ON sc.id = a.schedule_id
+        JOIN sections sec ON sec.id = sc.section_id
+        JOIN students st ON st.section_id = sec.id AND st.status = 'active'
+        LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = st.id
+        WHERE sc.teacher_id = ? AND a.due_date <= NOW()
+        GROUP BY a.id ORDER BY a.due_date DESC LIMIT 5
+      `, [teacherId]);
+
+      return res.json({ success:true, data:{
+        myClasses, attStats,
+        pendingGradesCount: pendingGrades[0].count,
+        teacherWeeklyAtt,
+        teacherSubmissions,
+      }});
     }
 
     if (role === 'student') {
@@ -195,7 +296,32 @@ const getDashboard = async (req, res) => {
          FROM attendance WHERE student_id=?`,
         [student.id]
       );
-      return res.json({ success:true, data:{ schedule, pendingAssignments, attSummary } });
+      // Monthly attendance trend
+      const [studentMonthlyAtt] = await pool.execute(`
+        SELECT DATE_FORMAT(c.class_date,'%b') AS month,
+          DATE_FORMAT(c.class_date,'%Y-%m') AS month_key,
+          SUM(a.status='present') AS present,
+          SUM(a.status='late') AS late,
+          SUM(a.status='absent') AS absent
+        FROM attendance a JOIN classes c ON c.id = a.class_id
+        WHERE a.student_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 4 MONTH)
+        GROUP BY month_key ORDER BY month_key ASC
+      `, [student.id]);
+
+      // Grades per subject
+      const [studentGrades] = await pool.execute(`
+        SELECT sub.name AS subject, g.quarter, g.final_grade, g.remarks
+        FROM grades g
+        JOIN schedules sc ON sc.id = g.schedule_id
+        JOIN subjects sub ON sub.id = sc.subject_id
+        WHERE g.student_id = ?
+        ORDER BY sub.name, g.quarter
+      `, [student.id]);
+
+      return res.json({ success:true, data:{
+        schedule, pendingAssignments, attSummary,
+        studentMonthlyAtt, studentGrades,
+      }});
     }
   } catch (err) {
     console.error(err);
