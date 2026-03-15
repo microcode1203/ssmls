@@ -66,7 +66,11 @@ async function seed() {
     };
 
     await addCol('users',    'middle_name', 'VARCHAR(80) NULL AFTER first_name');
-    await addCol('students', 'birthday',    'DATE NULL');
+    await addCol('students',    'birthday',    'DATE NULL');
+    await addCol('submissions', 'file_data',   'LONGTEXT NULL');
+    await addCol('submissions', 'file_name',   'VARCHAR(255) NULL');
+    await addCol('submissions', 'file_type',   'VARCHAR(100) NULL');
+    await addCol('submissions', 'file_size',   'INT NULL');
     await addCol('students', 'birthplace',  'VARCHAR(120) NULL');
 
     // ── Step 2: Add UNIQUE constraint to subjects if missing ──────────────────

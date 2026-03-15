@@ -295,16 +295,40 @@ const createAssignment = async (req, res) => {
 };
 
 const submitAssignment = async (req, res) => {
-  const { assignmentId, textAnswer } = req.body;
-  const [sRows] = await pool.execute(`SELECT id FROM students WHERE user_id=?`, [req.user.id]);
-  if (!sRows.length) return res.status(403).json({ success:false, message:'Student not found.' });
-  await pool.execute(
-    `INSERT INTO submissions (assignment_id, student_id, text_answer, status)
-     VALUES (?,?,?,'submitted')
-     ON DUPLICATE KEY UPDATE text_answer=?, submitted_at=NOW(), status='submitted'`,
-    [assignmentId, sRows[0].id, textAnswer||null, textAnswer||null]
-  );
-  res.json({ success:true, message:'Assignment submitted.' });
+  try {
+    const { assignmentId, textAnswer, fileData, fileName, fileType, fileSize } = req.body;
+
+    // Validate file size — max 3MB base64 (~2MB actual file)
+    if (fileData && fileData.length > 4000000) {
+      return res.status(400).json({ success: false, message: 'File too large. Maximum size is 2MB.' });
+    }
+
+    const [sRows] = await pool.execute(`SELECT id FROM students WHERE user_id=?`, [req.user.id]);
+    if (!sRows.length) return res.status(403).json({ success:false, message:'Student not found.' });
+
+    await pool.execute(
+      `INSERT INTO submissions
+         (assignment_id, student_id, text_answer, file_data, file_name, file_type, file_size, status)
+       VALUES (?,?,?,?,?,?,?,'submitted')
+       ON DUPLICATE KEY UPDATE
+         text_answer=VALUES(text_answer),
+         file_data=VALUES(file_data),
+         file_name=VALUES(file_name),
+         file_type=VALUES(file_type),
+         file_size=VALUES(file_size),
+         submitted_at=NOW(),
+         status='submitted'`,
+      [
+        assignmentId, sRows[0].id,
+        textAnswer||null,
+        fileData||null, fileName||null, fileType||null, fileSize||null
+      ]
+    );
+    res.json({ success:true, message:'Assignment submitted successfully.' });
+  } catch (err) {
+    console.error('Submit error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 const gradeSubmission = async (req, res) => {

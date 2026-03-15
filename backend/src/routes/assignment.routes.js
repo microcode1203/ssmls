@@ -16,6 +16,7 @@ router.get('/:id/submissions', authorize('teacher','admin'), async (req, res) =>
     const [rows] = await pool.execute(
       `SELECT sub.id, sub.text_answer, sub.score, sub.feedback,
          sub.status, sub.submitted_at, sub.graded_at,
+         sub.file_name, sub.file_type, sub.file_size, sub.file_data,
          u.first_name, u.last_name, st.lrn
        FROM submissions sub
        JOIN students st ON st.id = sub.student_id

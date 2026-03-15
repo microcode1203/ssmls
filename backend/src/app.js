@@ -64,7 +64,7 @@ app.use(cors({
 // ═══════════════════════════════════════════════════════════════
 //  SECURITY LAYER 3 — Body size limits (prevent payload attacks)
 // ═══════════════════════════════════════════════════════════════
-app.use(express.json({ limit: '2mb' }));        // was 10mb — too generous
+app.use(express.json({ limit: '5mb' }));        // was 10mb — too generous
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // ═══════════════════════════════════════════════════════════════
