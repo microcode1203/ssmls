@@ -148,9 +148,7 @@ export default function SchedulesPage() {
   const [modal, setModal] = useState(false)
   const [view,  setView]  = useState('list') // list | grid
 
-  const { data: sectionsRaw } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
-  // Deduplicate sections by id to prevent duplicates from appearing in dropdowns
-  const sections = sectionsRaw ? [...new Map(sectionsRaw.map(s => [s.id, s])).values()] : []
+  const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
   const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
   const { data: teachers  } = useQuery({ queryKey:['teachers'], queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
 

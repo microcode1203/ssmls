@@ -35,6 +35,7 @@ const migrations = [
     adviser_id INT NULL,
     school_year VARCHAR(20) NOT NULL DEFAULT '2025-2026',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_section_grade (section_name, grade_level),
     FOREIGN KEY (adviser_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_grade (grade_level)
   )`,
