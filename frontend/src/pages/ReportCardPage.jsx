@@ -69,10 +69,15 @@ export default function ReportCardPage() {
           {/* Header */}
           <div className="p-6 text-center border-b border-slate-100 bg-slate-50">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Republic of the Philippines · Department of Education</p>
-            <h2 className="font-display text-2xl font-bold text-slate-900 mt-1">{report.schoolConfig?.school_name || 'Senior High School'}</h2>
-            <p className="text-sm text-slate-500">{report.schoolConfig?.school_address}</p>
+            <h2 className="font-display text-2xl font-bold text-slate-900 mt-1">
+              {report.schoolConfig?.school_name || 'Senior High School — SSMLS'}
+            </h2>
+            {report.schoolConfig?.school_address && (
+              <p className="text-sm text-slate-500">{report.schoolConfig.school_address}</p>
+            )}
             <div className="mt-3 inline-block bg-primary/10 text-primary font-bold text-sm px-4 py-1 rounded-full">
-              School Year {report.schoolConfig?.school_year} · {report.schoolConfig?.semester}
+              School Year {report.schoolConfig?.school_year || new Date().getFullYear() + '–' + (new Date().getFullYear()+1)}
+              {report.schoolConfig?.semester ? ' · ' + report.schoolConfig.semester : ''}
             </div>
           </div>
 
