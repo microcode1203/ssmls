@@ -110,12 +110,42 @@ const updateStudent = async (req, res) => {
 // DELETE /api/students/:id  (admin)
 const deleteStudent = async (req, res) => {
   try {
-    const [st] = await pool.execute(`SELECT user_id FROM students WHERE id=?`, [req.params.id]);
-    if (!st.length) return res.status(404).json({ success: false, message: 'Student not found.' });
-    await pool.execute(`UPDATE users SET is_active=0 WHERE id=?`, [st[0].user_id]);
-    await logAction(req.user.id, 'DEACTIVATE_STUDENT', 'students', req.params.id, null, req.ip);
-    res.json({ success: true, message: 'Student deactivated.' });
+    const { id } = req.params;
+
+    // Get student details before deactivating
+    const [rows] = await pool.execute(
+      `SELECT s.id, s.lrn, s.user_id, u.email
+       FROM students s JOIN users u ON u.id = s.user_id
+       WHERE s.id = ?`,
+      [id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ success: false, message: 'Student not found.' });
+
+    const { user_id, email, lrn } = rows[0];
+
+    // Append a unique suffix to free up email and LRN
+    // so the same email/LRN can be reused when adding a new student
+    const suffix = '_deleted_' + Date.now();
+    const freedEmail = email + suffix;
+    const freedLrn   = lrn   + suffix;
+
+    // Deactivate and free up the unique email
+    await pool.execute(
+      'UPDATE users SET is_active = 0, email = ? WHERE id = ?',
+      [freedEmail, user_id]
+    );
+
+    // Free up the unique LRN and mark student inactive
+    await pool.execute(
+      'UPDATE students SET lrn = ?, status = ? WHERE id = ?',
+      [freedLrn, 'inactive', id]
+    );
+
+    await logAction(req.user.id, 'DEACTIVATE_STUDENT', 'students', id, { email, lrn }, req.ip);
+    res.json({ success: true, message: 'Student account deactivated.' });
   } catch (err) {
+    console.error('deleteStudent error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

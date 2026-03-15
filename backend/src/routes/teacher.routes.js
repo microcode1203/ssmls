@@ -94,14 +94,26 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
       });
     }
 
-    // Deactivate user account
-    await pool.execute(`UPDATE users SET is_active=0 WHERE id=?`, [teacher.user_id]);
+    // Get teacher's email before deactivating
+    const [userRows] = await pool.execute(
+      'SELECT email FROM users WHERE id = ?', [teacher.user_id]
+    );
+    const teacherEmail = userRows[0]?.email || '';
+
+    // Append suffix to free up email (so it can be reused)
+    const suffix = '_deleted_' + Date.now();
+    const freedEmail = teacherEmail + suffix;
+
+    await pool.execute(
+      'UPDATE users SET is_active = 0, email = ? WHERE id = ?',
+      [freedEmail, teacher.user_id]
+    );
     await logAction(
       req.user.id, 'DELETE_TEACHER', 'teachers', id,
-      { name: `${teacher.first_name} ${teacher.last_name}` }, req.ip
+      { name: teacher.first_name + ' ' + teacher.last_name }, req.ip
     );
 
-    res.json({ success: true, message: `Teacher account deactivated successfully.` });
+    res.json({ success: true, message: 'Teacher account deactivated successfully.' });
   } catch (err) {
     console.error('Delete teacher error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
