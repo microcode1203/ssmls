@@ -7,24 +7,39 @@ router.use(authenticate);
 
 // GET student report card data (all grades for a student, formatted for PDF)
 router.get('/report-card/:studentId', async (req, res) => {
-  // Students can only view their own report card
-  if (req.user.role === 'student') {
-    const [s] = await pool.execute(`SELECT id FROM students WHERE user_id=?`, [req.user.id]);
-    if (!s.length || String(s[0].id) !== String(req.params.studentId)) {
-      return res.status(403).json({ success: false, message: 'Access denied.' });
-    }
-  }
   try {
+    // Students can only view their own report card
+    if (req.user.role === 'student') {
+      const [s] = await pool.execute(`SELECT id FROM students WHERE user_id=?`, [req.user.id]);
+      if (!s.length || String(s[0].id) !== String(req.params.studentId)) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+    }
+
     const { studentId } = req.params;
 
-    const [studentInfo] = await pool.execute(
-      `SELECT s.*, u.first_name, u.middle_name, u.last_name, u.email,
-         sec.section_name, sec.strand, sec.grade_level as section_grade
-       FROM students s JOIN users u ON u.id=s.user_id
-       LEFT JOIN sections sec ON sec.id=s.section_id
-       WHERE s.id=?`, [studentId]
-    );
-    if (!studentInfo.length) return res.status(404).json({ success: false, message: 'Student not found.' });
+    // Try with middle_name first, fall back if column doesn't exist yet
+    let studentInfo;
+    try {
+      [studentInfo] = await pool.execute(
+        `SELECT s.*, u.first_name, u.middle_name, u.last_name, u.email,
+           sec.section_name, sec.strand, sec.grade_level as section_grade
+         FROM students s JOIN users u ON u.id=s.user_id
+         LEFT JOIN sections sec ON sec.id=s.section_id
+         WHERE s.id=?`, [studentId]
+      );
+    } catch (colErr) {
+      // middle_name column doesn't exist yet — query without it
+      [studentInfo] = await pool.execute(
+        `SELECT s.*, u.first_name, u.last_name, u.email,
+           sec.section_name, sec.strand, sec.grade_level as section_grade
+         FROM students s JOIN users u ON u.id=s.user_id
+         LEFT JOIN sections sec ON sec.id=s.section_id
+         WHERE s.id=?`, [studentId]
+      );
+    }
+    if (!studentInfo || !studentInfo.length)
+      return res.status(404).json({ success: false, message: 'Student not found.' });
 
     const [grades] = await pool.execute(
       `SELECT g.*, sub.name as subject_name, sub.code as subject_code, sub.units
@@ -86,8 +101,8 @@ router.get('/report-card/:studentId', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    console.error('Report card error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 });
 
