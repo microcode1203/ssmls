@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
 import { Plus, X, Users, Edit2, Trash2, School, GraduationCap } from 'lucide-react'
+import Modal from '../../components/ui/Modal'
 
 // ─── Modal — defined OUTSIDE to prevent focus loss ───────────────────────────
 function SectionModal({ section, onClose, onSave }) {
@@ -15,17 +16,6 @@ function SectionModal({ section, onClose, onSave }) {
  strand: section?.strand || 'STEM',
  })
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
 
  const isEdit = !!section
 
@@ -59,7 +49,7 @@ function SectionModal({ section, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
@@ -164,7 +154,7 @@ function SectionModal({ section, onClose, onSave }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 
@@ -182,7 +172,7 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
  }, [deleting, onConfirm, onClose])
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
  <div className="flex flex-col items-center text-center gap-3 mb-6">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
@@ -221,7 +211,7 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
  </button>
  </div>
  </div>
- </div>
+ </Modal>
  )
 }
 

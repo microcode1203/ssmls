@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { TableSkeleton } from '../components/ui/Skeleton'
+import Modal from '../components/ui/Modal'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' }
@@ -47,18 +48,6 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  const [saving, setSaving] = useState(false)
  const [conflicts, setConflicts] = useState({}) // { day: message }
  const [saved, setSaved] = useState([])
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
 
@@ -194,7 +183,7 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[94vh] flex flex-col">
 
  {/* Header */}
@@ -477,7 +466,7 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  }
  </div>
  </div>
- </div>
+ </Modal>
  )
 }
 

@@ -7,6 +7,7 @@ import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { BarChart3, X, Users, BookOpen, GraduationCap } from 'lucide-react'
+import Modal from '../components/ui/Modal'
 
 const dedupeSchedules = (schedules) => {
  const seen = new Map()
@@ -31,18 +32,6 @@ function GradeModal({ mySchedules, onClose, onSave }) {
  const [scores, setScores] = useState({ writtenWorks: '', performanceTasks: '', quarterlyAssessment: '' })
  const [preview, setPreview] = useState(null)
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const selectedSchedule = (mySchedules || []).find(s => String(s.id) === String(scheduleId))
 
@@ -97,7 +86,7 @@ function GradeModal({ mySchedules, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -215,7 +204,7 @@ function GradeModal({ mySchedules, onClose, onSave }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 
