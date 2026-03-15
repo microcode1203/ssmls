@@ -374,8 +374,8 @@ export default function GradesPage() {
                   onChange={e => { setSelectedSchedule(e.target.value); setSelectedStudent('') }}
                 >
                   <option value="">All Subjects</option>
-                  {filteredSchedules.map(s => (
-                    <option key={s.id} value={s.id}>
+                  {dedupeSchedules(filteredSchedules).map(s => (
+                    <option key={s.subject_id + '_' + s.section_id} value={s.id}>
                       {s.subject_name || s.subject} · {s.section_name}
                     </option>
                   ))}
