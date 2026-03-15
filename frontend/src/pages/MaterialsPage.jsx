@@ -60,8 +60,8 @@ export default function MaterialsPage() {
 
   const { data: mySchedules } = useQuery({
     queryKey: ['my-schedules-mat'],
-    queryFn:  () => api.get(`/schedules/teacher/${user.teacherId}`).then(r => r.data.data),
-    enabled:  !!user?.teacherId,
+    queryFn:  () => api.get('/schedules/my').then(r => r.data.data),
+    enabled:  !!user && user.role === 'teacher',
   })
 
   const handleSave = async (e) => {

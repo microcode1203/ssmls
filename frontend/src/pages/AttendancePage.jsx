@@ -44,8 +44,8 @@ function QRGenerator() {
   useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
 
   useEffect(() => {
-    api.get('/dashboard')
-      .then(res => { setSchedules(res.data.data?.myClasses || []); setLoadingSch(false) })
+    api.get('/schedules/my')
+      .then(res => { setSchedules(res.data.data || []); setLoadingSch(false) })
       .catch(() => setLoadingSch(false))
   }, [])
 

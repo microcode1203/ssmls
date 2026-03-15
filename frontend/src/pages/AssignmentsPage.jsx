@@ -554,9 +554,7 @@ export default function AssignmentsPage() {
 
   const { data: mySchedules } = useQuery({
     queryKey: ['my-schedules-assignments'],
-    queryFn:  () => user?.teacherId
-      ? api.get(`/schedules/teacher/${user.teacherId}`).then(r => r.data.data)
-      : Promise.resolve([]),
+    queryFn:  () => api.get('/schedules/my').then(r => r.data.data),
     enabled: user?.role === 'teacher',
   })
 
