@@ -9,7 +9,38 @@ import {
   Shield, BadgeCheck, Mail, Hash
 } from 'lucide-react'
 
-// ─── Avatar Upload Component ────────────────────────────────────────────────
+// =============================================================================
+// All sub-components are defined at the TOP LEVEL of the file.
+// NEVER define a component inside another component — it causes
+// React to unmount/remount on every keystroke, losing focus.
+// =============================================================================
+
+// ─── Single Password Input (defined outside everything) ──────────────────────
+function PwInput({ label, name, showKey, form, setForm, show, setShow }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
+      <div className="relative">
+        <input
+          type={show[showKey] ? 'text' : 'password'}
+          className="input-field pr-10"
+          value={form[name]}
+          onChange={e => setForm(p => ({ ...p, [name]: e.target.value }))}
+          required
+        />
+        <button
+          type="button"
+          onClick={() => setShow(p => ({ ...p, [showKey]: !p[showKey] }))}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          {show[showKey] ? <EyeOff size={16}/> : <Eye size={16}/>}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Avatar Section ───────────────────────────────────────────────────────────
 function AvatarSection({ profile, onUpdate }) {
   const [uploading, setUploading] = useState(false)
   const [preview,   setPreview]   = useState(profile?.avatarUrl || null)
@@ -21,13 +52,9 @@ function AvatarSection({ profile, onUpdate }) {
   const handleFileChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024)
-      return toast.error('Image must be under 2MB.')
-    if (!file.type.startsWith('image/'))
-      return toast.error('Please select an image file.')
-
+    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB.')
+    if (!file.type.startsWith('image/')) return toast.error('Please select an image file.')
     setUploading(true)
-    // Convert to base64 data URL (no external upload service needed)
     const reader = new FileReader()
     reader.onload = async (ev) => {
       const dataUrl = ev.target.result
@@ -39,9 +66,7 @@ function AvatarSection({ profile, onUpdate }) {
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to update photo.')
         setPreview(profile?.avatarUrl || null)
-      } finally {
-        setUploading(false)
-      }
+      } finally { setUploading(false) }
     }
     reader.readAsDataURL(file)
   }
@@ -55,36 +80,33 @@ function AvatarSection({ profile, onUpdate }) {
 
   return (
     <div className="card p-6 flex flex-col items-center text-center gap-4">
-      {/* Avatar */}
       <div className="relative">
         <div className={`w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden
           ${!preview ? `bg-gradient-to-br ${roleColors[profile?.role] || 'from-slate-400 to-slate-600'}` : ''}`}>
           {preview
-            ? <img src={preview} alt="avatar" className="w-full h-full object-cover" />
+            ? <img src={preview} alt="avatar" className="w-full h-full object-cover"/>
             : <span className="text-white text-2xl font-display font-bold">{getInitials()}</span>
           }
         </div>
-        {/* Camera button */}
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary-700 transition-colors border-2 border-white"
         >
           {uploading
-            ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            : <Camera size={14} className="text-white" />
+            ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+            : <Camera size={14} className="text-white"/>
           }
         </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange}/>
       </div>
 
-      {/* Name & role */}
       <div>
         <h2 className="font-display font-bold text-slate-900 text-lg">
           {profile?.firstName} {profile?.lastName}
         </h2>
         <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1 inline-block
-          ${profile?.role==='admin' ? 'bg-purple-100 text-purple-700'
+          ${profile?.role==='admin'   ? 'bg-purple-100 text-purple-700'
           : profile?.role==='teacher' ? 'bg-blue-100 text-blue-700'
           : 'bg-green-100 text-green-700'}`}>
           {roleLabels[profile?.role]}
@@ -111,28 +133,27 @@ function AvatarSection({ profile, onUpdate }) {
         {profile?.lastLogin && (
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <Shield size={12} className="flex-shrink-0"/>
-            <span>Last login: {new Date(profile.lastLogin).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' })}</span>
+            <span>Last login: {new Date(profile.lastLogin).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</span>
           </div>
         )}
       </div>
-
       <p className="text-xs text-slate-400">Click the camera icon to change your photo. Max 2MB.</p>
     </div>
   )
 }
 
-// ─── Password Change Section ─────────────────────────────────────────────────
+// ─── Password Section ─────────────────────────────────────────────────────────
 function PasswordSection() {
-  const [form,    setForm]    = useState({ currentPassword:'', newPassword:'', confirmPassword:'' })
-  const [show,    setShow]    = useState({ current:false, new:false, confirm:false })
-  const [saving,  setSaving]  = useState(false)
+  const [form,   setForm]   = useState({ currentPassword:'', newPassword:'', confirmPassword:'' })
+  const [show,   setShow]   = useState({ current:false, new:false, confirm:false })
+  const [saving, setSaving] = useState(false)
 
-  const strength = (pw) => {
-    if (!pw) return { score: 0, label: '', color: '' }
+  const getStrength = (pw) => {
+    if (!pw) return { score:0, label:'', color:'' }
     let score = 0
-    if (pw.length >= 8) score++
-    if (/[A-Z]/.test(pw)) score++
-    if (/[0-9]/.test(pw)) score++
+    if (pw.length >= 8)        score++
+    if (/[A-Z]/.test(pw))      score++
+    if (/[0-9]/.test(pw))      score++
     if (/[^A-Za-z0-9]/.test(pw)) score++
     const map = [
       { label:'Too short', color:'bg-red-400' },
@@ -143,19 +164,17 @@ function PasswordSection() {
     ]
     return { score, ...map[score] }
   }
-  const pw = strength(form.newPassword)
+  const pwStrength = getStrength(form.newPassword)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.newPassword !== form.confirmPassword)
-      return toast.error('New passwords do not match.')
-    if (form.newPassword.length < 8)
-      return toast.error('Password must be at least 8 characters.')
+    if (form.newPassword !== form.confirmPassword) return toast.error('Passwords do not match.')
+    if (form.newPassword.length < 8) return toast.error('Password must be at least 8 characters.')
     setSaving(true)
     try {
       await api.put('/settings/password', {
         currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
+        newPassword:     form.newPassword,
       })
       toast.success('Password changed successfully!')
       setForm({ currentPassword:'', newPassword:'', confirmPassword:'' })
@@ -163,25 +182,6 @@ function PasswordSection() {
       toast.error(err.response?.data?.message || 'Failed to change password.')
     } finally { setSaving(false) }
   }
-
-  const PwInput = ({ name, label, showKey }) => (
-    <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
-      <div className="relative">
-        <input
-          type={show[showKey] ? 'text' : 'password'}
-          className="input-field pr-10"
-          value={form[name]}
-          onChange={e => setForm(p => ({ ...p, [name]: e.target.value }))}
-          required
-        />
-        <button type="button" onClick={() => setShow(p => ({ ...p, [showKey]: !p[showKey] }))}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-          {show[showKey] ? <EyeOff size={16}/> : <Eye size={16}/>}
-        </button>
-      </div>
-    </div>
-  )
 
   return (
     <div className="card p-6">
@@ -194,38 +194,41 @@ function PasswordSection() {
           <p className="text-xs text-slate-400">Keep your account secure</p>
         </div>
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        <PwInput name="currentPassword" label="Current Password" showKey="current"/>
-        <PwInput name="newPassword"     label="New Password"     showKey="new"/>
+        {/* Current Password */}
+        <PwInput label="Current Password" name="currentPassword" showKey="current"
+          form={form} setForm={setForm} show={show} setShow={setShow}/>
 
-        {/* Strength indicator */}
+        {/* New Password */}
+        <PwInput label="New Password" name="newPassword" showKey="new"
+          form={form} setForm={setForm} show={show} setShow={setShow}/>
+
+        {/* Strength bar */}
         {form.newPassword && (
           <div className="space-y-1.5">
             <div className="flex gap-1">
               {[1,2,3,4].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300
-                  ${i <= pw.score ? pw.color : 'bg-slate-100'}`}/>
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= pwStrength.score ? pwStrength.color : 'bg-slate-100'}`}/>
               ))}
             </div>
-            <p className={`text-xs font-semibold
-              ${pw.score <= 1 ? 'text-red-500' : pw.score === 2 ? 'text-amber-500'
-              : pw.score === 3 ? 'text-blue-500' : 'text-green-600'}`}>
-              {pw.label}
+            <p className={`text-xs font-semibold ${pwStrength.score<=1?'text-red-500':pwStrength.score===2?'text-amber-500':pwStrength.score===3?'text-blue-500':'text-green-600'}`}>
+              {pwStrength.label}
             </p>
           </div>
         )}
 
-        <PwInput name="confirmPassword" label="Confirm New Password" showKey="confirm"/>
+        {/* Confirm Password */}
+        <PwInput label="Confirm New Password" name="confirmPassword" showKey="confirm"
+          form={form} setForm={setForm} show={show} setShow={setShow}/>
 
-        {/* Match indicator */}
         {form.confirmPassword && (
-          <p className={`text-xs font-semibold flex items-center gap-1 ${form.newPassword === form.confirmPassword ? 'text-green-600' : 'text-red-500'}`}>
-            {form.newPassword === form.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+          <p className={`text-xs font-semibold ${form.newPassword===form.confirmPassword?'text-green-600':'text-red-500'}`}>
+            {form.newPassword===form.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
           </p>
         )}
 
-        <div className="pt-1 p-3 bg-slate-50 rounded-lg border border-slate-200">
+        {/* Requirements */}
+        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
           <p className="text-xs font-semibold text-slate-600 mb-1">Password requirements:</p>
           {[
             [/.{8,}/, 'At least 8 characters'],
@@ -234,14 +237,17 @@ function PasswordSection() {
             [/[^A-Za-z0-9]/, 'One special character (@, #, !, etc.)'],
           ].map(([regex, label]) => (
             <div key={label} className="flex items-center gap-1.5 mt-0.5">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${regex.test(form.newPassword) ? 'bg-green-500' : 'bg-slate-200'}`}/>
-              <span className={`text-xs ${regex.test(form.newPassword) ? 'text-green-700' : 'text-slate-400'}`}>{label}</span>
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${regex.test(form.newPassword)?'bg-green-500':'bg-slate-200'}`}/>
+              <span className={`text-xs ${regex.test(form.newPassword)?'text-green-700':'text-slate-400'}`}>{label}</span>
             </div>
           ))}
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full justify-center py-2.5">
-          {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</> : <><Save size={15}/>Update Password</>}
+          {saving
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
+            : <><Save size={15}/>Update Password</>
+          }
         </button>
       </form>
     </div>
@@ -251,13 +257,16 @@ function PasswordSection() {
 // ─── Student Info Section ─────────────────────────────────────────────────────
 function StudentInfoSection({ profile, onUpdate }) {
   const [form, setForm] = useState({
-    birthday:       profile?.birthday?.slice(0,10) || '',
-    address:        profile?.address        || '',
-    phone:          profile?.studentPhone   || '',
-    guardianName:   profile?.guardianName   || '',
-    guardianPhone:  profile?.guardianPhone  || '',
+    birthday:      profile?.birthday?.slice(0,10) || '',
+    address:       profile?.address               || '',
+    phone:         profile?.studentPhone          || '',
+    guardianName:  profile?.guardianName          || '',
+    guardianPhone: profile?.guardianPhone         || '',
   })
   const [saving, setSaving] = useState(false)
+
+  // Stable per-field handler — does NOT recreate any sub-component
+  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true)
@@ -278,7 +287,7 @@ function StudentInfoSection({ profile, onUpdate }) {
         </div>
         <div>
           <h3 className="font-display font-bold text-slate-900">Personal Information</h3>
-          <p className="text-xs text-slate-400">Your details visible to your adviser and admin</p>
+          <p className="text-xs text-slate-400">Visible to your adviser and admin</p>
         </div>
       </div>
 
@@ -307,21 +316,20 @@ function StudentInfoSection({ profile, onUpdate }) {
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             <span className="flex items-center gap-1.5"><Calendar size={13}/>Birthday</span>
           </label>
-          <input type="date" className="input-field" value={form.birthday} onChange={e=>setForm(p=>({...p,birthday:e.target.value}))}/>
+          <input type="date" className="input-field" value={form.birthday} onChange={set('birthday')}/>
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             <span className="flex items-center gap-1.5"><Phone size={13}/>Phone Number</span>
           </label>
-          <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/>
+          <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={set('phone')}/>
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             <span className="flex items-center gap-1.5"><MapPin size={13}/>Home Address</span>
           </label>
-          <textarea className="input-field h-20 resize-none" placeholder="Barangay, City, Province" value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))}/>
+          <textarea className="input-field h-20 resize-none" placeholder="Barangay, City, Province" value={form.address} onChange={set('address')}/>
         </div>
-
         <div className="pt-2 border-t border-slate-100">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Guardian Information</p>
           <div className="grid grid-cols-2 gap-3">
@@ -329,19 +337,21 @@ function StudentInfoSection({ profile, onUpdate }) {
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 <span className="flex items-center gap-1.5"><Users size={13}/>Guardian Name</span>
               </label>
-              <input className="input-field" placeholder="Full name" value={form.guardianName} onChange={e=>setForm(p=>({...p,guardianName:e.target.value}))}/>
+              <input className="input-field" placeholder="Full name" value={form.guardianName} onChange={set('guardianName')}/>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 <span className="flex items-center gap-1.5"><Phone size={13}/>Guardian Phone</span>
               </label>
-              <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.guardianPhone} onChange={e=>setForm(p=>({...p,guardianPhone:e.target.value}))}/>
+              <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.guardianPhone} onChange={set('guardianPhone')}/>
             </div>
           </div>
         </div>
-
         <button type="submit" disabled={saving} className="btn-primary w-full justify-center py-2.5">
-          {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</> : <><Save size={15}/>Save Personal Info</>}
+          {saving
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
+            : <><Save size={15}/>Save Personal Info</>
+          }
         </button>
       </form>
     </div>
@@ -356,6 +366,8 @@ function TeacherInfoSection({ profile, onUpdate }) {
     bio:        profile?.bio          || '',
   })
   const [saving, setSaving] = useState(false)
+
+  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true)
@@ -397,13 +409,13 @@ function TeacherInfoSection({ profile, onUpdate }) {
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             <span className="flex items-center gap-1.5"><Briefcase size={13}/>Department</span>
           </label>
-          <input className="input-field" placeholder="e.g. Senior High School" value={form.department} onChange={e=>setForm(p=>({...p,department:e.target.value}))}/>
+          <input className="input-field" placeholder="e.g. Senior High School" value={form.department} onChange={set('department')}/>
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             <span className="flex items-center gap-1.5"><Phone size={13}/>Contact Number</span>
           </label>
-          <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/>
+          <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={set('phone')}/>
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
@@ -411,16 +423,18 @@ function TeacherInfoSection({ profile, onUpdate }) {
           </label>
           <textarea
             className="input-field h-28 resize-none"
-            placeholder="Brief introduction about yourself, your teaching experience, specializations…"
+            placeholder="Brief introduction, teaching experience, specializations…"
             value={form.bio}
-            onChange={e=>setForm(p=>({...p,bio:e.target.value}))}
+            onChange={set('bio')}
             maxLength={500}
           />
           <p className="text-xs text-slate-400 text-right mt-1">{form.bio.length}/500</p>
         </div>
-
         <button type="submit" disabled={saving} className="btn-primary w-full justify-center py-2.5">
-          {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</> : <><Save size={15}/>Save Profile</>}
+          {saving
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
+            : <><Save size={15}/>Save Profile</>
+          }
         </button>
       </form>
     </div>
@@ -430,14 +444,22 @@ function TeacherInfoSection({ profile, onUpdate }) {
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user } = useAuth()
-  const [profile,  setProfile]  = useState(null)
-  const [loading,  setLoading]  = useState(true)
+  const [profile,   setProfile]   = useState(null)
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
   const [activeTab, setActiveTab] = useState('profile')
 
   useEffect(() => {
     api.get('/settings/profile')
-      .then(r => setProfile(r.data.data))
-      .catch(() => toast.error('Failed to load profile.'))
+      .then(r => {
+        setProfile(r.data.data)
+        setError(null)
+      })
+      .catch(err => {
+        const msg = err.response?.data?.message || 'Failed to load profile.'
+        setError(msg)
+        toast.error(msg)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -450,7 +472,7 @@ export default function SettingsPage() {
     ],
     teacher: [
       { id:'profile',  label:'Profile & Photo',  icon: User },
-      { id:'info',     label:'Personal Info',     icon: Briefcase },
+      { id:'info',     label:'Professional Info', icon: Briefcase },
       { id:'password', label:'Password',          icon: Lock },
     ],
     student: [
@@ -459,42 +481,58 @@ export default function SettingsPage() {
       { id:'password', label:'Password',          icon: Lock },
     ],
   }
-
   const currentTabs = tabs[user?.role] || tabs.student
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
+          <p className="text-sm text-slate-500 font-medium">Loading profile…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 lg:p-8 max-w-5xl mx-auto">
+        <h1 className="page-title mb-6">Settings</h1>
+        <div className="card p-10 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <Shield size={24} className="text-red-500"/>
+          </div>
+          <p className="font-bold text-slate-800 mb-1">Failed to load profile</p>
+          <p className="text-sm text-slate-400 mb-4">{error}</p>
+          <button
+            className="btn-primary mx-auto"
+            onClick={() => { setLoading(true); setError(null); api.get('/settings/profile').then(r=>{setProfile(r.data.data)}).catch(e=>setError(e.response?.data?.message||'Error')).finally(()=>setLoading(false)) }}
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="page-title">Settings</h1>
         <p className="text-slate-500 text-sm mt-1">Manage your account settings and personal information.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left column — Avatar always visible */}
+        {/* Left column */}
         <div className="lg:w-64 flex-shrink-0 space-y-4">
-          {profile && (
-            <AvatarSection profile={profile} onUpdate={updateProfile}/>
-          )}
-
-          {/* Tab nav */}
+          {profile && <AvatarSection profile={profile} onUpdate={updateProfile}/>}
           <div className="card p-2">
             {currentTabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all
-                  ${activeTab === tab.id
-                    ? 'bg-primary text-white'
-                    : 'text-slate-600 hover:bg-slate-50'}`}
+                  ${activeTab===tab.id ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 <tab.icon size={16}/>
                 {tab.label}
@@ -503,9 +541,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Right column — Tab content */}
+        {/* Right column */}
         <div className="flex-1 min-w-0">
-          {/* Profile tab — same for all roles (just avatar info, handled in left col) */}
+          {/* Profile overview tab */}
           {activeTab === 'profile' && (
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-5">
@@ -517,19 +555,18 @@ export default function SettingsPage() {
                   <p className="text-xs text-slate-400">Your account details</p>
                 </div>
               </div>
-
               <div className="space-y-3">
                 {[
-                  { label:'Full Name',  value:`${profile?.firstName} ${profile?.lastName}`, icon: User },
-                  { label:'Email',      value: profile?.email,       icon: Mail },
-                  { label:'Role',       value: profile?.role?.toUpperCase(), icon: Shield },
-                  ...(profile?.lrn        ? [{ label:'LRN',         value: profile.lrn,        icon: Hash }] : []),
-                  ...(profile?.employeeId ? [{ label:'Employee ID',  value: profile.employeeId, icon: BadgeCheck }] : []),
-                  ...(profile?.gradeLevel ? [{ label:'Grade Level',  value: profile.gradeLevel, icon: GraduationCap }] : []),
-                  ...(profile?.sectionName? [{ label:'Section',      value: profile.sectionName,icon: BookOpen }] : []),
-                  ...(profile?.strand     ? [{ label:'Strand',       value: profile.strand,     icon: BookOpen }] : []),
-                  ...(profile?.department ? [{ label:'Department',   value: profile.department, icon: Briefcase }] : []),
-                ].map(({ label, value, icon: Icon }) => (
+                  { label:'Full Name',  value:`${profile?.firstName} ${profile?.lastName}`, icon:User },
+                  { label:'Email',      value:profile?.email,                                icon:Mail },
+                  { label:'Role',       value:profile?.role?.toUpperCase(),                  icon:Shield },
+                  ...(profile?.lrn         ? [{ label:'LRN',        value:profile.lrn,        icon:Hash }] : []),
+                  ...(profile?.employeeId  ? [{ label:'Employee ID', value:profile.employeeId, icon:BadgeCheck }] : []),
+                  ...(profile?.gradeLevel  ? [{ label:'Grade Level', value:profile.gradeLevel, icon:GraduationCap }] : []),
+                  ...(profile?.sectionName ? [{ label:'Section',     value:profile.sectionName,icon:BookOpen }] : []),
+                  ...(profile?.strand      ? [{ label:'Strand',      value:profile.strand,     icon:BookOpen }] : []),
+                  ...(profile?.department  ? [{ label:'Department',  value:profile.department, icon:Briefcase }] : []),
+                ].map(({ label, value, icon:Icon }) => (
                   <div key={label} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
                     <Icon size={15} className="text-slate-400 flex-shrink-0"/>
                     <div className="flex-1 min-w-0">
@@ -539,24 +576,20 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
-
               <div className="mt-5 p-3 bg-amber-50 border border-amber-100 rounded-lg">
                 <p className="text-xs text-amber-700 font-semibold">
-                  💡 Use the camera icon on your profile photo to update your picture. Click the tabs on the left to edit other settings.
+                  💡 Click the camera icon on your photo to update it. Use the tabs on the left to edit other settings.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Info tab */}
           {activeTab === 'info' && user?.role === 'student' && (
             <StudentInfoSection profile={profile} onUpdate={updateProfile}/>
           )}
           {activeTab === 'info' && user?.role === 'teacher' && (
             <TeacherInfoSection profile={profile} onUpdate={updateProfile}/>
           )}
-
-          {/* Password tab */}
           {activeTab === 'password' && <PasswordSection/>}
         </div>
       </div>
