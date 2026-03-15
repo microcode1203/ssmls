@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { format, isPast, formatDistanceToNow } from 'date-fns'
+import Modal from '../components/ui/Modal'
 
 const TYPE_CONFIG = {
  homework: { badge:'badge-blue', bg:'bg-blue-50', label:'Homework' },
@@ -90,7 +91,6 @@ function FileAttachment({ fileName, fileType, fileSize, fileData, compact = fals
  <Download size={13} className="text-slate-500"/>
  </button>
  </div>
- <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
  </div>
  )
 }
@@ -101,17 +101,6 @@ function CreateModal({ schedules, onClose, onSave }) {
  scheduleId:'', title:'', description:'', dueDate:'', maxScore:100, type:'homework'
  })
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
 
  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
@@ -127,7 +116,7 @@ function CreateModal({ schedules, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Create Assignment</h2>
@@ -204,7 +193,7 @@ function CreateModal({ schedules, onClose, onSave }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 
@@ -215,18 +204,6 @@ function SubmitModal({ assignment, onClose, onSave }) {
  const [file, setFile] = useState(null) // { name, type, size, base64 }
  const [saving, setSaving] = useState(false)
  const [fileError, setFileError] = useState('')
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const handleFileChange = async (e) => {
  const f = e.target.files?.[0]
@@ -280,7 +257,7 @@ function SubmitModal({ assignment, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div>
@@ -376,7 +353,7 @@ function SubmitModal({ assignment, onClose, onSave }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 
@@ -409,7 +386,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
  const graded = (data||[]).filter(s => s.status === 'graded').length
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92vh] flex flex-col">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
@@ -557,6 +534,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
  )}
  </div>
  </div>
+ </Modal>
  )
 }
 
