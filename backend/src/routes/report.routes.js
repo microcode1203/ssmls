@@ -22,17 +22,24 @@ router.get('/report-card/:studentId', async (req, res) => {
     let studentInfo;
     try {
       [studentInfo] = await pool.execute(
-        `SELECT s.*, u.first_name, u.middle_name, u.last_name, u.email,
-           sec.section_name, sec.strand, sec.grade_level as section_grade
+        `SELECT
+           s.id, s.lrn, s.grade_level, s.strand, s.phone,
+           s.birthday, s.birthplace, s.guardian_name, s.guardian_phone,
+           u.first_name, u.middle_name, u.last_name, u.email,
+           sec.section_name, sec.strand as section_strand,
+           sec.grade_level as section_grade
          FROM students s JOIN users u ON u.id=s.user_id
          LEFT JOIN sections sec ON sec.id=s.section_id
          WHERE s.id=?`, [studentId]
       );
     } catch (colErr) {
-      // middle_name column doesn't exist yet — query without it
+      // middle_name or other new column doesn't exist yet — query without them
       [studentInfo] = await pool.execute(
-        `SELECT s.*, u.first_name, u.last_name, u.email,
-           sec.section_name, sec.strand, sec.grade_level as section_grade
+        `SELECT
+           s.id, s.lrn, s.grade_level, s.strand, s.phone,
+           s.guardian_name, s.guardian_phone,
+           u.first_name, u.last_name, u.email,
+           sec.section_name, sec.grade_level as section_grade
          FROM students s JOIN users u ON u.id=s.user_id
          LEFT JOIN sections sec ON sec.id=s.section_id
          WHERE s.id=?`, [studentId]
