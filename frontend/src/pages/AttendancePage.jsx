@@ -5,6 +5,25 @@ import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import {
+
+// ─── Deduplicate schedules — one entry per subject+section ───────────────────
+const dedupeSchedules = (schedules) => {
+  const seen = new Map()
+  return (schedules || [])
+    .filter(s => !('status' in s) || s.status === 'approved')
+    .reduce((acc, s) => {
+      const key = String(s.subject_id || s.subject || s.subject_name || '') + '_' + String(s.section_id || '')
+      if (!seen.has(key)) { seen.set(key, true); acc.push(s) }
+      return acc
+    }, [])
+    .sort((a, b) => {
+      const na = a.subject || a.subject_name || ''
+      const nb = b.subject || b.subject_name || ''
+      return na.localeCompare(nb) || (a.grade_level || '').localeCompare(b.grade_level || '')
+    })
+}
+
+
   QrCode, RefreshCw, StopCircle, Users,
   CheckCircle, Clock, XCircle, BookOpen, ChevronDown
 } from 'lucide-react'
