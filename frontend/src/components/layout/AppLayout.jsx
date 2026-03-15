@@ -184,7 +184,7 @@ function SidebarContent({ user, onClose, onLogout }) {
         </div>
         <div>
           <div className="sidebar-brand-name">S.S.M.L.S</div>
-          <div className="sidebar-brand-sub">Management & Learning System</div>
+          <div className="sidebar-brand-sub">Smart School Management &amp; Learning System</div>
         </div>
         {onClose && (
           <button onClick={onClose} className="ml-auto p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors lg:hidden">
