@@ -7,21 +7,11 @@ import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Send, Inbox, Mail, X, Reply, ChevronRight } from 'lucide-react'
+import Modal from '../components/ui/Modal'
 
 function ComposeModal({ onClose, onSent, contacts }) {
  const [form, setForm] = useState({ receiverId:'', subject:'', body:'' })
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
 
  const set = k => e => setForm(p=>({...p,[k]:e.target.value}))
  const handleSubmit = async e => {
@@ -31,7 +21,7 @@ function ComposeModal({ onClose, onSent, contacts }) {
  finally { setSaving(false) }
  }
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">New Message</h2>
@@ -63,7 +53,7 @@ function ComposeModal({ onClose, onSent, contacts }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 

@@ -5,6 +5,7 @@ import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Bell, Plus, X } from 'lucide-react'
+import Modal from '../components/ui/Modal'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function AnnouncementsPage() {
@@ -13,17 +14,6 @@ export default function AnnouncementsPage() {
  const [modal, setModal] = useState(false)
  const [form, setForm] = useState({ title:'', content:'', targetRole:'all' })
  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const { data, isLoading } = useQuery({ queryKey:['announcements'], queryFn:()=>api.get('/announcements').then(r=>r.data.data) })
 
@@ -81,7 +71,7 @@ export default function AnnouncementsPage() {
  )}
 
  {modal && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={()=>setModal(false)}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Post Announcement</h2>
@@ -110,7 +100,7 @@ export default function AnnouncementsPage() {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )}
  </div>
  )
