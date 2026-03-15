@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import {
   Plus, X, AlertTriangle, CheckCircle, Trash2,
-  Clock, CalendarDays, Copy, ChevronDown, Zap
+  Clock, CalendarDays, Zap, Search, Filter
 } from 'lucide-react'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
@@ -19,7 +19,6 @@ const DAY_COLOR = {
   Saturday:  'bg-slate-100 text-slate-600 border-slate-200',
 }
 
-// Common time presets for quick selection
 const TIME_PRESETS = [
   { label:'7:00–8:00',   start:'07:00', end:'08:00' },
   { label:'8:00–9:00',   start:'08:00', end:'09:00' },
@@ -32,233 +31,247 @@ const TIME_PRESETS = [
   { label:'4:00–5:00',   start:'16:00', end:'17:00' },
 ]
 
-// ─── Fast Schedule Modal ──────────────────────────────────────────────────────
+// ─── Schedule Modal ───────────────────────────────────────────────────────────
 function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole }) {
-  const [step, setStep]         = useState(1) // 1=who/where  2=when
-  const [form, setForm]         = useState({
-    sectionId: '', subjectId: '', teacherId: '', room: ''
-  })
-  const [selectedDays, setSelectedDays]   = useState([])
-  const [timePreset,   setTimePreset]     = useState(null)
-  const [startTime,    setStartTime]      = useState('08:00')
-  const [endTime,      setEndTime]        = useState('09:00')
-  const [saving,       setSaving]         = useState(false)
-  const [conflicts,    setConflicts]      = useState([])
-  const [saved,        setSaved]          = useState([]) // successfully saved days
+  const [step, setStep] = useState(1)
+  const [form, setForm] = useState({ sectionId:'', subjectId:'', teacherId:'', room:'' })
+
+  // Per-day time slots: { Monday: { start:'08:00', end:'09:00' }, ... }
+  const [daySlots, setDaySlots] = useState({})
+
+  // Active day being edited (for time picker)
+  const [editingDay, setEditingDay] = useState(null)
+
+  const [saving,    setSaving]    = useState(false)
+  const [conflicts, setConflicts] = useState({}) // { day: message }
+  const [saved,     setSaved]     = useState([])
 
   const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
 
-  const selectedSection = (sections||[]).find(s => String(s.id) === String(form.sectionId))
+  const selectedSection  = (sections||[]).find(s => String(s.id) === String(form.sectionId))
   const filteredSubjects = (subjects||[]).filter(s =>
     !selectedSection || s.grade_level === 'Both' || s.grade_level === selectedSection.grade_level
   )
 
   const handleSectionChange = (e) => {
-    const newId = e.target.value
+    const newId  = e.target.value
     const newSec = (sections||[]).find(s => String(s.id) === String(newId))
     const curSub = (subjects||[]).find(s => String(s.id) === String(form.subjectId))
-    const stillValid = !curSub || !newSec ||
-      curSub.grade_level === 'Both' || curSub.grade_level === newSec.grade_level
-    setForm(p => ({ ...p, sectionId: newId, subjectId: stillValid ? p.subjectId : '' }))
+    const still  = !curSub || !newSec || curSub.grade_level==='Both' || curSub.grade_level===newSec.grade_level
+    setForm(p => ({ ...p, sectionId: newId, subjectId: still ? p.subjectId : '' }))
   }
+
+  const selectedDays = Object.keys(daySlots)
 
   const toggleDay = (day) => {
-    setSelectedDays(p => p.includes(day) ? p.filter(d => d !== day) : [...p, day])
-    setConflicts(p => p.filter(c => c.day !== day)) // clear conflict for toggled day
+    if (saved.includes(day)) return
+    setDaySlots(p => {
+      const next = { ...p }
+      if (next[day]) {
+        delete next[day]
+        if (editingDay === day) setEditingDay(null)
+      } else {
+        // New day inherits the last-used time, or default
+        const lastDay = selectedDays[selectedDays.length - 1]
+        const inherit = lastDay ? p[lastDay] : { start:'08:00', end:'09:00' }
+        next[day] = { ...inherit }
+        setEditingDay(day) // auto-open time editor for new day
+      }
+      return next
+    })
+    // Clear conflict for that day
+    setConflicts(p => { const n={...p}; delete n[day]; return n })
   }
 
-  const applyPreset = (preset) => {
-    setTimePreset(preset.label)
-    setStartTime(preset.start)
-    setEndTime(preset.end)
+  // Apply preset to a specific day (or ALL days if no editingDay)
+  const applyPreset = (preset, targetDay) => {
+    const day = targetDay || editingDay
+    if (day) {
+      setDaySlots(p => ({ ...p, [day]: { start: preset.start, end: preset.end } }))
+    } else {
+      // Apply to all selected days
+      setDaySlots(p => {
+        const next = { ...p }
+        Object.keys(next).forEach(d => { next[d] = { start: preset.start, end: preset.end } })
+        return next
+      })
+    }
   }
+
+  const setDayTime = (day, field, val) => {
+    setDaySlots(p => ({ ...p, [day]: { ...p[day], [field]: val } }))
+  }
+
+  // Apply one time to all days at once
+  const applyToAll = () => {
+    if (!editingDay || !daySlots[editingDay]) return
+    const slot = daySlots[editingDay]
+    setDaySlots(p => {
+      const next = { ...p }
+      Object.keys(next).forEach(d => { next[d] = { ...slot } })
+      return next
+    })
+    toast.success(`${daySlots[editingDay].start}–${daySlots[editingDay].end} applied to all days`)
+  }
+
+  const addQuickPattern = (days) => {
+    const last = selectedDays[selectedDays.length-1]
+    const inherit = last ? daySlots[last] : { start:'08:00', end:'09:00' }
+    setDaySlots(p => {
+      const next = { ...p }
+      days.filter(d => !saved.includes(d)).forEach(d => {
+        if (!next[d]) next[d] = { ...inherit }
+      })
+      return next
+    })
+  }
+
+  const clearAll = () => { setDaySlots({}); setEditingDay(null) }
 
   const step1Valid = form.sectionId && form.subjectId && form.room &&
     (userRole !== 'admin' || form.teacherId)
-  const step2Valid = selectedDays.length > 0
 
-  // Submit — one API call per selected day
   const handleSubmit = async () => {
-    if (!step1Valid || !step2Valid) return
     setSaving(true)
-    setConflicts([])
-
-    const newConflicts = []
+    const newConflicts = {}
     const newSaved     = []
 
     for (const day of selectedDays) {
+      const slot = daySlots[day]
       try {
         await api.post('/schedules', {
-          subjectId:  form.subjectId,
-          sectionId:  form.sectionId,
-          teacherId:  form.teacherId || undefined,
-          room:       form.room,
-          dayOfWeek:  day,
-          startTime,
-          endTime,
+          subjectId: form.subjectId,
+          sectionId: form.sectionId,
+          teacherId: form.teacherId || undefined,
+          room:      form.room,
+          dayOfWeek: day,
+          startTime: slot.start,
+          endTime:   slot.end,
         })
         newSaved.push(day)
       } catch (err) {
-        if (err.response?.status === 409) {
-          newConflicts.push({
-            day,
-            message: err.response.data?.message || 'Conflict',
-            details: err.response.data?.conflicts || [],
-          })
-        } else {
-          newConflicts.push({ day, message: err.response?.data?.message || 'Failed' })
-        }
+        newConflicts[day] = err.response?.status === 409
+          ? (err.response.data?.message || 'Schedule conflict')
+          : (err.response?.data?.message || 'Failed')
       }
     }
 
-    setSaved(newSaved)
+    setSaved(p => [...p, ...newSaved])
     setConflicts(newConflicts)
     setSaving(false)
 
-    if (newSaved.length > 0) {
-      const msg = userRole === 'admin'
-        ? `${newSaved.length} schedule${newSaved.length>1?'s':''} created!`
-        : `${newSaved.length} schedule${newSaved.length>1?'s':''} submitted for approval.`
-      toast.success(msg)
-      // Remove saved days from selection
-      setSelectedDays(p => p.filter(d => !newSaved.includes(d)))
+    if (newSaved.length) {
+      toast.success(
+        userRole === 'admin'
+          ? `${newSaved.length} schedule${newSaved.length>1?'s':''} created!`
+          : `${newSaved.length} schedule${newSaved.length>1?'s':''} submitted for approval.`
+      )
+      // Remove saved days from slots
+      setDaySlots(p => {
+        const next = { ...p }
+        newSaved.forEach(d => delete next[d])
+        return next
+      })
       onSave()
     }
-    if (newConflicts.length > 0) {
-      toast.error(`${newConflicts.length} conflict${newConflicts.length>1?'s':''} detected.`)
+    if (Object.keys(newConflicts).length) {
+      toast.error(`${Object.keys(newConflicts).length} conflict${Object.keys(newConflicts).length>1?'s':''} — fix and retry.`)
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[94vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
               <CalendarDays size={18} className="text-primary"/>
             </div>
             <div>
               <h2 className="font-display font-bold text-slate-900">Add Schedule</h2>
-              <p className="text-xs text-slate-400">Select multiple days at once</p>
+              <p className="text-xs text-slate-400">
+                {step===1 ? 'Fill class info first' : 'Pick days — each can have its own time'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
         </div>
 
         {/* Step pills */}
-        <div className="flex items-center gap-2 px-5 pt-4">
-          {[['1', 'Class Info'], ['2', 'Days & Time']].map(([n, label]) => (
+        <div className="flex items-center gap-2 px-5 pt-4 flex-shrink-0">
+          {[['1','Class Info'],['2','Days & Times']].map(([n, label]) => (
             <button
               key={n}
-              onClick={() => step1Valid || n==='1' ? setStep(Number(n)) : null}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                step === Number(n)
+              onClick={() => (n==='1' || step1Valid) && setStep(Number(n))}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all
+                ${step===Number(n)
                   ? 'bg-primary text-white'
-                  : step1Valid || n==='1'
+                  : (n==='1'||step1Valid)
                   ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer'
-                  : 'bg-slate-50 text-slate-300 cursor-not-allowed'
-              }`}
+                  : 'bg-slate-50 text-slate-300 cursor-not-allowed'}`}
             >
-              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step === Number(n) ? 'bg-white/20' : 'bg-slate-300 text-white'
-              }`}>{n}</span>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${step===Number(n)?'bg-white/20':'bg-white/60 text-slate-500'}`}>{n}</span>
               {label}
             </button>
           ))}
-          <div className="flex-1 h-px bg-slate-100 mx-1"/>
-          {step1Valid && (
-            <div className="text-xs text-primary font-semibold flex items-center gap-1">
+          {step1Valid && step===1 && (
+            <span className="ml-auto text-xs text-primary font-semibold flex items-center gap-1">
               <Zap size={11}/> Ready for step 2
-            </div>
+            </span>
           )}
         </div>
 
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
-          {/* ── STEP 1: Class Info ── */}
+          {/* ── STEP 1 ── */}
           {step === 1 && (
             <>
-              {/* Section */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Section <span className="text-red-500">*</span></label>
-                <select className="input-field" value={form.sectionId} onChange={handleSectionChange} required autoFocus>
+                <select className="input-field" value={form.sectionId} onChange={handleSectionChange} autoFocus>
                   <option value="">— Select Section —</option>
                   {['Grade 11','Grade 12'].map(g => {
                     const grp = (sections||[]).filter(s => s.grade_level === g)
                     if (!grp.length) return null
-                    return (
-                      <optgroup key={g} label={g}>
-                        {grp.map(s => (
-                          <option key={s.id} value={s.id}>{s.section_name} ({s.strand})</option>
-                        ))}
-                      </optgroup>
-                    )
+                    return <optgroup key={g} label={g}>
+                      {grp.map(s => <option key={s.id} value={s.id}>{s.section_name} ({s.strand})</option>)}
+                    </optgroup>
                   })}
                 </select>
               </div>
-
-              {/* Subject */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Subject <span className="text-red-500">*</span>
-                  {selectedSection && (
-                    <span className="ml-2 text-xs font-normal text-primary">filtered for {selectedSection.grade_level}</span>
-                  )}
+                  {selectedSection && <span className="ml-1.5 text-xs font-normal text-primary">filtered for {selectedSection.grade_level}</span>}
                 </label>
-                <select className="input-field" value={form.subjectId} onChange={set('subjectId')} required>
+                <select className="input-field" value={form.subjectId} onChange={set('subjectId')}>
                   <option value="">— Select Subject —</option>
-                  {filteredSubjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
+                  {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
                 </select>
               </div>
-
-              {/* Teacher (admin only) */}
               {userRole === 'admin' && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Teacher <span className="text-red-500">*</span></label>
-                  <select className="input-field" value={form.teacherId} onChange={set('teacherId')} required>
+                  <select className="input-field" value={form.teacherId} onChange={set('teacherId')}>
                     <option value="">— Select Teacher —</option>
-                    {(teachers||[]).map(t => (
-                      <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-                    ))}
+                    {(teachers||[]).map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
                   </select>
                 </div>
               )}
-
-              {/* Room */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Room <span className="text-red-500">*</span></label>
-                <input
-                  className="input-field"
-                  placeholder="e.g. Room 201, Lab 3, AVR"
-                  value={form.room}
-                  onChange={set('room')}
-                  required
-                />
+                <input className="input-field" placeholder="e.g. Room 201, Lab 3, AVR" value={form.room} onChange={set('room')}/>
               </div>
-
-              {/* Summary preview */}
               {step1Valid && (
                 <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <CalendarDays size={14} className="text-primary"/>
+                  <div className="flex-1 min-w-0 text-xs">
+                    <p className="font-bold text-slate-800">{filteredSubjects.find(s=>String(s.id)===form.subjectId)?.name}</p>
+                    <p className="text-slate-500">{selectedSection?.grade_level} · {selectedSection?.section_name} · {form.room}</p>
                   </div>
-                  <div className="text-xs text-slate-600 min-w-0">
-                    <p className="font-bold text-slate-800 truncate">
-                      {filteredSubjects.find(s=>String(s.id)===form.subjectId)?.name}
-                    </p>
-                    <p className="text-slate-500">
-                      {selectedSection?.grade_level} · {selectedSection?.section_name} · {form.room}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="ml-auto btn-primary text-xs py-1.5 px-3 flex-shrink-0"
-                  >
+                  <button type="button" onClick={() => setStep(2)} className="btn-primary text-xs py-1.5 px-3 flex-shrink-0">
                     Next →
                   </button>
                 </div>
@@ -266,147 +279,165 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
             </>
           )}
 
-          {/* ── STEP 2: Days & Time ── */}
+          {/* ── STEP 2 ── */}
           {step === 2 && (
             <>
-              {/* Day multi-select */}
+              {/* Day buttons */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Days <span className="text-red-500">*</span>
-                  <span className="ml-2 text-xs font-normal text-slate-400">select one or more</span>
+                  Select Days <span className="text-red-500">*</span>
+                  <span className="ml-1.5 text-xs font-normal text-slate-400">— each day can have its own time</span>
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <div className="grid grid-cols-6 gap-2 mb-2">
                   {DAYS.map(day => {
-                    const isSelected  = selectedDays.includes(day)
-                    const hasConflict = conflicts.find(c => c.day === day)
+                    const slot        = daySlots[day]
+                    const isSelected  = !!slot
+                    const hasConflict = !!conflicts[day]
                     const wasSaved    = saved.includes(day)
+                    const isEditing   = editingDay === day
                     return (
                       <button
                         key={day}
                         type="button"
                         onClick={() => !wasSaved && toggleDay(day)}
                         disabled={wasSaved}
-                        className={`py-2.5 px-1 rounded-xl text-xs font-bold border-2 transition-all text-center
-                          ${wasSaved
-                            ? 'bg-green-100 border-green-300 text-green-700 cursor-default'
-                            : hasConflict
-                            ? 'bg-red-100 border-red-300 text-red-600'
-                            : isSelected
-                            ? 'bg-primary border-primary text-white shadow-sm shadow-primary/30'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-primary/50 hover:bg-primary/5'
-                          }`}
+                        className={`py-2 px-1 rounded-xl border-2 text-center transition-all
+                          ${wasSaved    ? 'bg-green-100 border-green-300 text-green-700 cursor-default'
+                          : hasConflict ? 'bg-red-100 border-red-300 text-red-600'
+                          : isEditing   ? 'bg-primary border-primary text-white ring-2 ring-primary/30'
+                          : isSelected  ? 'bg-primary/10 border-primary text-primary'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-primary/40 hover:bg-primary/5'}`}
                       >
-                        {DAY_SHORT[day]}
-                        {wasSaved && <div className="text-[9px] mt-0.5">✓ Saved</div>}
-                        {hasConflict && <div className="text-[9px] mt-0.5">⚠ Conflict</div>}
+                        <span className="text-xs font-bold block">{DAY_SHORT[day]}</span>
+                        {slot && <span className="text-[9px] font-mono leading-tight block mt-0.5 opacity-80">{slot.start}</span>}
+                        {wasSaved    && <span className="text-[8px] font-bold text-green-600 block">✓</span>}
+                        {hasConflict && <span className="text-[8px] font-bold text-red-500 block">⚠</span>}
                       </button>
                     )
                   })}
                 </div>
-                {/* Quick selects */}
-                <div className="flex gap-2 mt-2 flex-wrap">
+                {/* Quick patterns */}
+                <div className="flex gap-1.5 flex-wrap">
                   {[
-                    { label: 'MWF', days: ['Monday','Wednesday','Friday'] },
-                    { label: 'TTh', days: ['Tuesday','Thursday'] },
-                    { label: 'M–F', days: ['Monday','Tuesday','Wednesday','Thursday','Friday'] },
-                    { label: 'Daily', days: DAYS },
+                    { label:'MWF',  days:['Monday','Wednesday','Friday'] },
+                    { label:'TTh',  days:['Tuesday','Thursday'] },
+                    { label:'M–F',  days:['Monday','Tuesday','Wednesday','Thursday','Friday'] },
+                    { label:'Daily',days:DAYS },
                   ].map(({ label, days }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => setSelectedDays(days.filter(d => !saved.includes(d)))}
-                      className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary transition-colors border border-slate-200"
-                    >
+                    <button key={label} type="button"
+                      onClick={() => addQuickPattern(days)}
+                      className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary border border-slate-200 transition-colors">
                       {label}
                     </button>
                   ))}
                   {selectedDays.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDays([])}
-                      className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                    >
-                      Clear
+                    <button type="button" onClick={clearAll}
+                      className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                      Clear all
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Time presets */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Time Slot <span className="text-red-500">*</span>
-                  <span className="ml-2 text-xs font-normal text-slate-400">or set manually below</span>
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {TIME_PRESETS.map(p => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => applyPreset(p)}
-                      className={`py-2 px-2 rounded-lg text-xs font-semibold border transition-all text-center
-                        ${timePreset === p.label
-                          ? 'bg-primary text-white border-primary shadow-sm'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:bg-primary/5'
-                        }`}
-                    >
-                      <Clock size={10} className="inline mb-0.5 mr-0.5 opacity-70"/>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Per-day time editor */}
+              {selectedDays.length > 0 && (
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock size={12}/> Time per Day
+                    </span>
+                    <span className="text-xs text-slate-400">Click a day below to edit</span>
+                  </div>
 
-              {/* Manual time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    className="input-field font-mono"
-                    value={startTime}
-                    onChange={e => { setStartTime(e.target.value); setTimePreset(null) }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    className="input-field font-mono"
-                    value={endTime}
-                    onChange={e => { setEndTime(e.target.value); setTimePreset(null) }}
-                  />
-                </div>
-              </div>
+                  {/* Day rows */}
+                  <div className="divide-y divide-slate-100">
+                    {DAYS.filter(d => daySlots[d]).map(day => {
+                      const slot      = daySlots[day]
+                      const isEditing = editingDay === day
+                      const hasErr    = !!conflicts[day]
+                      return (
+                        <div key={day}
+                          onClick={() => setEditingDay(isEditing ? null : day)}
+                          className={`px-4 py-3 cursor-pointer transition-colors
+                            ${isEditing ? 'bg-primary/5' : 'hover:bg-slate-50'}`}>
+                          <div className="flex items-center gap-3">
+                            {/* Day badge */}
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border flex-shrink-0 ${DAY_COLOR[day]}`}>
+                              {day}
+                            </span>
+                            {/* Time display */}
+                            <span className="font-mono text-sm font-semibold text-slate-700 flex-1">
+                              {slot.start} – {slot.end}
+                            </span>
+                            {hasErr && <span className="text-xs text-red-500 font-semibold">⚠ Conflict</span>}
+                            <span className={`text-xs text-slate-400 transition-transform ${isEditing ? 'rotate-180' : ''}`}>▾</span>
+                          </div>
 
-              {/* Conflict details */}
-              {conflicts.length > 0 && (
-                <div className="space-y-2">
-                  {conflicts.map(c => (
-                    <div key={c.day} className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2">
-                      <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5"/>
-                      <div className="text-xs">
-                        <p className="font-bold text-red-700">{c.day}: {c.message}</p>
-                        {c.details?.map((d,i) => (
-                          <p key={i} className="text-red-500 mt-0.5">↳ {d.day} {d.start}–{d.end}</p>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                          {/* Expanded editor */}
+                          {isEditing && (
+                            <div className="mt-3 space-y-3" onClick={e => e.stopPropagation()}>
+                              {hasErr && (
+                                <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
+                                  ⚠ {conflicts[day]}
+                                </div>
+                              )}
+                              {/* Preset chips for this day */}
+                              <div className="flex flex-wrap gap-1.5">
+                                {TIME_PRESETS.map(p => (
+                                  <button key={p.label} type="button"
+                                    onClick={() => applyPreset(p, day)}
+                                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all
+                                      ${slot.start===p.start && slot.end===p.end
+                                        ? 'bg-primary text-white border-primary'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-primary/50'}`}>
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+                              {/* Manual inputs */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">Start</label>
+                                  <input type="time" className="input-field font-mono text-sm"
+                                    value={slot.start}
+                                    onChange={e => setDayTime(day, 'start', e.target.value)}/>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">End</label>
+                                  <input type="time" className="input-field font-mono text-sm"
+                                    value={slot.end}
+                                    onChange={e => setDayTime(day, 'end', e.target.value)}/>
+                                </div>
+                              </div>
+                              {/* Apply to all */}
+                              {selectedDays.length > 1 && (
+                                <button type="button" onClick={applyToAll}
+                                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                                  ↕ Apply {slot.start}–{slot.end} to all days
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
               {/* Summary */}
               {selectedDays.length > 0 && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600">
-                  <p className="font-bold text-slate-800 mb-1">
-                    Will create {selectedDays.length} schedule{selectedDays.length>1?'s':''}:
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                  <p className="font-bold text-slate-700 mb-1.5">
+                    Creating {selectedDays.length} schedule{selectedDays.length>1?'s':''}:
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedDays.map(d => (
-                      <span key={d} className={`font-bold px-2 py-0.5 rounded-full border text-[10px] ${DAY_COLOR[d]}`}>
-                        {DAY_SHORT[d]} {startTime}–{endTime}
-                      </span>
+                  <div className="space-y-0.5">
+                    {DAYS.filter(d => daySlots[d]).map(d => (
+                      <div key={d} className="flex items-center gap-2">
+                        <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${DAY_COLOR[d]}`}>{DAY_SHORT[d]}</span>
+                        <span className="font-mono text-slate-600">{daySlots[d].start} – {daySlots[d].end}</span>
+                        {conflicts[d] && <span className="text-red-500">⚠</span>}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -416,33 +447,20 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-5 border-t border-slate-100">
-          {step === 2 && (
-            <button onClick={() => setStep(1)} className="btn-secondary">
-              ← Back
-            </button>
-          )}
+        <div className="flex gap-3 p-5 border-t border-slate-100 flex-shrink-0">
+          {step === 2 && <button onClick={() => setStep(1)} className="btn-secondary">← Back</button>}
           <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
-          {step === 1 ? (
-            <button
-              onClick={() => setStep(2)}
-              disabled={!step1Valid}
-              className="btn-primary flex-1 justify-center"
-            >
-              Next: Pick Days →
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !step2Valid}
-              className="btn-primary flex-1 justify-center"
-            >
-              {saving
-                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
-                : <><CalendarDays size={15}/>Create {selectedDays.length > 1 ? `${selectedDays.length} Schedules` : 'Schedule'}</>
-              }
-            </button>
-          )}
+          {step === 1
+            ? <button onClick={() => setStep(2)} disabled={!step1Valid} className="btn-primary flex-1 justify-center">
+                Next: Pick Days →
+              </button>
+            : <button onClick={handleSubmit} disabled={saving || !selectedDays.length} className="btn-primary flex-1 justify-center">
+                {saving
+                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
+                  : <><CalendarDays size={15}/>Create {selectedDays.length > 1 ? `${selectedDays.length} Schedules` : 'Schedule'}</>
+                }
+              </button>
+          }
         </div>
       </div>
     </div>
@@ -454,20 +472,20 @@ export default function SchedulesPage() {
   const { user } = useAuth()
   const qc       = useQueryClient()
   const [modal,  setModal]  = useState(false)
-  const [filter, setFilter] = useState({ day: '', status: '' })
+  const [filter, setFilter] = useState({ day:'', subject:'', section:'' })
 
   const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
-  const { data: subjects  } = useQuery({ queryKey:['subjects'],  queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
-  const { data: teachers  } = useQuery({ queryKey:['teachers'],  queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
+  const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
+  const { data: teachers  } = useQuery({ queryKey:['teachers'], queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
 
   const { data: schedules, isLoading } = useQuery({
     queryKey: ['schedules', user?.teacherId, user?.sectionId],
     queryFn: async () => {
-      if (user?.role === 'teacher' && user?.teacherId)
+      if (user?.role==='teacher' && user?.teacherId)
         return api.get(`/schedules/teacher/${user.teacherId}`).then(r=>r.data.data)
-      if (user?.role === 'student' && user?.sectionId)
+      if (user?.role==='student' && user?.sectionId)
         return api.get(`/schedules/section/${user.sectionId}`).then(r=>r.data.data)
-      if (user?.role === 'admin')
+      if (user?.role==='admin')
         return api.get('/schedules/pending').then(r=>r.data.data)
       return []
     },
@@ -475,27 +493,44 @@ export default function SchedulesPage() {
   })
 
   const approveMut = async (id, action) => {
-    try {
-      await api.patch(`/schedules/${id}/approve`, { action })
-      toast.success(`Schedule ${action}.`)
-      qc.invalidateQueries(['schedules'])
-    } catch { toast.error('Failed.') }
+    try { await api.patch(`/schedules/${id}/approve`, { action }); toast.success(`Schedule ${action}.`); qc.invalidateQueries(['schedules']) }
+    catch { toast.error('Failed.') }
   }
-
   const deleteMut = async (id) => {
     if (!confirm('Delete this schedule?')) return
     try { await api.delete(`/schedules/${id}`); toast.success('Deleted.'); qc.invalidateQueries(['schedules']) }
     catch { toast.error('Failed.') }
   }
 
-  // Filtered schedules
-  const filtered = useMemo(() => {
-    return (schedules||[]).filter(s => {
-      if (filter.day    && s.day_of_week !== filter.day)    return false
-      if (filter.status && s.status      !== filter.status) return false
-      return true
+  // Build unique subject/section options from loaded schedules
+  const subjectOptions = useMemo(() => {
+    const map = new Map()
+    ;(schedules||[]).forEach(s => {
+      const name = s.subject_name || s.subject
+      if (name && !map.has(name)) map.set(name, name)
     })
-  }, [schedules, filter])
+    return [...map.keys()].sort()
+  }, [schedules])
+
+  const sectionOptions = useMemo(() => {
+    const map = new Map()
+    ;(schedules||[]).forEach(s => {
+      const key = `${s.grade_level}||${s.section_name}`
+      if (s.section_name && !map.has(key)) map.set(key, { key, label:`${s.grade_level} · ${s.section_name}` })
+    })
+    return [...map.values()].sort((a,b) => a.label.localeCompare(b.label))
+  }, [schedules])
+
+  // Apply filters
+  const filtered = useMemo(() => (schedules||[]).filter(s => {
+    const subjectName = s.subject_name || s.subject
+    if (filter.day     && s.day_of_week !== filter.day) return false
+    if (filter.subject && subjectName   !== filter.subject) return false
+    if (filter.section && `${s.grade_level}||${s.section_name}` !== filter.section) return false
+    return true
+  }), [schedules, filter])
+
+  const hasFilter = filter.day || filter.subject || filter.section
 
   // Group by day for weekly view
   const byDay = useMemo(() => DAYS.reduce((acc, day) => {
@@ -514,8 +549,7 @@ export default function SchedulesPage() {
           <p className="text-slate-500 text-sm mt-1">
             {user?.role==='admin'
               ? `${schedules?.length||0} pending approvals`
-              : `${schedules?.length||0} class${schedules?.length!==1?'es':''} this semester`
-            }
+              : `${schedules?.length||0} class${schedules?.length!==1?'es':''} this semester`}
           </p>
         </div>
         {(user?.role==='teacher'||user?.role==='admin') && (
@@ -525,31 +559,29 @@ export default function SchedulesPage() {
         )}
       </div>
 
-      {/* Weekly grid — non-admin */}
+      {/* Weekly grid */}
       {user?.role !== 'admin' && (
         <div className="card mb-6 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-            <CalendarDays size={15} className="text-slate-400"/>
+            <CalendarDays size={14} className="text-slate-400"/>
             <span className="text-sm font-bold text-slate-700">Weekly View</span>
           </div>
           <div className="overflow-x-auto">
-            <div className="grid min-w-[600px]" style={{gridTemplateColumns:`repeat(${DAYS.slice(0,5).length}, 1fr)`}}>
+            <div className="grid min-w-[600px]" style={{gridTemplateColumns:`repeat(5,1fr)`}}>
               {DAYS.slice(0,5).map(day => (
                 <div key={day} className="border-r border-slate-100 last:border-r-0">
-                  <div className={`px-3 py-2 text-center text-xs font-bold uppercase tracking-wider border-b border-slate-100 ${DAY_COLOR[day].replace('border-','').split(' ').slice(0,2).join(' ')}`}>
+                  <div className={`px-3 py-2 text-center text-xs font-bold uppercase tracking-wider border-b border-slate-100 ${DAY_COLOR[day].split(' ').slice(0,2).join(' ')}`}>
                     {day.slice(0,3)}
                   </div>
                   <div className="p-2 space-y-1.5 min-h-28">
                     {byDay[day].map(s => (
-                      <div key={s.id} className="rounded-lg p-2 bg-primary/5 border border-primary/15 text-xs hover:bg-primary/10 transition-colors">
+                      <div key={s.id} className="rounded-lg p-2 bg-primary/5 border border-primary/15 text-xs">
                         <p className="font-bold text-primary truncate text-[11px]">{s.subject_name||s.subject}</p>
-                        <p className="text-slate-500 mt-0.5 font-mono text-[10px]">{s.start_time}–{s.end_time}</p>
+                        <p className="text-slate-400 font-mono text-[10px] mt-0.5">{s.start_time}–{s.end_time}</p>
                         <p className="text-slate-400 text-[10px] truncate">{s.room}</p>
                       </div>
                     ))}
-                    {!byDay[day].length && (
-                      <p className="text-center text-slate-300 text-[10px] pt-4">Free</p>
-                    )}
+                    {!byDay[day].length && <p className="text-center text-slate-200 text-[10px] pt-4">Free</p>}
                   </div>
                 </div>
               ))}
@@ -559,42 +591,45 @@ export default function SchedulesPage() {
       )}
 
       {/* Filters */}
-      {schedules?.length > 0 && (
-        <div className="flex gap-3 mb-4 flex-wrap">
-          <select
-            className="input-field w-36 text-sm"
-            value={filter.day}
-            onChange={e => setFilter(p => ({ ...p, day: e.target.value }))}
-          >
-            <option value="">All Days</option>
-            {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+      <div className="card p-4 mb-5 flex gap-3 flex-wrap items-center">
+        <Filter size={14} className="text-slate-400 flex-shrink-0"/>
+
+        {/* Day */}
+        <select className="input-field w-36 text-sm" value={filter.day} onChange={e=>setFilter(p=>({...p,day:e.target.value}))}>
+          <option value="">All Days</option>
+          {DAYS.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+
+        {/* Subject — available for teacher and admin */}
+        {(user?.role==='teacher'||user?.role==='admin') && subjectOptions.length > 0 && (
+          <select className="input-field flex-1 min-w-40 text-sm" value={filter.subject} onChange={e=>setFilter(p=>({...p,subject:e.target.value}))}>
+            <option value="">All Subjects</option>
+            {subjectOptions.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
-          {user?.role === 'admin' && (
-            <select
-              className="input-field w-36 text-sm"
-              value={filter.status}
-              onChange={e => setFilter(p => ({ ...p, status: e.target.value }))}
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          )}
-          {(filter.day || filter.status) && (
-            <button onClick={() => setFilter({ day:'', status:'' })} className="btn-ghost text-xs">
-              <X size={12}/> Clear
-            </button>
-          )}
-          <span className="ml-auto text-xs text-slate-400 self-center">
-            {filtered.length} of {schedules?.length} showing
-          </span>
-        </div>
-      )}
+        )}
+
+        {/* Section — available for teacher and admin */}
+        {(user?.role==='teacher'||user?.role==='admin') && sectionOptions.length > 0 && (
+          <select className="input-field flex-1 min-w-44 text-sm" value={filter.section} onChange={e=>setFilter(p=>({...p,section:e.target.value}))}>
+            <option value="">All Sections</option>
+            {sectionOptions.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        )}
+
+        {hasFilter && (
+          <button onClick={()=>setFilter({day:'',subject:'',section:''})} className="btn-ghost text-xs flex-shrink-0">
+            <X size={12}/> Clear
+          </button>
+        )}
+
+        <span className="ml-auto text-xs text-slate-400 flex-shrink-0">
+          {filtered.length}{schedules?.length!==filtered.length?` / ${schedules?.length}`:''} schedule{filtered.length!==1?'s':''}
+        </span>
+      </div>
 
       {/* Table */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+        <div className="px-4 py-3 border-b border-slate-100">
           <span className="text-sm font-bold text-slate-700">
             {user?.role==='admin' ? 'Pending Approvals' : 'All Schedules'}
           </span>
@@ -606,7 +641,7 @@ export default function SchedulesPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50/80 border-b border-slate-100">
                 <tr>
-                  {['Subject','Section','Day','Time','Room','Teacher','Status',''].map(h => (
+                  {['Subject','Section','Day','Time','Room','Teacher','Status',''].map(h=>(
                     <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -621,30 +656,20 @@ export default function SchedulesPage() {
                         {DAY_SHORT[s.day_of_week]||s.day_of_week}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
-                      {s.start_time}–{s.end_time}
-                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">{s.start_time}–{s.end_time}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{s.room}</td>
                     <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{s.first_name} {s.last_name}</td>
-                    <td className="px-4 py-3">
-                      <span className={statusBadge[s.status]||'badge-slate'}>{s.status}</span>
-                    </td>
+                    <td className="px-4 py-3"><span className={statusBadge[s.status]||'badge-slate'}>{s.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {user?.role==='admin' && s.status==='pending' && (
                           <>
-                            <button onClick={()=>approveMut(s.id,'approved')} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg" title="Approve">
-                              <CheckCircle size={14}/>
-                            </button>
-                            <button onClick={()=>approveMut(s.id,'rejected')} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg" title="Reject">
-                              <X size={14}/>
-                            </button>
+                            <button onClick={()=>approveMut(s.id,'approved')} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg" title="Approve"><CheckCircle size={14}/></button>
+                            <button onClick={()=>approveMut(s.id,'rejected')} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg" title="Reject"><X size={14}/></button>
                           </>
                         )}
                         {(user?.role==='admin'||user?.role==='teacher') && (
-                          <button onClick={()=>deleteMut(s.id)} className="p-1.5 hover:bg-red-50 text-red-400 rounded-lg" title="Delete">
-                            <Trash2 size={13}/>
-                          </button>
+                          <button onClick={()=>deleteMut(s.id)} className="p-1.5 hover:bg-red-50 text-red-400 rounded-lg" title="Delete"><Trash2 size={13}/></button>
                         )}
                       </div>
                     </td>
@@ -653,7 +678,7 @@ export default function SchedulesPage() {
                 {!filtered.length && (
                   <tr><td colSpan={8} className="px-4 py-14 text-center text-slate-400">
                     <CalendarDays size={28} className="mx-auto mb-2 opacity-20"/>
-                    <p>No schedules found.</p>
+                    <p>{hasFilter ? 'No schedules match your filters.' : 'No schedules found.'}</p>
                   </td></tr>
                 )}
               </tbody>
