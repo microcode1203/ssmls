@@ -152,7 +152,7 @@ export default function CalendarPage() {
  {/* Add event modal */}
  {adding&&(
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
- <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Add Event</h2>
  <button onClick={()=>setAdding(false)} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>

@@ -46,7 +46,7 @@ function PasswordModal({ student, onClose }) {
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
- <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
@@ -202,7 +202,7 @@ function StudentModal({ student, sections, onClose, onSave }) {
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
- <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">
  {student ? 'Edit Student' : 'Add Student'}
@@ -399,7 +399,7 @@ function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
- <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
  {/* Header */}
  <div className="p-6 border-b border-slate-100 flex items-center justify-between max-h-[90vh] overflow-y-auto">
