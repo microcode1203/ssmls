@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'

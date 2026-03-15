@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -487,7 +488,7 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
+<PageSkeleton/>
           <p className="text-sm text-slate-500 font-medium">Loading profile…</p>
         </div>
       </div>

@@ -20,7 +20,8 @@ export default function CalendarPage() {
   const qc = useQueryClient()
   const today = new Date()
   const [current, setCurrent] = useState({ month: today.getMonth()+1, year: today.getFullYear() })
-  const [adding, setAdding]   = useState(false)
+  const [adding,  setAdding]   = useState(false)
+  const [confirm, setConfirm] = useState(null)
   const [form, setForm]       = useState({ title:'', description:'', eventDate:'', endDate:'', type:'activity', targetRole:'all' })
 
   const { data: events } = useQuery({
@@ -43,10 +44,16 @@ export default function CalendarPage() {
   }
 
   const deleteEvent = async id => {
-    if (!confirm('Delete this event?')) return
-    await api.delete(`/calendar/${id}`).catch(()=>{})
-    qc.invalidateQueries(['calendar'])
-    toast.success('Event deleted.')
+    setConfirm({
+      title: 'Delete Event?',
+      message: 'This calendar event will be permanently removed.',
+      confirmLabel: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        await api.delete(`/calendar/${id}`).catch(()=>{})
+        qc.invalidateQueries(['calendar'])
+        toast.success('Event deleted.')
+      }
+    })
   }
 
   // Build calendar grid
@@ -182,3 +189,5 @@ export default function CalendarPage() {
     </div>
   )
 }
+
+// ConfirmDialog rendered at bottom
