@@ -309,41 +309,83 @@ const closeAttendance = async (req, res) => {
 
     // 6. Check absence threshold alerts per student
     try {
-      const [[cfg]] = await pool.execute(
-        `SELECT config_value FROM school_config WHERE config_key = 'attendance_threshold'`
-      ).catch(() => [[{ config_value: '3' }]]);
-      const threshold = parseInt(cfg?.config_value || '3');
+      // Get threshold from config (default 3)
+      let threshold = 3;
+      try {
+        const [[cfg]] = await pool.execute(
+          `SELECT config_value FROM school_config WHERE config_key = 'attendance_threshold'`
+        );
+        threshold = parseInt(cfg?.config_value || '3');
+      } catch (_) {}
 
-      // For each newly absent student, check total absences in this subject
+      // Only check students newly marked absent this session
       for (const stu of allStudents) {
-        if (!scannedIds.has(stu.student_id)) {
-          const [absCnt] = await pool.execute(
-            `SELECT COUNT(*) as cnt
-             FROM attendance a
-             JOIN classes c ON c.id = a.class_id
-             WHERE a.student_id = ? AND a.status = 'absent'
-               AND c.schedule_id = ?`,
-            [stu.student_id, cls.schedule_id]
+        if (scannedIds.has(stu.student_id)) continue; // was present/late, skip
+
+        // Count total absences for this student in this subject
+        const [absCnt] = await pool.execute(
+          `SELECT COUNT(*) as cnt
+           FROM attendance a
+           JOIN classes c ON c.id = a.class_id
+           WHERE a.student_id = ? AND a.status = 'absent'
+             AND c.schedule_id = ?`,
+          [stu.student_id, cls.schedule_id]
+        );
+        const totalAbsences = Number(absCnt[0].cnt);
+
+        // Only alert exactly when threshold is FIRST reached (not every session after)
+        // This prevents spam — alert fires once at 3, not at 4, 5, 6...
+        if (totalAbsences === threshold) {
+          // Get student name
+          const [stuInfo] = await pool.execute(
+            `SELECT u.first_name, u.last_name, sub.name as subject_name
+             FROM students st
+             JOIN users u ON u.id = st.user_id
+             JOIN schedules sc ON sc.id = ?
+             JOIN subjects sub ON sub.id = sc.subject_id
+             WHERE st.id = ?`,
+            [cls.schedule_id, stu.student_id]
           );
-          if (Number(absCnt[0].cnt) >= threshold) {
-            // Insert notification for teacher/admin (non-blocking)
-            await pool.execute(
-              `INSERT INTO notifications (user_id, type, title, body)
-               SELECT t.user_id, 'alert',
-                 CONCAT('Absence alert: ', u.first_name, ' ', u.last_name),
-                 CONCAT(u.first_name, ' ', u.last_name, ' has ', ?, ' absences in this subject.')
-               FROM schedules sc
-               JOIN teachers t ON t.id = sc.teacher_id
-               JOIN students st ON st.id = ?
-               JOIN users u ON u.id = st.user_id
-               WHERE sc.id = ?
-               LIMIT 1`,
-              [absCnt[0].cnt, stu.student_id, cls.schedule_id]
-            ).catch(() => {});
-          }
+          if (!stuInfo.length) continue;
+
+          const { first_name, last_name, subject_name } = stuInfo[0];
+          const title = `⚠️ Absence Alert: ${first_name} ${last_name}`;
+          const body  = `${first_name} ${last_name} has reached ${totalAbsences} absences in ${subject_name}. Intervention may be needed.`;
+
+          // Notify the teacher of this class
+          await pool.execute(
+            `INSERT INTO notifications (user_id, type, title, body)
+             SELECT t.user_id, 'alert', ?, ?
+             FROM schedules sc
+             JOIN teachers t ON t.id = sc.teacher_id
+             WHERE sc.id = ?
+             LIMIT 1`,
+            [title, body, cls.schedule_id]
+          ).catch(() => {});
+
+          // Also notify all admins
+          await pool.execute(
+            `INSERT INTO notifications (user_id, type, title, body)
+             SELECT u.id, 'alert', ?, ?
+             FROM users u
+             WHERE u.role = 'admin' AND u.is_active = 1`,
+            [title, body]
+          ).catch(() => {});
+
+          // Also notify the student themselves
+          await pool.execute(
+            `INSERT INTO notifications (user_id, type, title, body)
+             SELECT st.user_id, 'alert',
+               CONCAT('Absence warning — ', ?),
+               CONCAT('You have reached ', ?, ' absences in ', ?, '. Please speak with your teacher.')
+             FROM students st WHERE st.id = ?`,
+            [subject_name, totalAbsences, subject_name, stu.student_id]
+          ).catch(() => {});
         }
       }
-    } catch (_) { /* notifications are non-critical */ }
+    } catch (alertErr) {
+      console.warn('Threshold alert warning:', alertErr.message);
+    }
 
     res.json({
       success: true,
