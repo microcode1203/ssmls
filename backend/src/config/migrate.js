@@ -230,11 +230,13 @@ async function migrate() {
   console.log('🔄 Running SSMLS database migrations...\n');
   try {
     const conn = await pool.getConnection();
-    await conn.execute(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``);
-    await conn.execute(`USE \`${process.env.DB_NAME}\``);
+    // Use query() not execute() for DDL commands (CREATE DATABASE, USE)
+    // execute() uses prepared statements which don't support DDL
+    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``);
+    await conn.query(`USE \`${process.env.DB_NAME}\``);
 
     for (let i = 0; i < migrations.length; i++) {
-      await conn.execute(migrations[i]);
+      await conn.query(migrations[i]);
       const tableName = migrations[i].match(/CREATE TABLE IF NOT EXISTS (\w+)/)?.[1] || `Migration ${i+1}`;
       console.log(`  ✅ Table "${tableName}" ready`);
     }
