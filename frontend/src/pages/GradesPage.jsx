@@ -96,9 +96,9 @@ function GradeModal({ mySchedules, onClose, onSave }) {
               required
             >
               <option value="">— Select your class —</option>
-              {(mySchedules||[]).map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.subject_name || s.subject} · {s.grade_level} {s.section_name} · {s.day_of_week}
+              {dedupeSchedules(mySchedules).map(s => (
+                <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+                  {s.subject_name || s.subject} · {s.grade_level} {s.section_name}
                 </option>
               ))}
             </select>

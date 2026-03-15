@@ -164,9 +164,9 @@ function QRGenerator() {
               onChange={e => { setSelectedId(e.target.value); setQrData(null); stopTimers(); setAttLog([]) }}
             >
               <option value="">— Choose a class —</option>
-              {schedules.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.subject || s.subject_name} · {s.grade_level} {s.section_name} · {s.day_of_week} {s.start_time}
+              {dedupeSchedules(schedules).map(s => (
+                <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+                  {s.subject || s.subject_name} · {s.grade_level} {s.section_name}
                 </option>
               ))}
             </select>

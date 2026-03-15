@@ -87,7 +87,11 @@ export default function MaterialsPage() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class</label>
                 <select className="input-field" value={form.scheduleId} onChange={e=>setForm(p=>({...p,scheduleId:e.target.value}))} required>
                   <option value="">— Select Class —</option>
-                  {(mySchedules||[]).map(s=><option key={s.id} value={s.id}>{s.subject} · {s.grade_level} {s.section_name}</option>)}
+                  {dedupeSchedules(mySchedules).map(s=>(
+                <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+                  {s.subject || s.subject_name} · {s.grade_level} {s.section_name}
+                </option>
+              ))}
                 </select>
               </div>
               <div>
