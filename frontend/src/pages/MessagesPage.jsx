@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,18 @@ import { Send, Inbox, Mail, X, Reply, ChevronRight } from 'lucide-react'
 function ComposeModal({ onClose, onSent, contacts }) {
  const [form, setForm] = useState({ receiverId:'', subject:'', body:'' })
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const set = k => e => setForm(p=>({...p,[k]:e.target.value}))
  const handleSubmit = async e => {
  e.preventDefault(); setSaving(true)

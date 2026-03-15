@@ -1,7 +1,7 @@
 /* @v2-fixed-imports */
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -31,6 +31,18 @@ function GradeModal({ mySchedules, onClose, onSave }) {
  const [scores, setScores] = useState({ writtenWorks: '', performanceTasks: '', quarterlyAssessment: '' })
  const [preview, setPreview] = useState(null)
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const selectedSchedule = (mySchedules || []).find(s => String(s.id) === String(scheduleId))
 

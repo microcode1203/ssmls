@@ -1,5 +1,5 @@
 /* @v2-fixed-imports */
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -49,6 +49,17 @@ export default function MaterialsPage() {
  })
  const [saving, setSaving] = useState(false)
  const [confirm, setConfirm] = useState(null)
+
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 

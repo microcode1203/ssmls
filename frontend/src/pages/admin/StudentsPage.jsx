@@ -17,6 +17,18 @@ function PasswordModal({ student, onClose }) {
  const [saving, setSaving] = useState(false)
  const [copied, setCopied] = useState(false)
 
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+
  const handleReset = async () => {
  if (!password || password.length < 8)
  return toast.error('Password must be at least 8 characters.')
@@ -168,6 +180,18 @@ function StudentModal({ student, sections, onClose, onSave }) {
  guardianName:'', guardianPhone:''
  })
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
@@ -385,6 +409,18 @@ function StudentModal({ student, sections, onClose, onSave }) {
 // ─── Delete Confirmation Modal with phrase ────────────────────────────────────
 function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
  const [phrase, setPhrase] = useState('')
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const isMatch = phrase === CONFIRM_PHRASE
 
  // Enter = confirm (if phrase matches), Escape = cancel

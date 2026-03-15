@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,6 +18,17 @@ export default function AppealsPage() {
  const [response, setResponse] = useState('')
  const [status, setStatus] = useState('resolved')
  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const { data: appeals, isLoading } = useQuery({
  queryKey: ['appeals'], queryFn: ()=>api.get('/appeals').then(r=>r.data.data), staleTime:0

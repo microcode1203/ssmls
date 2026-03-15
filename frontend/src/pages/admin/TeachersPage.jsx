@@ -29,6 +29,18 @@ function TeacherModal({ onClose, onSave }) {
  employeeId:'', department:'', phone:''
  })
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
  const handleSubmit = async (e) => {
@@ -89,6 +101,18 @@ function TeacherModal({ onClose, onSave }) {
 // ─── Delete Confirmation Modal ────────────────────────────────────────────────
 function DeleteTeacherModal({ teacher, onClose, onConfirm, deleting }) {
  const [phrase, setPhrase] = useState('')
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const isMatch = phrase === CONFIRM_PHRASE
 
  useEffect(() => {

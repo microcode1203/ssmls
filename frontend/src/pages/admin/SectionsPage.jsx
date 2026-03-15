@@ -15,6 +15,18 @@ function SectionModal({ section, onClose, onSave }) {
  strand: section?.strand || 'STEM',
  })
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const isEdit = !!section
 
  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))

@@ -1,7 +1,7 @@
 /* @v2-fixed-imports */
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
-import { useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -101,6 +101,18 @@ function CreateModal({ schedules, onClose, onSave }) {
  scheduleId:'', title:'', description:'', dueDate:'', maxScore:100, type:'homework'
  })
  const [saving, setSaving] = useState(false)
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
  const handleSubmit = async (e) => {
@@ -203,6 +215,18 @@ function SubmitModal({ assignment, onClose, onSave }) {
  const [file, setFile] = useState(null) // { name, type, size, base64 }
  const [saving, setSaving] = useState(false)
  const [fileError, setFileError] = useState('')
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const handleFileChange = async (e) => {
  const f = e.target.files?.[0]

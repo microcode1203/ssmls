@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -13,6 +13,17 @@ export default function AnnouncementsPage() {
  const [modal, setModal] = useState(false)
  const [form, setForm] = useState({ title:'', content:'', targetRole:'all' })
  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const { data, isLoading } = useQuery({ queryKey:['announcements'], queryFn:()=>api.get('/announcements').then(r=>r.data.data) })
 

@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -23,6 +23,17 @@ export default function CalendarPage() {
  const [adding, setAdding] = useState(false)
  const [confirm, setConfirm] = useState(null)
  const [form, setForm] = useState({ title:'', description:'', eventDate:'', endDate:'', type:'activity', targetRole:'all' })
+
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const { data: events } = useQuery({
  queryKey: ['calendar', current.month, current.year],

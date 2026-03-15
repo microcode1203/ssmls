@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -15,6 +15,17 @@ export default function PromotionPage() {
  const [phrase, setPhrase] = useState('')
  const [promoting, setPromoting] = useState(false)
  const [done, setDone] = useState(null)
+
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const CONFIRM_PHRASE = 'PROMOTE SCHOOL YEAR'
 

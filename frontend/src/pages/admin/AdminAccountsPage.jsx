@@ -19,6 +19,18 @@ function AddAdminModal({ onClose, onSave }) {
  const [showPw, setShowPw] = useState(false)
  const [saving, setSaving] = useState(false)
 
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+
  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
  const pwStrength = (pw) => {
@@ -192,6 +204,18 @@ function ResetPasswordModal({ admin, onClose }) {
  const [copied, setCopied] = useState(false)
  const [saving, setSaving] = useState(false)
 
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+
  const generate = () => {
  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!'
  setPassword(Array.from({length:12}, ()=>chars[Math.floor(Math.random()*chars.length)]).join(''))
@@ -278,6 +302,18 @@ function ResetPasswordModal({ admin, onClose }) {
 // ─── Delete Admin Modal ───────────────────────────────────────────────────────
 function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  const [phrase, setPhrase] = useState('')
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
  const isMatch = phrase === CONFIRM_PHRASE
 
  useEffect(() => {

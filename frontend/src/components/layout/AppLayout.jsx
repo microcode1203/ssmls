@@ -452,6 +452,20 @@ export default function AppLayout() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
+  // Lock main scroll container when any modal is open
+  useEffect(() => {
+    const mainEl = document.querySelector('main.page-transition')
+    if (!mainEl) return
+
+    const observer = new MutationObserver(() => {
+      const hasModal = document.querySelector('.modal-active') !== null
+      mainEl.style.overflow = hasModal ? 'hidden' : ''
+    })
+
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--surface-2)'}}>
 

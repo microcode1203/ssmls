@@ -672,17 +672,27 @@ button, a, [role="button"] {
 
 
 
-/* ── Modal: lock body scroll + floating centered animation ──────────────
-   Uses CSS :has() - supported in all modern browsers (Chrome 105+, 
-   Safari 15.4+, Firefox 121+). No JavaScript needed for scroll lock.   */
+
+/* ── Modal scroll lock ───────────────────────────────────────────────────────
+   The page scroll is on <main class="flex-1 overflow-y-auto"> inside AppLayout,
+   NOT on body. We target the actual scroll containers using :has().           */
+
+/* Lock the main content scroll container when any modal is open */
+main:has(.modal-active),
+.page-transition:has(.modal-active),
+div:has(> .modal-active) {
+  overflow: hidden !important;
+}
+
+/* Also lock body as fallback */
 body:has(.modal-active) {
   overflow: hidden;
 }
 
-/* Modal entrance animation */
+/* Modal card entrance animation */
 @keyframes ssmls-modal-in {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 .modal-card {
   animation: ssmls-modal-in 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);

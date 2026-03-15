@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -47,6 +47,18 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  const [saving, setSaving] = useState(false)
  const [conflicts, setConflicts] = useState({}) // { day: message }
  const [saved, setSaved] = useState([])
+
+  // Lock main content scroll immediately on mount
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (main) main.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [])
+
 
  const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
 
