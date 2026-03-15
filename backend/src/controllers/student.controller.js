@@ -13,7 +13,7 @@ const getAllStudents = async (req, res) => {
       FROM students s
       JOIN users u ON u.id = s.user_id
       LEFT JOIN sections sec ON sec.id = s.section_id
-      WHERE 1=1
+      WHERE u.is_active = 1
     `;
     const params = [];
     if (gradeLevel) { query += ' AND s.grade_level = ?'; params.push(gradeLevel); }

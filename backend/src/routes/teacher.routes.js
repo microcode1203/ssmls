@@ -13,6 +13,7 @@ router.get('/', authorize('admin'), async (req, res) => {
       `SELECT t.id, t.employee_id, t.department, t.phone,
          u.id as user_id, u.first_name, u.last_name, u.email, u.is_active
        FROM teachers t JOIN users u ON u.id = t.user_id
+       WHERE u.is_active = 1
        ORDER BY u.last_name`
     );
     res.json({ success: true, data: rows });
