@@ -166,7 +166,9 @@ function NotificationBell() {
   const [open,   setOpen]   = useState(false)
   const [notifs, setNotifs] = useState([])
   const [unread, setUnread] = useState(0)
-  const ref = useRef(null)
+  const ref      = useRef(null)
+  const btnRef   = useRef(null)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
 
   const fetchNotifs = async () => {
     try {
@@ -218,7 +220,19 @@ function NotificationBell() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={() => { setOpen(p => !p); if (!open) fetchNotifs() }}
+        onClick={() => {
+          if (!open && btnRef.current) {
+            const rect = btnRef.current.getBoundingClientRect()
+            // Place dropdown to the right of sidebar, below the button
+            setDropPos({
+              top:  rect.bottom + 8,
+              left: rect.left + rect.width + 8,
+            })
+          }
+          setOpen(p => !p)
+          if (!open) fetchNotifs()
+        }}
+        ref={btnRef}
         style={{
           position: 'relative', background: 'rgba(255,255,255,.08)',
           border: 'none', borderRadius: 8, width: 32, height: 32,
@@ -247,11 +261,15 @@ function NotificationBell() {
 
       {open && (
         <div style={{
-          position: 'absolute', top: 40, left: 0, zIndex: 999,
-          background: 'white', borderRadius: 12, width: 300,
-          boxShadow: '0 8px 32px rgba(15,23,42,.18)',
+          position: 'fixed',
+          top:  dropPos.top,
+          left: dropPos.left,
+          zIndex: 9999,
+          background: 'white', borderRadius: 12, width: 320,
+          boxShadow: '0 12px 40px rgba(15,23,42,.22), 0 2px 8px rgba(15,23,42,.08)',
           border: '0.5px solid #e2e8f0',
           overflow: 'hidden',
+          maxHeight: 'calc(100vh - ' + dropPos.top + 'px - 16px)',
         }}>
           {/* Header */}
           <div style={{
