@@ -391,7 +391,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
  const graded = (data||[]).filter(s => s.status === 'graded').length
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
  <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92vh] flex flex-col">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">

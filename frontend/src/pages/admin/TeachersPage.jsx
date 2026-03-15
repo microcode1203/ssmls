@@ -400,16 +400,16 @@ export default function TeachersPage() {
  const [filterSection, setFilterSection] = useState('')
  const [filterSubject, setFilterSubject] = useState('')
 
-  // Prevent body scroll when any modal is open
+  // Body scroll lock
   useEffect(() => {
-    const hasModal = addModal
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    const open = !!addModal
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [addModal])
+
+
+
+
 
 
  const { data, isLoading, refetch: refetchTeachers } = useQuery({

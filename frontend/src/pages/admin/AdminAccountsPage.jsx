@@ -363,16 +363,14 @@ export default function AdminAccountsPage() {
  const [deleteTarget, setDeleteTarget] = useState(null)
  const [deleting, setDeleting] = useState(false)
 
-  // Prevent body scroll when any modal is open
+  // Body scroll lock
   useEffect(() => {
-    const hasModal = showPw || showPw || addModal
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    const open = !!showPw || !!showPw || !!addModal
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [showPw, showPw, addModal])
+
+
 
 
  const { data, isLoading, refetch } = useQuery({

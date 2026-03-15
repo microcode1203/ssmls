@@ -231,16 +231,14 @@ export default function SubjectsPage() {
  const [search, setSearch] = useState('')
  const [filterGrade, setFilterGrade] = useState('')
 
-  // Prevent body scroll when any modal is open
+  // Body scroll lock
   useEffect(() => {
-    const hasModal = saving
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    const open = !!modal || !!deleteTarget
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [saving])
+  }, [modal, deleteTarget])
+
+
 
 
  const { data, isLoading, refetch } = useQuery({

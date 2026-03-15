@@ -545,16 +545,16 @@ export default function StudentsPage() {
  const [deleting, setDeleting] = useState(false)
  const [passwordTarget, setPasswordTarget] = useState(null)
 
-  // Prevent body scroll when any modal is open
+  // Body scroll lock - opens with any modal
   useEffect(() => {
-    const hasModal = showPw
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    const open = !!modal || !!deleteTarget || !!passwordTarget
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [showPw])
+  }, [modal, deleteTarget, passwordTarget])
+
+
+
+
 
 
  const { data: students, isLoading, refetch: refetchStudents } = useQuery({
