@@ -1,4 +1,5 @@
 /* @v2-fixed-imports */
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -427,11 +428,11 @@ function SubmissionsDrawer({ assignment, onClose }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                      {sub.first_name?.[0]}{sub.last_name?.[0]}
+                      {initials(sub.first_name, sub.last_name)}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">
-                        {sub.last_name}, {sub.first_name}
+                        {formalName(sub.first_name, sub.middle_name, sub.last_name)}
                       </p>
                       <p className="text-xs text-slate-400">
                         {formatDistanceToNow(new Date(sub.submitted_at), { addSuffix: true })}
@@ -487,7 +488,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
         {grading && (
           <div className="border-t border-slate-200 p-4 bg-slate-50 flex-shrink-0">
             <p className="text-xs font-bold text-slate-600 mb-3 uppercase tracking-wider">
-              Grading: {grading.first_name} {grading.last_name}
+              Grading: {formalName(grading.first_name, grading.middle_name, grading.last_name)}
             </p>
             {grading.text_answer && (
               <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 mb-3 max-h-20 overflow-y-auto">

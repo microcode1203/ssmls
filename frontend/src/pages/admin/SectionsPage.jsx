@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState, useEffect } from 'react'
+import { fullName, formalName, initials } from '../../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
@@ -318,7 +319,7 @@ export default function SectionsPage() {
         </div>
         {s.first_name && (
           <p className="text-xs text-slate-400 truncate max-w-24">
-            {s.first_name} {s.last_name}
+            {fullName(s.first_name, s.middle_name, s.last_name)}
           </p>
         )}
       </div>

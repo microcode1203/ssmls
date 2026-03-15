@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { fullName, formalName, initials } from '../../utils/nameUtils'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../api/client'
 import { Trophy, GraduationCap, AlertTriangle, TrendingDown } from 'lucide-react'
@@ -88,7 +89,7 @@ export default function RankingPage() {
                             {i<3?['🥇','🥈','🥉'][i]:i+1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-800 text-sm">{s.last_name}, {s.first_name}</p>
+                            <p className="font-semibold text-slate-800 text-sm">{formalName(s.first_name, s.middle_name, s.last_name)}</p>
                             <p className="text-xs text-slate-400 font-mono">{s.lrn}</p>
                           </div>
                           <div className="text-right">
@@ -114,7 +115,7 @@ export default function RankingPage() {
                             —
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-700 text-sm">{s.last_name}, {s.first_name}</p>
+                            <p className="font-semibold text-slate-700 text-sm">{formalName(s.first_name, s.middle_name, s.last_name)}</p>
                             <p className="text-xs text-slate-400 font-mono">{s.lrn}</p>
                           </div>
                           <span className="text-xs text-slate-400">No grades yet</span>
@@ -150,7 +151,7 @@ export default function RankingPage() {
                   <tbody className="divide-y divide-slate-50">
                     {(atRisk.data||[]).map((r,i)=>(
                       <tr key={i} className="hover:bg-red-50/30">
-                        <td className="px-4 py-3 font-semibold text-slate-800">{r.first_name} {r.last_name}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{fullName(r.first_name, r.middle_name, r.last_name)}</td>
                         <td className="px-4 py-3 text-slate-500 text-xs">{r.grade_level} · {r.section_name}</td>
                         <td className="px-4 py-3 text-slate-600">{r.subject_name}</td>
                         <td className="px-4 py-3"><span className="badge-amber">{r.quarter}</span></td>

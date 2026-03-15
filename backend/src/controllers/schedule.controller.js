@@ -77,7 +77,7 @@ const getTeacherSchedule = async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT s.*, sub.name as subject_name, sub.code,
          sec.section_name, sec.grade_level, sec.strand,
-         u.first_name, u.last_name
+         u.first_name, u.middle_name, u.last_name
        FROM schedules s
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN sections sec ON sec.id = s.section_id
@@ -100,7 +100,7 @@ const getSectionSchedule = async (req, res) => {
     const { sectionId } = req.params;
     const [rows] = await pool.execute(
       `SELECT s.*, sub.name as subject_name, sub.code,
-         u.first_name, u.last_name
+         u.first_name, u.middle_name, u.last_name
        FROM schedules s
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN teachers t ON t.id = s.teacher_id
@@ -120,7 +120,7 @@ const getPendingSchedules = async (req, res) => {
   try {
     const [rows] = await pool.execute(
       `SELECT s.*, sub.name as subject_name, sec.section_name, sec.grade_level,
-         u.first_name, u.last_name
+         u.first_name, u.middle_name, u.last_name
        FROM schedules s
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN sections sec ON sec.id = s.section_id

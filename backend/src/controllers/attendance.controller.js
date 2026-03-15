@@ -201,7 +201,7 @@ const getClassAttendance = async (req, res) => {
   try {
     const { classId } = req.params;
     const [rows] = await pool.execute(
-      `SELECT a.*, u.first_name, u.last_name, s.lrn
+      `SELECT a.*, u.first_name, u.middle_name, u.last_name, s.lrn
        FROM attendance a
        JOIN students s ON s.id = a.student_id
        JOIN users u ON u.id = s.user_id
@@ -338,7 +338,7 @@ const closeAttendance = async (req, res) => {
         if (totalAbsences === threshold) {
           // Get student name
           const [stuInfo] = await pool.execute(
-            `SELECT u.first_name, u.last_name, sub.name as subject_name
+            `SELECT u.first_name, u.middle_name, u.last_name, sub.name as subject_name
              FROM students st
              JOIN users u ON u.id = st.user_id
              JOIN schedules sc ON sc.id = ?

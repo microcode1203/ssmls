@@ -1,4 +1,5 @@
 /* @v2-fixed-imports */
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -124,7 +125,7 @@ function GradeModal({ mySchedules, onClose, onSave }) {
               onChange={e => { setStudentId(e.target.value); setPreview(null) }} required disabled={!scheduleId}>
               <option value="">{!scheduleId ? '— Select a class first —' : '— Select student —'}</option>
               {(sectionStudents || []).map(s => (
-                <option key={s.id} value={s.id}>{s.last_name}, {s.first_name} · {s.lrn}</option>
+                <option key={s.id} value={s.id}>{formalName(s.first_name, s.middle_name, s.last_name)} · {s.lrn}</option>
               ))}
             </select>
             {scheduleId && !sectionStudents?.length && (
@@ -351,7 +352,7 @@ export default function GradesPage() {
                 onChange={e => setSelectedStudent(e.target.value)}>
                 <option value="">— Select student —</option>
                 {(sectionStudents || []).map(s => (
-                  <option key={s.id} value={s.id}>{s.last_name}, {s.first_name} · {s.section_name}</option>
+                  <option key={s.id} value={s.id}>{formalName(s.first_name, s.middle_name, s.last_name)} · {s.section_name}</option>
                 ))}
               </select>
             </div>
@@ -388,7 +389,7 @@ export default function GradesPage() {
               <h3 className="font-bold text-slate-900">
                 {isStudent ? 'My Grade Report'
                   : (sectionStudents || []).find(s => String(s.id) === String(selectedStudent))
-                    ? `${(sectionStudents || []).find(s => String(s.id) === String(selectedStudent))?.last_name}, ${(sectionStudents || []).find(s => String(s.id) === String(selectedStudent))?.first_name}`
+                    ? formalName((sectionStudents||[]).find(s=>String(s.id)===String(selectedStudent))?.first_name, (sectionStudents||[]).find(s=>String(s.id)===String(selectedStudent))?.middle_name, (sectionStudents||[]).find(s=>String(s.id)===String(selectedStudent))?.last_name)
                     : 'Grade Report'
                 }
               </h3>

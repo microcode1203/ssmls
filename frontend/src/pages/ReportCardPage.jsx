@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -58,7 +59,7 @@ export default function ReportCardPage() {
           <select className="input-field max-w-sm" value={selectedStudent} onChange={e=>setSelectedStudent(e.target.value)}>
             <option value="">— Select student —</option>
             {(students||[]).map(s=>(
-              <option key={s.id} value={s.id}>{s.last_name}, {s.first_name} — {s.grade_level} · {s.section_name}</option>
+              <option key={s.id} value={s.id}>{formalName(s.first_name, s.middle_name, s.last_name)} — {s.grade_level} · {s.section_name}</option>
             ))}
           </select>
         </div>

@@ -168,7 +168,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.last_login,
+      `SELECT u.id, u.first_name, u.middle_name, u.last_name, u.email, u.role, u.last_login,
          s.id as student_db_id, s.lrn, s.grade_level, s.strand,
          sec.section_name, sec.id as section_id,
          t.id as teacher_db_id, t.employee_id
@@ -187,7 +187,7 @@ const getMe = async (req, res) => {
     res.json({
       success: true,
       data: {
-        id: u.id, firstName: u.first_name, lastName: u.last_name,
+        id: u.id, firstName: u.first_name, middleName: u.middle_name, lastName: u.last_name,
         email: u.email, role: u.role, lastLogin: u.last_login,
         studentId: u.student_db_id, lrn: u.lrn,
         gradeLevel: u.grade_level, strand: u.strand,

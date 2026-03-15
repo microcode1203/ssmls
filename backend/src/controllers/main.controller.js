@@ -109,7 +109,7 @@ const getDashboard = async (req, res) => {
 
       // Recent activity logs
       const [recentLogs] = await pool.execute(`
-        SELECT l.*, u.first_name, u.last_name, u.role
+        SELECT l.*, u.first_name, u.middle_name, u.last_name, u.role
         FROM audit_logs l
         JOIN users u ON u.id = l.user_id
         ORDER BY l.timestamp DESC
@@ -174,7 +174,7 @@ const getDashboard = async (req, res) => {
       const student = sRows[0];
 
       const [schedule] = await pool.execute(
-        `SELECT s.id, sub.name as subject, u.first_name, u.last_name, s.day_of_week, s.start_time, s.end_time, s.room
+        `SELECT s.id, sub.name as subject, u.first_name, u.middle_name, u.last_name, s.day_of_week, s.start_time, s.end_time, s.room
          FROM schedules s JOIN subjects sub ON sub.id=s.subject_id
          JOIN teachers t ON t.id=s.teacher_id JOIN users u ON u.id=t.user_id
          WHERE s.section_id=? AND s.status='approved'
@@ -251,7 +251,7 @@ const createSection = async (req, res) => {
 const getAnnouncements = async (req, res) => {
   const role = req.user.role;
   const [rows] = await pool.execute(
-    `SELECT a.*, u.first_name, u.last_name
+    `SELECT a.*, u.first_name, u.middle_name, u.last_name
      FROM announcements a JOIN users u ON u.id=a.created_by
      WHERE a.target_role='all' OR a.target_role=?
      ORDER BY a.created_at DESC LIMIT 20`,
@@ -288,7 +288,7 @@ const getAssignments = async (req, res) => {
       if (!secId) return res.json({ success: true, data: [] });
 
       q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
-             u.first_name, u.last_name
+             u.first_name, u.middle_name, u.last_name
            FROM assignments a
            JOIN schedules s   ON s.id = a.schedule_id
            JOIN subjects sub  ON sub.id = s.subject_id
@@ -300,7 +300,7 @@ const getAssignments = async (req, res) => {
 
     } else if (req.user.role === 'teacher') {
       q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
-             u.first_name, u.last_name
+             u.first_name, u.middle_name, u.last_name
            FROM assignments a
            JOIN schedules s   ON s.id = a.schedule_id
            JOIN subjects sub  ON sub.id = s.subject_id
@@ -314,7 +314,7 @@ const getAssignments = async (req, res) => {
     } else {
       // Admin — all assignments
       q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
-             u.first_name, u.last_name
+             u.first_name, u.middle_name, u.last_name
            FROM assignments a
            JOIN schedules s   ON s.id = a.schedule_id
            JOIN subjects sub  ON sub.id = s.subject_id
@@ -422,7 +422,7 @@ const upsertGrade = async (req, res) => {
 const getMaterials = async (req, res) => {
   const { scheduleId } = req.query;
   const [rows] = await pool.execute(
-    `SELECT m.*, u.first_name, u.last_name, sub.name as subject_name
+    `SELECT m.*, u.first_name, u.middle_name, u.last_name, sub.name as subject_name
      FROM learning_materials m JOIN users u ON u.id=m.uploaded_by
      JOIN schedules s ON s.id=m.schedule_id JOIN subjects sub ON sub.id=s.subject_id
      ${scheduleId ? 'WHERE m.schedule_id=?' : ''}

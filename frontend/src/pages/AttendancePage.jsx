@@ -1,4 +1,5 @@
 /* @v2-fixed-imports */
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
@@ -269,10 +270,10 @@ function QRGenerator() {
               {attLog.map((rec, i) => (
                 <div key={rec.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                    {rec.first_name?.[0]}{rec.last_name?.[0]}
+                    {initials(rec.first_name, rec.last_name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{rec.first_name} {rec.last_name}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">{fullName(rec.first_name, rec.middle_name, rec.last_name)}</p>
                     <p className="text-xs text-slate-400 font-mono">{rec.lrn}</p>
                   </div>
                   <div className="text-right flex-shrink-0">

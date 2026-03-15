@@ -250,7 +250,7 @@ const resetStudentPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
 
     const [rows] = await pool.execute(
-      `SELECT s.user_id, u.first_name, u.last_name
+      `SELECT s.user_id, u.first_name, u.middle_name, u.last_name
        FROM students s JOIN users u ON u.id=s.user_id
        WHERE s.id=? AND u.is_active=1`,
       [id]

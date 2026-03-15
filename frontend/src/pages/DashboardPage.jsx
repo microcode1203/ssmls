@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -216,11 +217,11 @@ function AdminDashboard({ data }) {
           {(recentLogs||[]).slice(0,6).map(log => (
             <div key={log.id} className="flex items-center gap-3 py-3">
               <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
-                {log.first_name?.[0]}{log.last_name?.[0]}
+                {initials(log.first_name, log.last_name)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 truncate">
-                  {log.first_name} {log.last_name}
+                  {fullName(log.first_name, log.middle_name, log.last_name)}
                   <span className="ml-2 text-xs font-normal text-slate-400">{log.action}</span>
                 </p>
                 <p className="text-xs text-slate-400">

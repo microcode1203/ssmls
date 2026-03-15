@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -29,7 +30,7 @@ function ComposeModal({ onClose, onSent, contacts }) {
             <select className="input-field" value={form.receiverId} onChange={set('receiverId')} required>
               <option value="">— Select recipient —</option>
               {(contacts||[]).map(c=>(
-                <option key={c.id} value={c.id}>{c.last_name}, {c.first_name} ({c.role})</option>
+                <option key={c.id} value={c.id}>{formalName(c.first_name, c.middle_name, c.last_name)} ({c.role})</option>
               ))}
             </select>
           </div>
@@ -105,7 +106,7 @@ export default function MessagesPage() {
               <button onClick={()=>setSelected(null)} className="text-xs text-primary mb-4 flex items-center gap-1 hover:underline">← Back</button>
               <h3 className="font-bold text-slate-900 text-lg">{selected.subject}</h3>
               <p className="text-xs text-slate-400 mt-1 mb-4">
-                {tab==='inbox'?`From: ${selected.first_name} ${selected.last_name}`:`To: ${selected.first_name} ${selected.last_name}`}
+                {tab==='inbox'?`From: ${fullName(selected.first_name, selected.middle_name, selected.last_name)}`:`To: ${fullName(selected.first_name, selected.middle_name, selected.last_name)}`}
                 {' · '}{new Date(selected.created_at).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
               </p>
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
@@ -133,12 +134,12 @@ export default function MessagesPage() {
                       className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-slate-50 transition-colors
                         ${tab==='inbox'&&!m.is_read?'bg-blue-50/50':''}`}>
                       <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                        {m.first_name?.[0]}{m.last_name?.[0]}
+                        {initials(m.first_name, m.last_name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className={`text-sm truncate ${!m.is_read&&tab==='inbox'?'font-bold text-slate-900':'font-medium text-slate-700'}`}>
-                            {m.first_name} {m.last_name}
+                            {fullName(m.first_name, m.middle_name, m.last_name)}
                           </p>
                           <p className="text-xs text-slate-400 flex-shrink-0">{new Date(m.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</p>
                         </div>

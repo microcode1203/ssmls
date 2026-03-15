@@ -59,7 +59,7 @@ const getProfile = async (req, res) => {
 
     const [rows] = await pool.execute(
       `SELECT
-         u.id, u.first_name, u.last_name, u.email, u.role, u.last_login,
+         u.id, u.first_name, u.middle_name, u.last_name, u.email, u.role, u.last_login,
          ${hasAvatar ? "IFNULL(u.avatar_url,'')" : "''"} AS avatar_url,
          s.id                              AS student_db_id,
          IFNULL(s.lrn,           '')       AS lrn,
@@ -94,6 +94,7 @@ const getProfile = async (req, res) => {
       data: {
         id:           u.id,
         firstName:    u.first_name,
+        middleName:   u.middle_name,
         lastName:     u.last_name,
         email:        u.email,
         role:         u.role,

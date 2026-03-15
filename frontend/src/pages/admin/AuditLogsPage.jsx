@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useQuery } from '@tanstack/react-query'
+import { fullName, formalName, initials } from '../../utils/nameUtils'
 import api from '../../api/client'
 import { Shield } from 'lucide-react'
 
@@ -20,7 +21,7 @@ export default function AuditLogsPage() {
           <tbody className="divide-y divide-slate-50">
             {(data||[]).map(l=>(
               <tr key={l.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-semibold text-slate-800">{l.first_name} {l.last_name}<p className="text-xs text-slate-400 capitalize">{l.role}</p></td>
+                <td className="px-4 py-3 font-semibold text-slate-800">{fullName(l.first_name, l.middle_name, l.last_name)}<p className="text-xs text-slate-400 capitalize">{l.role}</p></td>
                 <td className="px-4 py-3"><span className={actionColor(l.action)}>{l.action}</span></td>
                 <td className="px-4 py-3 text-slate-500 font-mono text-xs">{l.entity||'—'} {l.entity_id ? `#${l.entity_id}` : ''}</td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-400">{l.ip_address||'—'}</td>

@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState, useEffect } from 'react'
+import { fullName, formalName, initials } from '../../utils/nameUtils'
 import { useAuth } from '../../context/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -21,7 +22,7 @@ function PasswordModal({ student, onClose }) {
     setSaving(true)
     try {
       await api.post(`/students/${student.id}/reset-password`, { newPassword: password })
-      toast.success(`Password reset for ${student.first_name} ${student.last_name}.`)
+      toast.success(`Password reset for ${fullName(student.first_name, student.middle_name, student.last_name)}.`)
       onClose()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to reset password.')
@@ -62,10 +63,10 @@ function PasswordModal({ student, onClose }) {
           {/* Student info */}
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-              {student?.first_name?.[0]}{student?.last_name?.[0]}
+              {initials(student?.first_name, student?.last_name)}
             </div>
             <div>
-              <p className="font-bold text-slate-800 text-sm">{student?.first_name} {student?.last_name}</p>
+              <p className="font-bold text-slate-800 text-sm">{fullName(student?.first_name, student?.middle_name, student?.last_name)}</p>
               <p className="text-xs text-slate-400">{student?.email}</p>
             </div>
             <div className="ml-auto text-right">
@@ -417,10 +418,10 @@ function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
           {/* Student info card */}
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700 flex-shrink-0">
-              {student?.first_name?.[0]}{student?.last_name?.[0]}
+              {initials(student?.first_name, student?.last_name)}
             </div>
             <div>
-              <p className="font-bold text-slate-800">{student?.first_name} {student?.last_name}</p>
+              <p className="font-bold text-slate-800">{fullName(student?.first_name, student?.middle_name, student?.last_name)}</p>
               <p className="text-xs text-slate-500">{student?.email}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-slate-400 font-mono">LRN: {student?.lrn}</span>
@@ -586,7 +587,7 @@ export default function StudentsPage() {
     setDeleting(true)
     try {
       await api.delete(`/students/${deleteTarget.id}`)
-      toast.success(`${deleteTarget.first_name} ${deleteTarget.last_name}'s account has been deactivated.`)
+      toast.success(`${fullName(deleteTarget.first_name, deleteTarget.middle_name, deleteTarget.last_name)}'s account has been deactivated.`)
       setDeleteTarget(null)
       await qc.invalidateQueries(['students'])
       await refetchStudents()
@@ -709,10 +710,10 @@ export default function StudentsPage() {
             <td className="px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                  {s.first_name?.[0]}{s.last_name?.[0]}
+                  {initials(s.first_name, s.last_name)}
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-800 text-sm">{s.first_name} {s.last_name}</p>
+                  <p className="font-semibold text-slate-800 text-sm">{formalName(s.first_name, s.middle_name, s.last_name)}</p>
                   <p className="text-xs text-slate-400">{s.email}</p>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -57,7 +58,7 @@ export default function AppealsPage() {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    {user?.role!=='student'&&<span className="font-bold text-slate-800">{a.first_name} {a.last_name}</span>}
+                    {user?.role!=='student'&&<span className="font-bold text-slate-800">{fullName(a.first_name, a.middle_name, a.last_name)}</span>}
                     <span className="text-slate-500 text-sm">{a.subject_name} · {a.quarter}</span>
                     <span className="font-mono font-bold text-red-600">{a.final_grade}</span>
                     <span className={STATUS_BADGE[a.status]||'badge-slate'}>{a.status}</span>

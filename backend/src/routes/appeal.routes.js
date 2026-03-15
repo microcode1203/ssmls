@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     } else {
       [rows] = await pool.execute(
         `SELECT a.*, g.final_grade, g.quarter, sub.name as subject_name,
-           u.first_name, u.last_name
+           u.first_name, u.middle_name, u.last_name
          FROM grade_appeals a JOIN grades g ON g.id=a.grade_id
          JOIN schedules sc ON sc.id=g.schedule_id JOIN subjects sub ON sub.id=sc.subject_id
          JOIN students st ON st.id=a.student_id JOIN users u ON u.id=st.user_id
