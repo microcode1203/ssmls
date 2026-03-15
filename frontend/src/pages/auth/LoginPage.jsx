@@ -85,8 +85,8 @@ export default function LoginPage() {
         <div style={{ position:'relative', display:'flex', alignItems:'center', gap:'14px', marginBottom:'56px' }}>
           <SSMLSLogo size={44}/>
           <div>
-            <p style={{ fontWeight:700, color:'#fff', fontSize:'18px', letterSpacing:'-0.02em', margin:0 }}>SSMLS</p>
-            <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'11px', margin:0, fontWeight:500 }}>Smart School Management System</p>
+            <p style={{ fontWeight:700, color:'#fff', fontSize:'18px', letterSpacing:'-0.02em', margin:0 }}>S.S.M.L.S</p>
+            <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'11px', margin:0, fontWeight:500 }}>Smart School Management & Learning System</p>
           </div>
         </div>
 
@@ -134,7 +134,7 @@ export default function LoginPage() {
         <div style={{ position:'relative', paddingTop:'32px',
           borderTop:'1px solid rgba(255,255,255,0.08)', marginTop:'32px' }}>
           <p style={{ color:'rgba(255,255,255,0.3)', fontSize:'12px', margin:0 }}>
-            © 2026 SSMLS · Senior High School Capstone Project
+            © 2026 S.S.M.L.S · Senior High School Capstone Project
           </p>
         </div>
       </div>
@@ -148,8 +148,8 @@ export default function LoginPage() {
             className="lg-hide">
             <SSMLSLogo size={36}/>
             <div>
-              <p style={{ fontWeight:700, color:'#0f172a', fontSize:'16px', margin:0 }}>SSMLS</p>
-              <p style={{ color:'#94a3b8', fontSize:'11px', margin:0 }}>Smart School Management System</p>
+              <p style={{ fontWeight:700, color:'#0f172a', fontSize:'16px', margin:0 }}>S.S.M.L.S</p>
+              <p style={{ color:'#94a3b8', fontSize:'11px', margin:0 }}>Smart School Management & Learning System</p>
             </div>
           </div>
 
@@ -228,7 +228,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p style={{ textAlign:'center', fontSize:'12px', color:'#cbd5e1', marginTop:'40px' }}>
-            SSMLS © 2026 · Senior High School Capstone Project
+            S.S.M.L.S © 2026 · Senior High School Capstone Project
           </p>
         </div>
       </div>

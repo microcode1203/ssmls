@@ -183,8 +183,8 @@ function SidebarContent({ user, onClose, onLogout }) {
           </svg>
         </div>
         <div>
-          <div className="sidebar-brand-name">SSMLS</div>
-          <div className="sidebar-brand-sub">Smart School System</div>
+          <div className="sidebar-brand-name">S.S.M.L.S</div>
+          <div className="sidebar-brand-sub">Management & Learning System</div>
         </div>
         {onClose && (
           <button onClick={onClose} className="ml-auto p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors lg:hidden">
@@ -290,7 +290,7 @@ export default function AppLayout() {
                 <circle cx="44" cy="24.5" r="1.5" fill="white"/>
               </svg>
             </div>
-            <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>SSMLS</span>
+            <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>S.S.M.L.S</span>
           </div>
           <button onClick={()=>navigate('/settings')}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
