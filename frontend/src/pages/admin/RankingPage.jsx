@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import api from '../api/client'
+import api from '../../api/client'
 import { Trophy, GraduationCap, AlertTriangle, TrendingDown } from 'lucide-react'
 
 export default function RankingPage() {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import api from '../api/client'
+import api from '../../api/client'
 import toast from 'react-hot-toast'
 import { Save, Settings } from 'lucide-react'
 
