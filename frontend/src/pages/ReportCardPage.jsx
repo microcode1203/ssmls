@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
@@ -27,11 +28,12 @@ export default function ReportCardPage() {
     enabled: user?.role!=='student'
   })
 
-  const { data: report, isLoading } = useQuery({
+  const { data: report, isLoading, error: reportError } = useQuery({
     queryKey: ['report-card', selectedStudent],
     queryFn: () => api.get(`/reports/report-card/${selectedStudent}`).then(r=>r.data.data),
     enabled: !!selectedStudent,
     staleTime: 0,
+    retry: 1,
   })
 
   const handlePrint = () => window.print()
@@ -69,10 +71,15 @@ export default function ReportCardPage() {
           {/* Header */}
           <div className="p-6 text-center border-b border-slate-100 bg-slate-50">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Republic of the Philippines · Department of Education</p>
-            <h2 className="font-display text-2xl font-bold text-slate-900 mt-1">{report.schoolConfig?.school_name || 'Senior High School'}</h2>
-            <p className="text-sm text-slate-500">{report.schoolConfig?.school_address}</p>
+            <h2 className="font-display text-2xl font-bold text-slate-900 mt-1">
+              {report.schoolConfig?.school_name || 'Senior High School — SSMLS'}
+            </h2>
+            {report.schoolConfig?.school_address && (
+              <p className="text-sm text-slate-500">{report.schoolConfig.school_address}</p>
+            )}
             <div className="mt-3 inline-block bg-primary/10 text-primary font-bold text-sm px-4 py-1 rounded-full">
-              School Year {report.schoolConfig?.school_year} · {report.schoolConfig?.semester}
+              School Year {report.schoolConfig?.school_year || new Date().getFullYear() + '–' + (new Date().getFullYear()+1)}
+              {report.schoolConfig?.semester ? ' · ' + report.schoolConfig.semester : ''}
             </div>
           </div>
 
@@ -153,7 +160,17 @@ export default function ReportCardPage() {
         </div>
       )}
 
-      {!selectedStudent && !isLoading && (
+      {reportError && !isLoading && (
+        <div className="card p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+            <GraduationCap size={22} className="text-red-400"/>
+          </div>
+          <p className="font-semibold text-slate-700">Failed to load report card</p>
+          <p className="text-xs text-slate-400 mt-1">{reportError.response?.data?.message || 'Please try again.'}</p>
+        </div>
+      )}
+
+      {!selectedStudent && !isLoading && !reportError && (
         <div className="card p-16 text-center text-slate-400">
           <GraduationCap size={36} className="mx-auto mb-3 opacity-20"/>
           <p>Select a student to generate their report card.</p>

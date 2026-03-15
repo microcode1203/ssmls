@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const bcrypt = require('bcryptjs');
 const { pool } = require('./database');

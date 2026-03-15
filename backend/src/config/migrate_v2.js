@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 // Migration V2 — new feature tables
 // Called from seed.js on startup via safeCreateTable
 
