@@ -70,9 +70,9 @@ export default function AnnouncementsPage() {
       )}
 
       {modal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
               <h2 className="font-display font-bold text-slate-900">Post Announcement</h2>
               <button onClick={()=>setModal(false)}><X size={18}/></button>
             </div>

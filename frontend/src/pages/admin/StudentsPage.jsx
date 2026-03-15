@@ -45,9 +45,9 @@ function PasswordModal({ student, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
               <KeyRound size={20} className="text-amber-600"/>
@@ -201,9 +201,9 @@ function StudentModal({ student, sections, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
           <h2 className="font-display font-bold text-slate-900">
             {student ? 'Edit Student' : 'Add Student'}
           </h2>
@@ -398,8 +398,8 @@ function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
   }, [isMatch, deleting, onClose, onConfirm])
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">

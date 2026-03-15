@@ -169,8 +169,8 @@ export default function PromotionPage() {
 
       {/* Confirmation modal */}
       {confirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-4 pt-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={28} className="text-red-500"/>
             </div>

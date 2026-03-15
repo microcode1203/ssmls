@@ -47,10 +47,10 @@ function SubjectModal({ subject, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
               <BookMarked size={18} className="text-primary"/>
@@ -174,8 +174,8 @@ function SubjectModal({ subject, onClose, onSave }) {
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 function DeleteSubjectModal({ subject, onClose, onConfirm, deleting }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col items-center text-center gap-3 mb-6">
           <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
             <Trash2 size={24} className="text-red-500"/>
