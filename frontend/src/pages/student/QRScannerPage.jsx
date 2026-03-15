@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 import { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import api from '../../api/client'
