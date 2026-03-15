@@ -47,7 +47,7 @@ function SectionModal({ section, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto flex flex-col items-center justify-start py-8 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
@@ -170,7 +170,7 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
   }, [deleting, onConfirm, onClose])
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto flex flex-col items-center justify-start py-8 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col items-center text-center gap-3 mb-6">
           <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">

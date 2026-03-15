@@ -115,7 +115,7 @@ function CreateModal({ schedules, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto flex flex-col items-center justify-start py-8 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
           <h2 className="font-display font-bold text-slate-900">Create Assignment</h2>
@@ -256,7 +256,7 @@ function SubmitModal({ assignment, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto flex flex-col items-center justify-start py-8 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div>
@@ -385,7 +385,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
   const graded    = (data||[]).filter(s => s.status === 'graded').length
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto flex flex-col items-center justify-start py-8 px-4 overflow-y-auto">
       <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
