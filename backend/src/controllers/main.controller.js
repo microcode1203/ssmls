@@ -6,60 +6,117 @@ const getDashboard = async (req, res) => {
     const role = req.user.role;
 
     if (role === 'admin') {
+      // ── All counts filter by is_active=1 to exclude deleted accounts ──────
       const [[totals]] = await pool.execute(`
         SELECT
-          (SELECT COUNT(*) FROM students   WHERE status='active')    AS total_students,
-          (SELECT COUNT(*) FROM teachers)                             AS total_teachers,
-          (SELECT COUNT(*) FROM sections)                             AS total_sections,
-          (SELECT COUNT(*) FROM schedules  WHERE status='approved')  AS total_classes,
-          (SELECT COUNT(*) FROM schedules  WHERE status='pending')   AS pending_schedules,
-          (SELECT COUNT(*) FROM assignments WHERE due_date >= NOW()) AS active_assignments,
-          (SELECT COUNT(*) FROM submissions WHERE status='submitted') AS ungraded_submissions
+          -- Only count students whose user account is active
+          (SELECT COUNT(*)
+           FROM students s JOIN users u ON u.id=s.user_id
+           WHERE s.status='active' AND u.is_active=1)             AS total_students,
+
+          -- Only count teachers whose user account is active
+          (SELECT COUNT(*)
+           FROM teachers t JOIN users u ON u.id=t.user_id
+           WHERE u.is_active=1)                                    AS total_teachers,
+
+          -- Sections that still exist (already cleaned up on delete)
+          (SELECT COUNT(*) FROM sections)                          AS total_sections,
+
+          -- Active approved schedules
+          (SELECT COUNT(*) FROM schedules WHERE status='approved') AS total_classes,
+
+          -- Pending schedules awaiting approval
+          (SELECT COUNT(*) FROM schedules WHERE status='pending')  AS pending_schedules,
+
+          -- Assignments not yet due
+          (SELECT COUNT(*) FROM assignments
+           WHERE due_date >= NOW())                                 AS active_assignments,
+
+          -- Ungraded submissions from active students only
+          (SELECT COUNT(*)
+           FROM submissions sub
+           JOIN students st ON st.id=sub.student_id
+           JOIN users u ON u.id=st.user_id
+           WHERE sub.status='submitted' AND u.is_active=1)         AS ungraded_submissions
       `);
 
+      // Attendance rate — only from active students
       const [[attRate]] = await pool.execute(`
         SELECT
-          COUNT(*)                                      AS total_scans,
-          SUM(status IN ('present','late'))             AS attended,
-          SUM(status = 'present')                       AS present_count,
-          SUM(status = 'late')                          AS late_count,
-          SUM(status = 'absent')                        AS absent_count,
-          ROUND(SUM(status IN ('present','late')) * 100.0 / NULLIF(COUNT(*),0), 1) AS attendance_rate
-        FROM attendance
+          COUNT(*)                                          AS total_scans,
+          SUM(a.status IN ('present','late'))               AS attended,
+          SUM(a.status = 'present')                         AS present_count,
+          SUM(a.status = 'late')                            AS late_count,
+          SUM(a.status = 'absent')                          AS absent_count,
+          ROUND(
+            SUM(a.status IN ('present','late')) * 100.0
+            / NULLIF(COUNT(*), 0), 1
+          )                                                 AS attendance_rate
+        FROM attendance a
+        JOIN students s ON s.id = a.student_id
+        JOIN users u    ON u.id = s.user_id
+        WHERE u.is_active = 1
       `);
 
+      // Today's attendance — active students only
       const [attendanceToday] = await pool.execute(`
         SELECT COUNT(*) AS count, a.status
-        FROM attendance a JOIN classes c ON c.id=a.class_id
-        WHERE DATE(c.class_date)=CURDATE() GROUP BY a.status
+        FROM attendance a
+        JOIN classes c  ON c.id  = a.class_id
+        JOIN students s ON s.id  = a.student_id
+        JOIN users u    ON u.id  = s.user_id
+        WHERE DATE(c.class_date) = CURDATE()
+          AND u.is_active = 1
+        GROUP BY a.status
       `);
 
+      // Weekly attendance — active students only
       const [weeklyAtt] = await pool.execute(`
-        SELECT DATE_FORMAT(c.class_date,'%a') AS day_label, c.class_date,
-          COUNT(*) AS total,
+        SELECT
+          DATE_FORMAT(c.class_date, '%a') AS day_label,
+          c.class_date,
+          COUNT(*)                         AS total,
           SUM(a.status IN ('present','late')) AS attended
-        FROM attendance a JOIN classes c ON c.id=a.class_id
+        FROM attendance a
+        JOIN classes c  ON c.id  = a.class_id
+        JOIN students s ON s.id  = a.student_id
+        JOIN users u    ON u.id  = s.user_id
         WHERE c.class_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-        GROUP BY c.class_date ORDER BY c.class_date ASC
+          AND u.is_active = 1
+        GROUP BY c.class_date
+        ORDER BY c.class_date ASC
       `);
 
+      // Grade breakdown — active students only
       const [gradeBreakdown] = await pool.execute(`
-        SELECT grade_level, COUNT(*) AS count FROM students
-        WHERE status='active' GROUP BY grade_level
+        SELECT s.grade_level, COUNT(*) AS count
+        FROM students s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.status = 'active' AND u.is_active = 1
+        GROUP BY s.grade_level
+        ORDER BY s.grade_level
       `);
 
+      // Strand breakdown — active students only
       const [strandBreakdown] = await pool.execute(`
-        SELECT strand, COUNT(*) AS count FROM students
-        WHERE status='active' GROUP BY strand ORDER BY count DESC
+        SELECT s.strand, COUNT(*) AS count
+        FROM students s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.status = 'active' AND u.is_active = 1
+        GROUP BY s.strand
+        ORDER BY count DESC
       `);
 
+      // Recent activity logs
       const [recentLogs] = await pool.execute(`
         SELECT l.*, u.first_name, u.last_name, u.role
-        FROM audit_logs l JOIN users u ON u.id=l.user_id
-        ORDER BY l.timestamp DESC LIMIT 8
+        FROM audit_logs l
+        JOIN users u ON u.id = l.user_id
+        ORDER BY l.timestamp DESC
+        LIMIT 8
       `);
 
-      return res.json({ success:true, data:{
+      return res.json({ success: true, data: {
         totals: {
           ...totals,
           attendance_rate: attRate.attendance_rate || 0,
@@ -68,7 +125,11 @@ const getDashboard = async (req, res) => {
           absent_count:    attRate.absent_count     || 0,
           total_scans:     attRate.total_scans      || 0,
         },
-        attendanceToday, weeklyAtt, gradeBreakdown, strandBreakdown, recentLogs,
+        attendanceToday,
+        weeklyAtt,
+        gradeBreakdown,
+        strandBreakdown,
+        recentLogs,
       }});
     }
 
