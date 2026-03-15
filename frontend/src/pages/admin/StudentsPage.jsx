@@ -154,6 +154,7 @@ function PasswordModal({ student, onClose }) {
  </div>
  </div>
  </div>
+ </Modal>
  )
 }
 
