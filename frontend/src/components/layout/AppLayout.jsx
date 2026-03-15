@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
   ClipboardList, BarChart3, FileText, Bell, QrCode, Shield,
-  LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight
+  LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
+  MessageSquare, Trophy, Printer, MessageCircle, Cog
 } from 'lucide-react'
 
 const NAV = {
@@ -33,14 +34,24 @@ const NAV = {
     },
     { group: 'Communication',
       items: [
-        { label: 'Announcements',  icon: Bell,             to: '/announcements' },
+        { label: 'Announcements',  icon: Bell,            to: '/announcements' },
+        { label: 'Messages',       icon: MessageSquare,   to: '/messages' },
+        { label: 'Calendar',       icon: CalendarDays,    to: '/calendar' },
+      ]
+    },
+    { group: 'Reports',
+      items: [
+        { label: 'Report Card',    icon: Printer,         to: '/report-card' },
+        { label: 'Rankings',       icon: Trophy,          to: '/rankings' },
+        { label: 'Grade Appeals',  icon: MessageCircle,   to: '/appeals' },
       ]
     },
     { group: 'System',
       items: [
-        { label: 'Admin Accounts', icon: Crown,            to: '/admin-accounts' },
-        { label: 'Audit Logs',     icon: Shield,           to: '/audit-logs' },
-        { label: 'Settings',       icon: Settings,         to: '/settings' },
+        { label: 'School Config',  icon: Cog,             to: '/school-config' },
+        { label: 'Admin Accounts', icon: Crown,           to: '/admin-accounts' },
+        { label: 'Audit Logs',     icon: Shield,          to: '/audit-logs' },
+        { label: 'Settings',       icon: Settings,        to: '/settings' },
       ]
     },
   ],
@@ -62,10 +73,23 @@ const NAV = {
         { label: 'Materials',     icon: FileText,  to: '/materials' },
       ]
     },
+    { group: 'Communication',
+      items: [
+        { label: 'Announcements', icon: Bell,           to: '/announcements' },
+        { label: 'Messages',      icon: MessageSquare,  to: '/messages' },
+        { label: 'Calendar',      icon: CalendarDays,   to: '/calendar' },
+      ]
+    },
+    { group: 'Reports',
+      items: [
+        { label: 'Report Card',   icon: Printer,        to: '/report-card' },
+        { label: 'Rankings',      icon: Trophy,         to: '/rankings' },
+        { label: 'Grade Appeals', icon: MessageCircle,  to: '/appeals' },
+      ]
+    },
     { group: 'Other',
       items: [
-        { label: 'Announcements', icon: Bell,     to: '/announcements' },
-        { label: 'Settings',      icon: Settings, to: '/settings' },
+        { label: 'Settings',      icon: Settings,       to: '/settings' },
       ]
     },
   ],
@@ -87,10 +111,22 @@ const NAV = {
         { label: 'Materials',     icon: FileText,     to: '/materials' },
       ]
     },
+    { group: 'Communication',
+      items: [
+        { label: 'Announcements', icon: Bell,          to: '/announcements' },
+        { label: 'Messages',      icon: MessageSquare, to: '/messages' },
+        { label: 'Calendar',      icon: CalendarDays,  to: '/calendar' },
+      ]
+    },
+    { group: 'Academic',
+      items: [
+        { label: 'Report Card',   icon: Printer,       to: '/report-card' },
+        { label: 'Grade Appeals', icon: MessageCircle, to: '/appeals' },
+      ]
+    },
     { group: 'Other',
       items: [
-        { label: 'Announcements', icon: Bell,    to: '/announcements' },
-        { label: 'Settings',      icon: Settings, to: '/settings' },
+        { label: 'Settings',      icon: Settings,      to: '/settings' },
       ]
     },
   ],

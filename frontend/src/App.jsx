@@ -16,6 +16,12 @@ import MaterialsPage   from './pages/MaterialsPage'
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import AuditLogsPage      from './pages/admin/AuditLogsPage'
 import AdminAccountsPage  from './pages/admin/AdminAccountsPage'
+import RankingPage        from './pages/admin/RankingPage'
+import SchoolConfigPage   from './pages/admin/SchoolConfigPage'
+import MessagesPage       from './pages/MessagesPage'
+import CalendarPage       from './pages/CalendarPage'
+import ReportCardPage     from './pages/ReportCardPage'
+import AppealsPage        from './pages/AppealsPage'
 import SubjectsPage    from './pages/admin/SubjectsPage'
 import SettingsPage    from './pages/SettingsPage'
 import NotFoundPage    from './pages/NotFoundPage'
@@ -69,6 +75,12 @@ function AppRoutes() {
         <Route path="/subjects"  element={<ProtectedRoute allowedRoles={['admin']}><SubjectsPage /></ProtectedRoute>} />
         <Route path="/audit-logs"     element={<ProtectedRoute allowedRoles={['admin']}><AuditLogsPage /></ProtectedRoute>} />
         <Route path="/admin-accounts" element={<ProtectedRoute allowedRoles={['admin']}><AdminAccountsPage /></ProtectedRoute>} />
+        <Route path="/rankings"      element={<ProtectedRoute allowedRoles={['admin','teacher']}><RankingPage /></ProtectedRoute>} />
+        <Route path="/school-config" element={<ProtectedRoute allowedRoles={['admin']}><SchoolConfigPage /></ProtectedRoute>} />
+        <Route path="/messages"      element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+        <Route path="/calendar"      element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+        <Route path="/report-card"   element={<ProtectedRoute allowedRoles={['admin','teacher','student']}><ReportCardPage /></ProtectedRoute>} />
+        <Route path="/appeals"       element={<ProtectedRoute><AppealsPage /></ProtectedRoute>} />
         <Route path="/settings"   element={<SettingsPage />} />
       </Route>
 

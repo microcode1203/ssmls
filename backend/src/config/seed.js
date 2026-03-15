@@ -42,6 +42,13 @@ async function seed() {
       }
     }
 
+    // ── Step 0: Create new V2 tables ────────────────────────────────────────
+    const { NEW_TABLES } = require('./migrate_v2');
+    for (const sql of NEW_TABLES) {
+      try { await conn.query(sql); } catch(e) { console.warn('Table warning:', e.message.slice(0,60)); }
+    }
+    console.log('✅ V2 tables ready');
+
     // ── Step 1b: Add new columns if missing (safe for existing DBs) ─────────
     const addCol = async (table, col, definition) => {
       try {
@@ -112,6 +119,22 @@ async function seed() {
       await conn.execute(
         `INSERT IGNORE INTO subjects (code, name, grade_level, units) VALUES (?, ?, ?, ?)`,
         [code, name, grade, units]
+      );
+    }
+
+    // ── Step 5b: Default school config ─────────────────────────────────────
+    const defaults = [
+      ['school_year',       '2025-2026'],
+      ['semester',          '1st Semester'],
+      ['school_name',       'Senior High School'],
+      ['school_address',    'Philippines'],
+      ['attendance_threshold', '3'],
+      ['grade_passing',     '75'],
+      ['dark_mode_default', 'false'],
+    ];
+    for (const [k,v] of defaults) {
+      await conn.execute(
+        `INSERT IGNORE INTO school_config (config_key, config_value) VALUES (?,?)`, [k,v]
       );
     }
 
