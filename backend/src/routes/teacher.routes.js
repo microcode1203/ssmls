@@ -120,4 +120,27 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
   }
 });
 
+// GET teacher's schedules (sections + subjects they handle)
+router.get('/:id/schedules', authorize('admin'), async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT
+         s.id, s.day_of_week, s.start_time, s.end_time, s.room, s.status,
+         sub.id as subject_id, sub.name as subject_name, sub.code as subject_code,
+         sec.id as section_id, sec.section_name, sec.grade_level, sec.strand
+       FROM schedules s
+       JOIN subjects sub ON sub.id = s.subject_id
+       JOIN sections sec ON sec.id = s.section_id
+       WHERE s.teacher_id = ? AND s.status = 'approved'
+       ORDER BY
+         FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
+         s.start_time`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
 module.exports = router;
