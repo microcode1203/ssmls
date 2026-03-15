@@ -7,6 +7,15 @@ async function seed() {
   const conn = await pool.getConnection();
 
   try {
+    // Remove duplicate sections (keep lowest id per name+grade combo)
+    await conn.query(`
+      DELETE s1 FROM sections s1
+      INNER JOIN sections s2
+      WHERE s1.id > s2.id
+        AND s1.section_name = s2.section_name
+        AND s1.grade_level  = s2.grade_level
+    `);
+    console.log('✅ Duplicate sections cleaned up');
     // Admin user
     const adminHash = await bcrypt.hash('Admin@2026', 12);
     await conn.execute(

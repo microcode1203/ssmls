@@ -231,7 +231,10 @@ const getSections = async (req, res) => {
        ORDER BY s.grade_level, s.section_name`,
       gradeLevel ? [gradeLevel] : []
     );
-    res.json({ success: true, data: rows });
+    // Deduplicate by id in case seed ran multiple times
+    const seen = new Set();
+    const unique = rows.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+    res.json({ success: true, data: unique });
   } catch (err) {
     console.error('getSections error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });

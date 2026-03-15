@@ -148,7 +148,9 @@ export default function SchedulesPage() {
   const [modal, setModal] = useState(false)
   const [view,  setView]  = useState('list') // list | grid
 
-  const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
+  const { data: sectionsRaw } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
+  // Deduplicate sections by id to prevent duplicates from appearing in dropdowns
+  const sections = sectionsRaw ? [...new Map(sectionsRaw.map(s => [s.id, s])).values()] : []
   const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
   const { data: teachers  } = useQuery({ queryKey:['teachers'], queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
 
@@ -278,13 +280,7 @@ export default function SchedulesPage() {
         <ScheduleModal
           userRole={user?.role}
           sections={sections}
-          subjects={[
-            {id:1,name:'General Mathematics',code:'MATH11'},
-            {id:2,name:'Earth and Life Science',code:'SCI11'},
-            {id:3,name:'Oral Communication',code:'ENG11'},
-            {id:4,name:'Statistics and Probability',code:'STAT12'},
-            {id:5,name:'Pre-Calculus',code:'STEM11'},
-          ]}
+          subjects={subjects}
           teachers={teachers}
           onClose={()=>setModal(false)}
           onSave={()=>{ setModal(false); qc.invalidateQueries(['schedules']) }}
