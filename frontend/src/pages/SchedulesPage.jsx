@@ -475,21 +475,22 @@ export default function SchedulesPage() {
   const qc       = useQueryClient()
   const [modal,   setModal]   = useState(false)
   const [confirm, setConfirm] = useState(null)
-  const [filter,  setFilter]  = useState({ day:'', subject:'', section:'' })
+  const [filter,       setFilter]      = useState({ day:'', subject:'', section:'' })
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
   const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
   const { data: teachers  } = useQuery({ queryKey:['teachers'], queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
 
   const { data: schedules, isLoading } = useQuery({
-    queryKey: ['schedules', user?.teacherId, user?.sectionId],
+    queryKey: ['schedules', user?.role, user?.teacherId, user?.sectionId],
     queryFn: async () => {
-      if (user?.role==='teacher' && user?.teacherId)
-        return api.get(`/schedules/teacher/${user.teacherId}`).then(r=>r.data.data)
-      if (user?.role==='student' && user?.sectionId)
-        return api.get(`/schedules/section/${user.sectionId}`).then(r=>r.data.data)
-      if (user?.role==='admin')
-        return api.get('/schedules/pending').then(r=>r.data.data)
+      if (user?.role === 'teacher' && user?.teacherId)
+        return api.get(`/schedules/teacher/${user.teacherId}`).then(r => r.data.data)
+      if (user?.role === 'student' && user?.sectionId)
+        return api.get(`/schedules/section/${user.sectionId}`).then(r => r.data.data)
+      if (user?.role === 'admin')
+        return api.get('/schedules/pending').then(r => r.data.data)
       return []
     },
     staleTime: 0,
@@ -531,7 +532,13 @@ export default function SchedulesPage() {
   }, [schedules])
 
   // Apply filters
-  const filtered = useMemo(() => (schedules||[]).filter(s => {
+  // For admin: apply status filter on top of other filters
+  const statusFiltered = useMemo(() => {
+    if (user?.role !== 'admin' || statusFilter === 'all') return schedules || []
+    return (schedules || []).filter(s => s.status === statusFilter)
+  }, [schedules, statusFilter, user?.role])
+
+  const filtered = useMemo(() => (statusFiltered||[]).filter(s => {
     const subjectName = s.subject_name || s.subject
     if (filter.day     && s.day_of_week !== filter.day) return false
     if (filter.subject && subjectName   !== filter.subject) return false
@@ -543,7 +550,8 @@ export default function SchedulesPage() {
 
   // Group by day for weekly view
   const byDay = useMemo(() => DAYS.reduce((acc, day) => {
-    acc[day] = (schedules||[]).filter(s => s.day_of_week === day)
+    // Weekly view shows only approved schedules
+    acc[day] = (schedules||[]).filter(s => s.day_of_week === day && s.status === 'approved')
     return acc
   }, {}), [schedules])
 
@@ -557,7 +565,11 @@ export default function SchedulesPage() {
           <h1 className="page-title">Schedules</h1>
           <p className="text-slate-500 text-sm mt-1">
             {user?.role==='admin'
-              ? `${schedules?.length||0} pending approvals`
+              ? (() => {
+                  const approved = (schedules||[]).filter(s=>s.status==='approved').length
+                  const pending  = (schedules||[]).filter(s=>s.status==='pending').length
+                  return `${approved} approved · ${pending} pending`
+                })()
               : `${schedules?.length||0} class${schedules?.length!==1?'es':''} this semester`}
           </p>
         </div>
@@ -604,6 +616,14 @@ export default function SchedulesPage() {
         <Filter size={14} className="text-slate-400 flex-shrink-0"/>
 
         {/* Day */}
+        {user?.role === 'admin' && (
+          <select className="input-field w-36 text-sm" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        )}
         <select className="input-field w-36 text-sm" value={filter.day} onChange={e=>setFilter(p=>({...p,day:e.target.value}))}>
           <option value="">All Days</option>
           {DAYS.map(d=><option key={d} value={d}>{d}</option>)}
@@ -640,7 +660,7 @@ export default function SchedulesPage() {
       <div className="card overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100">
           <span className="text-sm font-bold text-slate-700">
-            {user?.role==='admin' ? 'Pending Approvals' : 'All Schedules'}
+            {user?.role==='admin' ? 'All Schedules' : 'All Schedules'}
           </span>
         </div>
         {isLoading ? <TableSkeleton cols={6} rows={8}/> : (

@@ -115,20 +115,55 @@ const getSectionSchedule = async (req, res) => {
   }
 };
 
-// GET /api/schedules/pending  (admin)
+// GET /api/schedules/pending  (admin) — returns ALL schedules, not just pending
+// GET /api/schedules/all  (admin — all schedules with filter)
+const getAllSchedules = async (req, res) => {
+  try {
+    const { status, teacherId, sectionId } = req.query;
+    let query = `
+      SELECT s.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+        sec.strand, u.first_name, u.middle_name, u.last_name
+      FROM schedules s
+      JOIN subjects sub ON sub.id = s.subject_id
+      JOIN sections sec ON sec.id = s.section_id
+      JOIN teachers t ON t.id = s.teacher_id
+      JOIN users u ON u.id = t.user_id
+      WHERE 1=1`;
+    const params = [];
+    if (status)    { query += ` AND s.status = ?`;     params.push(status); }
+    if (teacherId) { query += ` AND s.teacher_id = ?`; params.push(teacherId); }
+    if (sectionId) { query += ` AND s.section_id = ?`; params.push(sectionId); }
+    query += ` ORDER BY sec.grade_level, sec.section_name,
+      FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
+      s.start_time`;
+    const [rows] = await pool.execute(query, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getAllSchedules error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 const getPendingSchedules = async (req, res) => {
   try {
-    const [rows] = await pool.execute(
-      `SELECT s.*, sub.name as subject_name, sec.section_name, sec.grade_level,
-         u.first_name, u.middle_name, u.last_name
+    const { status } = req.query; // optional filter: pending | approved | rejected
+    let query = `SELECT s.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+         sec.strand, u.first_name, u.middle_name, u.last_name
        FROM schedules s
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN sections sec ON sec.id = s.section_id
        JOIN teachers t ON t.id = s.teacher_id
-       JOIN users u ON u.id = t.user_id
-       WHERE s.status = 'pending'
-       ORDER BY s.created_at DESC`
-    );
+       JOIN users u ON u.id = t.user_id`;
+    const params = [];
+    if (status) {
+      query += ` WHERE s.status = ?`;
+      params.push(status);
+    }
+    query += ` ORDER BY
+      CASE s.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+      FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
+      s.start_time`;
+    const [rows] = await pool.execute(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -158,4 +193,4 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
-module.exports = { createSchedule, getTeacherSchedule, getSectionSchedule, getPendingSchedules, approveSchedule, deleteSchedule };
+module.exports = { createSchedule, getTeacherSchedule, getSectionSchedule, getPendingSchedules, getAllSchedules, approveSchedule, deleteSchedule };
