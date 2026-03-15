@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { GraduationCap, Printer, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TableSkeleton } from '../components/ui/Skeleton'
 
 const QUARTERS = ['Q1','Q2','Q3','Q4']
 const gradeColor = g => {
@@ -65,7 +66,7 @@ export default function ReportCardPage() {
         </div>
       )}
 
-      {isLoading && <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/></div>}
+      {isLoading && <TableSkeleton cols={6} rows={8}/>}
 
       {report && !isLoading && (
         <div className="card overflow-hidden print:shadow-none print:border-none" id="report-card">

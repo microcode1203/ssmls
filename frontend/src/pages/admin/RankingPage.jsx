@@ -4,6 +4,7 @@ import { fullName, formalName, initials } from '../../utils/nameUtils'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../api/client'
 import { Trophy, GraduationCap, AlertTriangle, TrendingDown } from 'lucide-react'
+import { TableSkeleton } from '../../components/ui/Skeleton'
 
 export default function RankingPage() {
   const [tab, setTab] = useState('ranking')

@@ -117,7 +117,7 @@ export default function GlobalSearch() {
         onClick={() => setOpen(true)}
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          width: '100%', padding: '8px 12px',
+          padding: '8px 12px',
           background: 'rgba(255,255,255,.06)',
           border: '0.5px solid rgba(255,255,255,.12)',
           borderRadius: 8, cursor: 'pointer',

@@ -8,6 +8,7 @@ import {
   Clock, CalendarDays, Zap, Search, Filter
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { TableSkeleton } from '../components/ui/Skeleton'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' }
