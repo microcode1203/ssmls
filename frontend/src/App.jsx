@@ -19,7 +19,8 @@ import AuditLogsPage      from './pages/admin/AuditLogsPage'
 import AdminAccountsPage  from './pages/admin/AdminAccountsPage'
 import RankingPage        from './pages/admin/RankingPage'
 import ImportStudentsPage  from './pages/admin/ImportStudentsPage'
-import PromotionPage       from './pages/admin/PromotionPage'
+import PromotionPage         from './pages/admin/PromotionPage'
+import SectionAssignmentPage from './pages/admin/SectionAssignmentPage'
 import SchoolConfigPage   from './pages/admin/SchoolConfigPage'
 import MessagesPage       from './pages/MessagesPage'
 import CalendarPage       from './pages/CalendarPage'
@@ -81,7 +82,8 @@ function AppRoutes() {
         <Route path="/rankings"      element={<ProtectedRoute allowedRoles={['admin','teacher']}><RankingPage /></ProtectedRoute>} />
         <Route path="/school-config"   element={<ProtectedRoute allowedRoles={['admin']}><SchoolConfigPage /></ProtectedRoute>} />
         <Route path="/import-students"  element={<ProtectedRoute allowedRoles={['admin']}><ImportStudentsPage /></ProtectedRoute>} />
-        <Route path="/promotion"        element={<ProtectedRoute allowedRoles={['admin']}><PromotionPage /></ProtectedRoute>} />
+        <Route path="/promotion"          element={<ProtectedRoute allowedRoles={['admin']}><PromotionPage /></ProtectedRoute>} />
+        <Route path="/section-assignment" element={<ProtectedRoute allowedRoles={['admin']}><SectionAssignmentPage /></ProtectedRoute>} />
         <Route path="/messages"      element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
         <Route path="/calendar"      element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
         <Route path="/report-card"   element={<ProtectedRoute allowedRoles={['admin','teacher','student']}><ReportCardPage /></ProtectedRoute>} />

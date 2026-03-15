@@ -118,4 +118,66 @@ router.post('/promote', async (req, res) => {
   }
 });
 
+// GET unassigned students (no section) — for post-promotion assignment
+router.get('/unassigned', async (req, res) => {
+  try {
+    const { gradeLevel } = req.query;
+    let query = `
+      SELECT s.id, s.lrn, s.grade_level, s.strand,
+        u.first_name, u.middle_name, u.last_name
+      FROM students s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.section_id IS NULL
+        AND s.status = 'active'
+        AND u.is_active = 1`;
+    const params = [];
+    if (gradeLevel) { query += ` AND s.grade_level = ?`; params.push(gradeLevel); }
+    query += ` ORDER BY s.grade_level, u.last_name, u.first_name`;
+    const [rows] = await pool.execute(query, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST bulk assign students to a section
+router.post('/assign-section', async (req, res) => {
+  try {
+    const { studentIds, sectionId } = req.body;
+    if (!Array.isArray(studentIds) || !studentIds.length)
+      return res.status(400).json({ success: false, message: 'No students selected.' });
+    if (!sectionId)
+      return res.status(400).json({ success: false, message: 'Section is required.' });
+
+    // Verify section exists and get its grade level
+    const [sec] = await pool.execute(
+      `SELECT id, section_name, grade_level, strand FROM sections WHERE id = ?`, [sectionId]
+    );
+    if (!sec.length)
+      return res.status(404).json({ success: false, message: 'Section not found.' });
+
+    // Update all selected students
+    const placeholders = studentIds.map(() => '?').join(',');
+    const [result] = await pool.execute(
+      `UPDATE students
+       SET section_id = ?, grade_level = ?, strand = ?
+       WHERE id IN (${placeholders}) AND status = 'active'`,
+      [sectionId, sec[0].grade_level, sec[0].strand, ...studentIds]
+    );
+
+    await logAction(req.user.id, 'BULK_SECTION_ASSIGN', 'students', sectionId, {
+      studentIds, sectionName: sec[0].section_name, count: result.affectedRows
+    }, req.ip);
+
+    res.json({
+      success: true,
+      message: `${result.affectedRows} student(s) assigned to ${sec[0].section_name}.`,
+      assigned: result.affectedRows,
+    });
+  } catch (err) {
+    console.error('Assign section error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

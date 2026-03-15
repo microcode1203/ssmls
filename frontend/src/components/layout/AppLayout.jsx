@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
   ClipboardList, BarChart3, FileText, Bell, QrCode, Shield,
   LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
-  MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers
+  MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList
 } from 'lucide-react'
 
 const NAV = {
@@ -51,7 +51,8 @@ const NAV = {
       items: [
         { label: 'School Config',    icon: Cog,      to: '/school-config' },
         { label: 'Import Students',  icon: Upload,   to: '/import-students' },
-        { label: 'Year Promotion',   icon: Layers,   to: '/promotion' },
+        { label: 'Year Promotion',      icon: Layers,      to: '/promotion' },
+        { label: 'Assign Sections',      icon: LayoutList,  to: '/section-assignment' },
         { label: 'Admin Accounts',   icon: Crown,    to: '/admin-accounts' },
         { label: 'Audit Logs',       icon: Shield,   to: '/audit-logs' },
         { label: 'Settings',         icon: Settings, to: '/settings' },
