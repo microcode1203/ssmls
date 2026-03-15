@@ -1,12 +1,14 @@
-// @v2-fixed-imports
+/* @v2-fixed-imports */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import {
+  QrCode, RefreshCw, StopCircle, Users,
+  CheckCircle, Clock, XCircle, BookOpen
+} from 'lucide-react'
 
-// ─── Deduplicate schedules — one entry per subject+section ───────────────────
 const dedupeSchedules = (schedules) => {
   const seen = new Map()
   return (schedules || [])
@@ -23,12 +25,6 @@ const dedupeSchedules = (schedules) => {
     })
 }
 
-
-  QrCode, RefreshCw, StopCircle, Users,
-  CheckCircle, Clock, XCircle, BookOpen, ChevronDown
-} from 'lucide-react'
-
-// ─── Teacher QR Generator ─────────────────────────────────────────────────────
 function QRGenerator() {
   const [schedules,  setSchedules]  = useState([])
   const [selectedId, setSelectedId] = useState('')
@@ -37,37 +33,26 @@ function QRGenerator() {
   const [attLog,     setAttLog]     = useState([])
   const [loadingSch, setLoadingSch] = useState(true)
 
-  // Use refs so setInterval callbacks always see the latest values
   const classIdRef    = useRef(null)
   const selectedIdRef = useRef('')
   const intervalRef   = useRef(null)
   const pollRef       = useRef(null)
   const countRef      = useRef(60)
 
-  // Sync refs with state
   useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
 
-  // Load teacher's schedules
   useEffect(() => {
     api.get('/dashboard')
-      .then(res => {
-        setSchedules(res.data.data?.myClasses || [])
-        setLoadingSch(false)
-      })
+      .then(res => { setSchedules(res.data.data?.myClasses || []); setLoadingSch(false) })
       .catch(() => setLoadingSch(false))
   }, [])
 
-  // Poll attendance — uses ref so always has latest classId
   const startPolling = useCallback((classId) => {
     classIdRef.current = classId
     if (pollRef.current) clearInterval(pollRef.current)
-
-    // Immediate first fetch
     api.get(`/attendance/class/${classId}`)
       .then(res => setAttLog(res.data.data?.records || []))
       .catch(() => {})
-
-    // Then every 4 seconds
     pollRef.current = setInterval(async () => {
       if (!classIdRef.current) return
       try {
@@ -101,17 +86,12 @@ function QRGenerator() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     countRef.current = 60
     setCountdown(60)
-
     intervalRef.current = setInterval(async () => {
       countRef.current -= 1
       setCountdown(countRef.current)
-
       if (countRef.current <= 0) {
-        // Auto-regenerate QR
         const data = await doGenerateQR(selectedIdRef.current)
-        if (data) {
-          classIdRef.current = data.classId
-        }
+        if (data) classIdRef.current = data.classId
         countRef.current = 60
         setCountdown(60)
       }
@@ -150,7 +130,6 @@ function QRGenerator() {
     countRef.current = 60
   }
 
-  // Cleanup on unmount
   useEffect(() => () => stopTimers(), [stopTimers])
 
   const present = attLog.filter(r => r.status === 'present').length
@@ -159,7 +138,6 @@ function QRGenerator() {
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
-      {/* Left: controls + QR */}
       <div className="card p-6 space-y-5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -168,7 +146,6 @@ function QRGenerator() {
           <h3 className="font-display font-bold text-slate-800">Generate QR Attendance</h3>
         </div>
 
-        {/* Schedule selector */}
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Class</label>
           {loadingSch ? (
@@ -184,7 +161,7 @@ function QRGenerator() {
             >
               <option value="">— Choose a class —</option>
               {dedupeSchedules(schedules).map(s => (
-                <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+                <option key={String(s.subject_id || s.id) + '_' + String(s.section_id)} value={s.id}>
                   {s.subject || s.subject_name} · {s.grade_level} {s.section_name}
                 </option>
               ))}
@@ -203,12 +180,10 @@ function QRGenerator() {
           </button>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            {/* QR Image */}
-            <div className="p-4 bg-white rounded-2xl border-2 border-primary/20 shadow-lg qr-pulse">
+            <div className="p-4 bg-white rounded-2xl border-2 border-primary/20 shadow-lg">
               <img src={qrData.qrImage} alt="QR Code" className="w-56 h-56"/>
             </div>
 
-            {/* Countdown */}
             <div className="w-full">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-semibold text-slate-500">Auto-refreshes in</span>
@@ -224,7 +199,6 @@ function QRGenerator() {
               </div>
             </div>
 
-            {/* Class info */}
             <div className="w-full p-3 bg-primary/5 rounded-xl border border-primary/20 text-center">
               <p className="text-xs font-semibold text-slate-700">
                 {qrData.scheduleInfo?.subjectName} · {qrData.scheduleInfo?.gradeLevel} {qrData.scheduleInfo?.sectionName}
@@ -232,7 +206,6 @@ function QRGenerator() {
               <p className="text-xs font-mono text-slate-400 mt-0.5">Room: {qrData.scheduleInfo?.room}</p>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 w-full">
               <button onClick={generateQR} className="btn-secondary flex-1 justify-center">
                 <RefreshCw size={15}/> Refresh
@@ -251,7 +224,6 @@ function QRGenerator() {
         )}
       </div>
 
-      {/* Right: live attendance log */}
       <div className="card p-6 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display font-bold text-slate-800">Live Attendance Log</h3>
@@ -259,14 +231,13 @@ function QRGenerator() {
             {qrData && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/>
-                <span className="text-xs font-semibold text-slate-500">Polling</span>
+                <span className="text-xs font-semibold text-slate-500">Live</span>
               </div>
             )}
             <span className="text-xs text-slate-400">{attLog.length} scanned</span>
           </div>
         </div>
 
-        {/* Summary stats */}
         {attLog.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="p-3 bg-green-50 rounded-xl border border-green-100 text-center">
@@ -284,20 +255,19 @@ function QRGenerator() {
           </div>
         )}
 
-        {/* Log list */}
         <div className="flex-1 overflow-y-auto">
           {attLog.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-400">
               <Users size={36} className="mb-3 opacity-30"/>
               <p className="text-sm font-semibold">No scans yet</p>
               <p className="text-xs mt-1 text-center">
-                {qrData ? 'Students will appear here as they scan the QR code' : 'Generate a QR code to start taking attendance'}
+                {qrData ? 'Students will appear here as they scan' : 'Generate a QR code to start attendance'}
               </p>
             </div>
           ) : (
             <div className="space-y-2">
               {attLog.map((rec, i) => (
-                <div key={rec.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors">
+                <div key={rec.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                     {rec.first_name?.[0]}{rec.last_name?.[0]}
                   </div>
@@ -306,13 +276,11 @@ function QRGenerator() {
                     <p className="text-xs text-slate-400 font-mono">{rec.lrn}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className={rec.status==='present'?'badge-green':rec.status==='late'?'badge-amber':'badge-red'}>
+                    <span className={rec.status === 'present' ? 'badge-green' : rec.status === 'late' ? 'badge-amber' : 'badge-red'}>
                       {rec.status}
                     </span>
                     <p className="text-xs text-slate-400 mt-0.5 font-mono">
-                      {rec.time_in
-                        ? new Date(rec.time_in).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})
-                        : '—'}
+                      {rec.time_in ? new Date(rec.time_in).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </p>
                   </div>
                 </div>
@@ -325,7 +293,6 @@ function QRGenerator() {
   )
 }
 
-// ─── Student / Admin Attendance View ─────────────────────────────────────────
 function StudentAttendance() {
   const { user } = useAuth()
   const { data, isLoading } = useQuery({
@@ -348,19 +315,16 @@ function StudentAttendance() {
 
   return (
     <div className="space-y-5">
-      {/* Summary cards */}
       {!isLoading && total > 0 && (
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label:'Total Classes', value:total,   color:'blue' },
-            { label:'Present',       value:present, color:'green' },
-            { label:'Late',          value:late,    color:'amber' },
-            { label:'Attendance Rate',value:`${rate}%`, color:'purple' },
+            { label: 'Total Classes',    value: total,    color: 'text-primary' },
+            { label: 'Present',          value: present,  color: 'text-green-600' },
+            { label: 'Late',             value: late,     color: 'text-amber-500' },
+            { label: 'Attendance Rate',  value: `${rate}%`, color: 'text-purple-600' },
           ].map(({ label, value, color }) => (
             <div key={label} className="card p-4 text-center">
-              <p className={`text-2xl font-bold ${
-                color==='green'?'text-green-600':color==='amber'?'text-amber-500':
-                color==='purple'?'text-purple-600':'text-primary'}`}>{value}</p>
+              <p className={`text-2xl font-bold ${color}`}>{value}</p>
               <p className="text-xs text-slate-400 font-semibold mt-1">{label}</p>
             </div>
           ))}
@@ -380,16 +344,16 @@ function StudentAttendance() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50/80 border-b border-slate-100">
                 <tr>
-                  {['Date','Subject','Section','Status','Time In'].map(h => (
+                  {['Date', 'Subject', 'Section', 'Status', 'Time In'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {(data||[]).map(r => (
+                {(data || []).map(r => (
                   <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">
-                      {new Date(r.class_date).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'})}
+                      {new Date(r.class_date).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-800">{r.subject_name}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{r.section_name}</td>
@@ -400,7 +364,7 @@ function StudentAttendance() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">
-                      {r.time_in ? new Date(r.time_in).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}) : '—'}
+                      {r.time_in ? new Date(r.time_in).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -418,16 +382,15 @@ function StudentAttendance() {
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AttendancePage() {
   const { user } = useAuth()
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="page-title">Attendance</h1>
         <p className="text-slate-500 text-sm mt-1">
           {user?.role === 'teacher'
-            ? 'Generate dynamic QR codes for students to scan. Live updates every 4 seconds.'
+            ? 'Generate QR codes for students to scan. Live updates every 4 seconds.'
             : 'View your attendance history across all subjects.'}
         </p>
       </div>
