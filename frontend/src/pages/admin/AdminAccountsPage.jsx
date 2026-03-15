@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
+import Modal from '../../components/ui/Modal'
 import {
  Plus, X, Trash2, KeyRound, Shield,
  Eye, EyeOff, Copy, Check, AlertTriangle,
@@ -18,18 +19,6 @@ function AddAdminModal({ onClose, onSave }) {
  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', password:'', confirmPassword:'' })
  const [showPw, setShowPw] = useState(false)
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const set = (name) => (e) => setForm(p => ({ ...p, [name]: e.target.value }))
 
@@ -73,7 +62,7 @@ function AddAdminModal({ onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -193,7 +182,7 @@ function AddAdminModal({ onClose, onSave }) {
  </div>
  </form>
  </div>
- </div>
+ </Modal>
  )
 }
 
@@ -203,18 +192,6 @@ function ResetPasswordModal({ admin, onClose }) {
  const [showPw, setShowPw] = useState(false)
  const [copied, setCopied] = useState(false)
  const [saving, setSaving] = useState(false)
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
-
 
  const generate = () => {
  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!'
@@ -240,7 +217,7 @@ function ResetPasswordModal({ admin, onClose }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -295,24 +272,13 @@ function ResetPasswordModal({ admin, onClose }) {
  </div>
  </div>
  </div>
- </div>
+ </Modal>
  )
 }
 
 // ─── Delete Admin Modal ───────────────────────────────────────────────────────
 function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  const [phrase, setPhrase] = useState('')
-
-  // Lock main content scroll immediately on mount
-  useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) main.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (main) main.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-  }, [])
 
  const isMatch = phrase === CONFIRM_PHRASE
 
@@ -326,7 +292,7 @@ function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  }, [isMatch, deleting])
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <Modal onClose={onClose}>
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -386,7 +352,7 @@ function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  </div>
  </div>
  </div>
- </div>
+ </Modal>
  )
 }
 
