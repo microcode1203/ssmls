@@ -116,71 +116,84 @@ const getDashboard = async (req, res) => {
         LIMIT 8
       `);
 
-      // Monthly attendance trend (last 6 months)
-      const [monthlyTrend] = await pool.execute(`
-        SELECT
-          DATE_FORMAT(c.class_date, '%b') AS month,
-          DATE_FORMAT(c.class_date, '%Y-%m') AS month_key,
-          COUNT(*) AS total,
-          SUM(a.status IN ('present','late')) AS attended,
-          ROUND(SUM(a.status IN ('present','late')) * 100.0 / NULLIF(COUNT(*),0),1) AS rate
-        FROM attendance a
-        JOIN classes c ON c.id = a.class_id
-        JOIN students s ON s.id = a.student_id
-        JOIN users u ON u.id = s.user_id
-        WHERE c.class_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-          AND u.is_active = 1
-        GROUP BY month_key, month
-        ORDER BY month_key ASC
-      `);
+      // Monthly attendance trend (last 6 months) — non-critical, fallback to []
+      let monthlyTrend = [];
+      try {
+        const [mt] = await pool.execute(`
+          SELECT DATE_FORMAT(c.class_date, '%b') AS month,
+            DATE_FORMAT(c.class_date, '%Y-%m') AS month_key,
+            COUNT(*) AS total,
+            SUM(a.status IN ('present','late')) AS attended,
+            ROUND(SUM(a.status IN ('present','late')) * 100.0 / NULLIF(COUNT(*),0),1) AS rate
+          FROM attendance a
+          JOIN classes c ON c.id = a.class_id
+          JOIN students s ON s.id = a.student_id
+          JOIN users u ON u.id = s.user_id
+          WHERE c.class_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            AND u.is_active = 1
+          GROUP BY month_key, month
+          ORDER BY month_key ASC`);
+        monthlyTrend = mt;
+      } catch(e) { console.warn('monthlyTrend failed:', e.message); }
 
-      // Top absent students (at-risk)
-      const [atRiskStudents] = await pool.execute(`
-        SELECT u.first_name, u.middle_name, u.last_name,
-          s.grade_level, s.strand, sec.section_name,
-          COUNT(*) AS absences
-        FROM attendance a
-        JOIN students s ON s.id = a.student_id
-        JOIN users u ON u.id = s.user_id
-        LEFT JOIN sections sec ON sec.id = s.section_id
-        WHERE a.status = 'absent' AND u.is_active = 1
-        GROUP BY s.id
-        ORDER BY absences DESC
-        LIMIT 5
-      `);
+      // Top absent students (at-risk) — non-critical
+      let atRiskStudents = [];
+      try {
+        const [ar] = await pool.execute(`
+          SELECT u.first_name, u.middle_name, u.last_name,
+            s.grade_level, s.strand, sec.section_name,
+            COUNT(*) AS absences
+          FROM attendance a
+          JOIN students s ON s.id = a.student_id
+          JOIN users u ON u.id = s.user_id
+          LEFT JOIN sections sec ON sec.id = s.section_id
+          WHERE a.status = 'absent' AND u.is_active = 1
+          GROUP BY s.id, u.first_name, u.middle_name, u.last_name,
+                   s.grade_level, s.strand, sec.section_name
+          ORDER BY absences DESC
+          LIMIT 5`);
+        atRiskStudents = ar;
+      } catch(e) { console.warn('atRiskStudents failed:', e.message); }
 
-      // Grade distribution (how many students per grade range)
-      const [gradeDistribution] = await pool.execute(`
-        SELECT
-          CASE
-            WHEN final_grade >= 90 THEN 'Outstanding'
-            WHEN final_grade >= 85 THEN 'Very Satisfactory'
-            WHEN final_grade >= 80 THEN 'Satisfactory'
-            WHEN final_grade >= 75 THEN 'Fairly Satisfactory'
-            ELSE 'Did Not Meet'
-          END AS category,
-          COUNT(*) AS count
-        FROM grades
-        WHERE final_grade IS NOT NULL
-        GROUP BY category
-        ORDER BY MIN(final_grade) DESC
-      `);
+      // Grade distribution — non-critical
+      let gradeDistribution = [];
+      try {
+        const [gd] = await pool.execute(`
+          SELECT
+            CASE
+              WHEN final_grade >= 90 THEN 'Outstanding'
+              WHEN final_grade >= 85 THEN 'Very Satisfactory'
+              WHEN final_grade >= 80 THEN 'Satisfactory'
+              WHEN final_grade >= 75 THEN 'Fairly Satisfactory'
+              ELSE 'Did Not Meet'
+            END AS category,
+            COUNT(*) AS cnt
+          FROM grades
+          WHERE final_grade IS NOT NULL
+          GROUP BY category
+          ORDER BY MIN(final_grade) DESC`);
+        gradeDistribution = gd.map(r => ({ category: r.category, count: r.cnt }));
+      } catch(e) { console.warn('gradeDistribution failed:', e.message); }
 
-      // Submission rate per assignment (last 5)
-      const [submissionStats] = await pool.execute(`
-        SELECT a.title, a.type,
-          COUNT(DISTINCT sub.id) AS submitted,
-          COUNT(DISTINCT st.id) AS enrolled
-        FROM assignments a
-        JOIN schedules sc ON sc.id = a.schedule_id
-        JOIN sections sec ON sec.id = sc.section_id
-        JOIN students st ON st.section_id = sec.id
-        LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = st.id
-        WHERE a.due_date <= NOW()
-        GROUP BY a.id
-        ORDER BY a.due_date DESC
-        LIMIT 5
-      `);
+      // Submission stats — non-critical
+      let submissionStats = [];
+      try {
+        const [ss] = await pool.execute(`
+          SELECT a.title, a.type,
+            COUNT(DISTINCT sub.id) AS submitted,
+            COUNT(DISTINCT st.id) AS enrolled
+          FROM assignments a
+          JOIN schedules sc ON sc.id = a.schedule_id
+          JOIN sections sec ON sec.id = sc.section_id
+          JOIN students st ON st.section_id = sec.id AND st.status = 'active'
+          LEFT JOIN submissions sub ON sub.assignment_id = a.id
+            AND sub.student_id = st.id
+          WHERE a.due_date <= NOW()
+          GROUP BY a.id, a.title, a.type
+          ORDER BY a.due_date DESC
+          LIMIT 5`);
+        submissionStats = ss;
+      } catch(e) { console.warn('submissionStats failed:', e.message); }
 
       return res.json({ success: true, data: {
         totals: {
@@ -233,31 +246,39 @@ const getDashboard = async (req, res) => {
          WHERE s.teacher_id=? AND sub2.status='submitted'`,
         [teacherId]
       );
-      // Weekly attendance chart for teacher
-      const [teacherWeeklyAtt] = await pool.execute(`
-        SELECT DATE_FORMAT(c.class_date,'%a') AS day,
-          COUNT(*) AS total,
-          SUM(a.status IN ('present','late')) AS attended
-        FROM attendance a
-        JOIN classes c ON c.id = a.class_id
-        JOIN schedules sc ON sc.id = c.schedule_id
-        WHERE sc.teacher_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-        GROUP BY c.class_date ORDER BY c.class_date ASC
-      `, [teacherId]);
+      // Weekly attendance chart for teacher — non-critical
+      let teacherWeeklyAtt = [];
+      try {
+        const [twa] = await pool.execute(`
+          SELECT DATE_FORMAT(c.class_date,'%a') AS day,
+            COUNT(*) AS total,
+            SUM(a.status IN ('present','late')) AS attended
+          FROM attendance a
+          JOIN classes c ON c.id = a.class_id
+          JOIN schedules sc ON sc.id = c.schedule_id
+          WHERE sc.teacher_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+          GROUP BY c.class_date ORDER BY c.class_date ASC`, [teacherId]);
+        teacherWeeklyAtt = twa;
+      } catch(e) { console.warn('teacherWeeklyAtt failed:', e.message); }
 
-      // Submission rate per assignment
-      const [teacherSubmissions] = await pool.execute(`
-        SELECT a.title, a.type,
-          COUNT(DISTINCT sub.id) AS submitted,
-          COUNT(DISTINCT st.id) AS enrolled
-        FROM assignments a
-        JOIN schedules sc ON sc.id = a.schedule_id
-        JOIN sections sec ON sec.id = sc.section_id
-        JOIN students st ON st.section_id = sec.id AND st.status = 'active'
-        LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = st.id
-        WHERE sc.teacher_id = ? AND a.due_date <= NOW()
-        GROUP BY a.id ORDER BY a.due_date DESC LIMIT 5
-      `, [teacherId]);
+      // Submission rate per assignment — non-critical
+      let teacherSubmissions = [];
+      try {
+        const [ts] = await pool.execute(`
+          SELECT a.title, a.type,
+            COUNT(DISTINCT sub.id) AS submitted,
+            COUNT(DISTINCT st.id) AS enrolled
+          FROM assignments a
+          JOIN schedules sc ON sc.id = a.schedule_id
+          JOIN sections sec ON sec.id = sc.section_id
+          JOIN students st ON st.section_id = sec.id AND st.status = 'active'
+          LEFT JOIN submissions sub ON sub.assignment_id = a.id
+            AND sub.student_id = st.id
+          WHERE sc.teacher_id = ? AND a.due_date <= NOW()
+          GROUP BY a.id, a.title, a.type
+          ORDER BY a.due_date DESC LIMIT 5`, [teacherId]);
+        teacherSubmissions = ts;
+      } catch(e) { console.warn('teacherSubmissions failed:', e.message); }
 
       return res.json({ success:true, data:{
         myClasses, attStats,
@@ -296,27 +317,33 @@ const getDashboard = async (req, res) => {
          FROM attendance WHERE student_id=?`,
         [student.id]
       );
-      // Monthly attendance trend
-      const [studentMonthlyAtt] = await pool.execute(`
-        SELECT DATE_FORMAT(c.class_date,'%b') AS month,
-          DATE_FORMAT(c.class_date,'%Y-%m') AS month_key,
-          SUM(a.status='present') AS present,
-          SUM(a.status='late') AS late,
-          SUM(a.status='absent') AS absent
-        FROM attendance a JOIN classes c ON c.id = a.class_id
-        WHERE a.student_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 4 MONTH)
-        GROUP BY month_key ORDER BY month_key ASC
-      `, [student.id]);
+      // Monthly attendance trend — non-critical
+      let studentMonthlyAtt = [];
+      try {
+        const [sma] = await pool.execute(`
+          SELECT DATE_FORMAT(c.class_date,'%b') AS month,
+            DATE_FORMAT(c.class_date,'%Y-%m') AS month_key,
+            SUM(a.status='present') AS present,
+            SUM(a.status='late') AS late,
+            SUM(a.status='absent') AS absent
+          FROM attendance a JOIN classes c ON c.id = a.class_id
+          WHERE a.student_id = ? AND c.class_date >= DATE_SUB(CURDATE(), INTERVAL 4 MONTH)
+          GROUP BY month_key, month ORDER BY month_key ASC`, [student.id]);
+        studentMonthlyAtt = sma;
+      } catch(e) { console.warn('studentMonthlyAtt failed:', e.message); }
 
-      // Grades per subject
-      const [studentGrades] = await pool.execute(`
-        SELECT sub.name AS subject, g.quarter, g.final_grade, g.remarks
-        FROM grades g
-        JOIN schedules sc ON sc.id = g.schedule_id
-        JOIN subjects sub ON sub.id = sc.subject_id
-        WHERE g.student_id = ?
-        ORDER BY sub.name, g.quarter
-      `, [student.id]);
+      // Grades per subject — non-critical
+      let studentGrades = [];
+      try {
+        const [sg] = await pool.execute(`
+          SELECT sub.name AS subject, g.quarter, g.final_grade, g.remarks
+          FROM grades g
+          JOIN schedules sc ON sc.id = g.schedule_id
+          JOIN subjects sub ON sub.id = sc.subject_id
+          WHERE g.student_id = ?
+          ORDER BY sub.name, g.quarter`, [student.id]);
+        studentGrades = sg;
+      } catch(e) { console.warn('studentGrades failed:', e.message); }
 
       return res.json({ success:true, data:{
         schedule, pendingAssignments, attSummary,
