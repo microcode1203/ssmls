@@ -2,20 +2,49 @@ const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
 
-// GET /api/students  (admin, teacher)
+// GET /api/students  (admin sees all; teacher sees only their sections)
 const getAllStudents = async (req, res) => {
   try {
     const { gradeLevel, sectionId, strand, status, search } = req.query;
+    const isTeacher = req.user.role === 'teacher';
+
+    // For teachers: find the section IDs they actually teach
+    let teacherSectionIds = [];
+    if (isTeacher) {
+      const [tRows] = await pool.execute(
+        `SELECT id FROM teachers WHERE user_id = ?`, [req.user.id]
+      );
+      if (tRows.length) {
+        const [schedRows] = await pool.execute(
+          `SELECT DISTINCT section_id FROM schedules
+           WHERE teacher_id = ? AND status = 'approved'`,
+          [tRows[0].id]
+        );
+        teacherSectionIds = schedRows.map(r => r.section_id);
+      }
+      // Teacher with no schedules sees empty list
+      if (!teacherSectionIds.length) {
+        return res.json({ success: true, data: [], total: 0 });
+      }
+    }
+
     let query = `
       SELECT s.id, s.lrn, s.grade_level, s.strand, s.status, s.phone,
         u.id as user_id, u.first_name, u.last_name, u.email,
         sec.section_name, sec.id as section_id
       FROM students s
-      JOIN users u ON u.id = s.user_id
+      JOIN users u   ON u.id   = s.user_id
       LEFT JOIN sections sec ON sec.id = s.section_id
       WHERE u.is_active = 1
     `;
     const params = [];
+
+    // Teachers only see students in their assigned sections
+    if (isTeacher && teacherSectionIds.length) {
+      query += ` AND s.section_id IN (${teacherSectionIds.map(() => '?').join(',')})`;
+      params.push(...teacherSectionIds);
+    }
+
     if (gradeLevel) { query += ' AND s.grade_level = ?'; params.push(gradeLevel); }
     if (sectionId)  { query += ' AND s.section_id = ?';  params.push(sectionId); }
     if (strand)     { query += ' AND s.strand = ?';      params.push(strand); }
@@ -25,6 +54,7 @@ const getAllStudents = async (req, res) => {
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
     query += ' ORDER BY sec.section_name, u.last_name, u.first_name';
+
     const [rows] = await pool.execute(query, params);
     res.json({ success: true, data: rows, total: rows.length });
   } catch (err) {
