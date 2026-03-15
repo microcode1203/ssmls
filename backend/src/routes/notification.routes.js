@@ -28,6 +28,14 @@ router.patch('/read-all', async (req, res) => {
 });
 
 // PATCH mark single as read
+router.delete('/clear', async (req, res) => {
+  try {
+    await pool.execute(`DELETE FROM notifications WHERE user_id=? AND is_read=1`, [req.user.id]);
+    res.json({ success: true, message: 'Cleared read notifications.' });
+  } catch (err) { res.status(500).json({ success: false, message: 'Server error.' }); }
+});
+
+
 router.patch('/:id/read', async (req, res) => {
   try {
     await pool.execute(
@@ -39,12 +47,6 @@ router.patch('/:id/read', async (req, res) => {
 });
 
 // DELETE clear all read
-router.delete('/clear', async (req, res) => {
-  try {
-    await pool.execute(`DELETE FROM notifications WHERE user_id=? AND is_read=1`, [req.user.id]);
-    res.json({ success: true, message: 'Cleared read notifications.' });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error.' }); }
-});
 
 // Helper — create notification (used internally by other routes)
 const createNotification = async (userId, type, title, body, link = null) => {

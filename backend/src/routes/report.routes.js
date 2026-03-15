@@ -7,6 +7,73 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 router.use(authenticate);
 
 // ── Report Card ──────────────────────────────────────────────────────────────
+router.get('/at-risk', authorize('admin','teacher'), async (req, res) => {
+  try {
+    const passing = 75;
+    let query = `
+      SELECT s.id, u.first_name, u.last_name,
+        sec.section_name, sec.grade_level,
+        sub.name AS subject_name,
+        g.final_grade, g.quarter
+      FROM grades g
+      JOIN students  s   ON s.id   = g.student_id
+      JOIN users     u   ON u.id   = s.user_id
+      LEFT JOIN sections sec ON sec.id = s.section_id
+      JOIN schedules sc  ON sc.id  = g.schedule_id
+      JOIN subjects  sub ON sub.id = sc.subject_id
+      WHERE CAST(g.final_grade AS DECIMAL(5,2)) < ?
+        AND u.is_active = 1`;
+
+    const params = [passing];
+
+    if (req.user.role === 'teacher') {
+      const [t] = await pool.execute(
+        `SELECT id FROM teachers WHERE user_id = ?`, [req.user.id]
+      );
+      if (t.length) { query += ` AND sc.teacher_id = ?`; params.push(t[0].id); }
+    }
+
+    query += ` ORDER BY CAST(g.final_grade AS DECIMAL(5,2)) ASC LIMIT 100`;
+
+    const [rows] = await pool.execute(query, params);
+    res.json({ success: true, data: rows, passingGrade: passing });
+  } catch (err) {
+    console.error('At-risk error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/attendance-export', authorize('admin','teacher'), async (req, res) => {
+  try {
+    const { sectionId, scheduleId, dateFrom, dateTo } = req.query;
+    let query = `
+      SELECT u.first_name, u.last_name, s.lrn,
+        sec.section_name, sec.grade_level,
+        sub.name AS subject_name,
+        c.class_date, a.status AS attendance_status, a.time_in
+      FROM attendance a
+      JOIN students  s   ON s.id   = a.student_id
+      JOIN users     u   ON u.id   = s.user_id
+      LEFT JOIN sections sec ON sec.id = s.section_id
+      JOIN classes   c   ON c.id   = a.class_id
+      JOIN schedules sc  ON sc.id  = c.schedule_id
+      JOIN subjects  sub ON sub.id = sc.subject_id
+      WHERE u.is_active = 1`;
+
+    const params = [];
+    if (sectionId)  { query += ` AND s.section_id = ?`;   params.push(sectionId); }
+    if (scheduleId) { query += ` AND c.schedule_id = ?`;  params.push(scheduleId); }
+    if (dateFrom)   { query += ` AND c.class_date >= ?`;  params.push(dateFrom); }
+    if (dateTo)     { query += ` AND c.class_date <= ?`;  params.push(dateTo); }
+    query += ` ORDER BY c.class_date DESC, u.last_name LIMIT 2000`;
+
+    const [rows] = await pool.execute(query, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.get('/report-card/:studentId', async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -173,72 +240,9 @@ router.get('/ranking/:sectionId', authorize('admin','teacher'), async (req, res)
 });
 
 // ── At-Risk Students ──────────────────────────────────────────────────────────
-router.get('/at-risk', authorize('admin','teacher'), async (req, res) => {
-  try {
-    const passing = 75;
-    let query = `
-      SELECT s.id, u.first_name, u.last_name,
-        sec.section_name, sec.grade_level,
-        sub.name AS subject_name,
-        g.final_grade, g.quarter
-      FROM grades g
-      JOIN students  s   ON s.id   = g.student_id
-      JOIN users     u   ON u.id   = s.user_id
-      LEFT JOIN sections sec ON sec.id = s.section_id
-      JOIN schedules sc  ON sc.id  = g.schedule_id
-      JOIN subjects  sub ON sub.id = sc.subject_id
-      WHERE CAST(g.final_grade AS DECIMAL(5,2)) < ?
-        AND u.is_active = 1`;
 
-    const params = [passing];
-
-    if (req.user.role === 'teacher') {
-      const [t] = await pool.execute(
-        `SELECT id FROM teachers WHERE user_id = ?`, [req.user.id]
-      );
-      if (t.length) { query += ` AND sc.teacher_id = ?`; params.push(t[0].id); }
-    }
-
-    query += ` ORDER BY CAST(g.final_grade AS DECIMAL(5,2)) ASC LIMIT 100`;
-
-    const [rows] = await pool.execute(query, params);
-    res.json({ success: true, data: rows, passingGrade: passing });
-  } catch (err) {
-    console.error('At-risk error:', err.message);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
 
 // ── Attendance Export ─────────────────────────────────────────────────────────
-router.get('/attendance-export', authorize('admin','teacher'), async (req, res) => {
-  try {
-    const { sectionId, scheduleId, dateFrom, dateTo } = req.query;
-    let query = `
-      SELECT u.first_name, u.last_name, s.lrn,
-        sec.section_name, sec.grade_level,
-        sub.name AS subject_name,
-        c.class_date, a.status AS attendance_status, a.time_in
-      FROM attendance a
-      JOIN students  s   ON s.id   = a.student_id
-      JOIN users     u   ON u.id   = s.user_id
-      LEFT JOIN sections sec ON sec.id = s.section_id
-      JOIN classes   c   ON c.id   = a.class_id
-      JOIN schedules sc  ON sc.id  = c.schedule_id
-      JOIN subjects  sub ON sub.id = sc.subject_id
-      WHERE u.is_active = 1`;
 
-    const params = [];
-    if (sectionId)  { query += ` AND s.section_id = ?`;   params.push(sectionId); }
-    if (scheduleId) { query += ` AND c.schedule_id = ?`;  params.push(scheduleId); }
-    if (dateFrom)   { query += ` AND c.class_date >= ?`;  params.push(dateFrom); }
-    if (dateTo)     { query += ` AND c.class_date <= ?`;  params.push(dateTo); }
-    query += ` ORDER BY c.class_date DESC, u.last_name LIMIT 2000`;
-
-    const [rows] = await pool.execute(query, params);
-    res.json({ success: true, data: rows });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
 
 module.exports = router;
