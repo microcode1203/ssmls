@@ -27,11 +27,12 @@ export default function ReportCardPage() {
     enabled: user?.role!=='student'
   })
 
-  const { data: report, isLoading } = useQuery({
+  const { data: report, isLoading, error: reportError } = useQuery({
     queryKey: ['report-card', selectedStudent],
     queryFn: () => api.get(`/reports/report-card/${selectedStudent}`).then(r=>r.data.data),
     enabled: !!selectedStudent,
     staleTime: 0,
+    retry: 1,
   })
 
   const handlePrint = () => window.print()
@@ -158,7 +159,17 @@ export default function ReportCardPage() {
         </div>
       )}
 
-      {!selectedStudent && !isLoading && (
+      {reportError && !isLoading && (
+        <div className="card p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+            <GraduationCap size={22} className="text-red-400"/>
+          </div>
+          <p className="font-semibold text-slate-700">Failed to load report card</p>
+          <p className="text-xs text-slate-400 mt-1">{reportError.response?.data?.message || 'Please try again.'}</p>
+        </div>
+      )}
+
+      {!selectedStudent && !isLoading && !reportError && (
         <div className="card p-16 text-center text-slate-400">
           <GraduationCap size={36} className="mx-auto mb-3 opacity-20"/>
           <p>Select a student to generate their report card.</p>

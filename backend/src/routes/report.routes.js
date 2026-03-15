@@ -6,7 +6,14 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 router.use(authenticate);
 
 // GET student report card data (all grades for a student, formatted for PDF)
-router.get('/report-card/:studentId', authorize('admin','teacher'), async (req, res) => {
+router.get('/report-card/:studentId', async (req, res) => {
+  // Students can only view their own report card
+  if (req.user.role === 'student') {
+    const [s] = await pool.execute(`SELECT id FROM students WHERE user_id=?`, [req.user.id]);
+    if (!s.length || String(s[0].id) !== String(req.params.studentId)) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+  }
   try {
     const { studentId } = req.params;
 
@@ -62,9 +69,11 @@ router.get('/report-card/:studentId', authorize('admin','teacher'), async (req, 
        WHERE st.id=?`, [studentId]
     );
 
-    const [config] = await pool.execute(`SELECT config_key, config_value FROM school_config`);
-    const cfg = {};
-    config.forEach(r => { cfg[r.config_key] = r.config_value; });
+    let cfg = {};
+    try {
+      const [config] = await pool.execute(`SELECT config_key, config_value FROM school_config`);
+      config.forEach(r => { cfg[r.config_key] = r.config_value; });
+    } catch (e) { /* school_config table may not exist yet — use empty config */ }
 
     res.json({
       success: true,
