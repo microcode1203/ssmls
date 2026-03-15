@@ -2,9 +2,144 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
-import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield, KeyRound, Eye, EyeOff, Copy, Check } from 'lucide-react'
 
 const CONFIRM_PHRASE = 'DELETE'
+
+// ─── Reset Password Modal ─────────────────────────────────────────────────────
+function PasswordModal({ student, onClose }) {
+  const [password,  setPassword]  = useState('Student@2026')
+  const [showPw,    setShowPw]    = useState(false)
+  const [saving,    setSaving]    = useState(false)
+  const [copied,    setCopied]    = useState(false)
+
+  const handleReset = async () => {
+    if (!password || password.length < 8)
+      return toast.error('Password must be at least 8 characters.')
+    setSaving(true)
+    try {
+      await api.post(`/students/${student.id}/reset-password`, { newPassword: password })
+      toast.success(`Password reset for ${student.first_name} ${student.last_name}.`)
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reset password.')
+    } finally { setSaving(false) }
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(password).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!'
+    let pw = ''
+    for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)]
+    setPassword(pw)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <KeyRound size={20} className="text-amber-600"/>
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-slate-900">Reset Password</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Set a new password for this student</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Student info */}
+          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+              {student?.first_name?.[0]}{student?.last_name?.[0]}
+            </div>
+            <div>
+              <p className="font-bold text-slate-800 text-sm">{student?.first_name} {student?.last_name}</p>
+              <p className="text-xs text-slate-400">{student?.email}</p>
+            </div>
+            <div className="ml-auto text-right">
+              <p className="text-xs text-slate-400">LRN</p>
+              <p className="text-xs font-mono font-bold text-slate-600">{student?.lrn}</p>
+            </div>
+          </div>
+
+          {/* Password input */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
+            <div className="relative">
+              <input
+                type={showPw ? 'text' : 'password'}
+                className="input-field pr-20 font-mono"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"
+                  title={showPw ? 'Hide' : 'Show'}
+                >
+                  {showPw ? <EyeOff size={14}/> : <Eye size={14}/>}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"
+                  title="Copy password"
+                >
+                  {copied ? <Check size={14} className="text-green-500"/> : <Copy size={14}/>}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-slate-400">Min. 8 characters</p>
+              <button
+                type="button"
+                onClick={generatePassword}
+                className="text-xs font-semibold text-primary hover:text-primary-700 underline"
+              >
+                Generate random password
+              </button>
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex gap-2">
+            <Shield size={15} className="text-amber-600 flex-shrink-0 mt-0.5"/>
+            <p className="text-xs text-amber-700 font-medium">
+              Make sure to share the new password with the student. They should change it after logging in.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button
+              onClick={handleReset}
+              disabled={saving || password.length < 8}
+              className="btn-primary flex-1 justify-center"
+            >
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Resetting…</>
+                : <><KeyRound size={15}/>Reset Password</>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Add / Edit Student Modal ─────────────────────────────────────────────────
 function StudentModal({ student, sections, onClose, onSave }) {
@@ -347,11 +482,12 @@ function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function StudentsPage() {
   const qc = useQueryClient()
-  const [search,        setSearch]        = useState('')
-  const [grade,         setGrade]         = useState('')
-  const [modal,         setModal]         = useState(null)
-  const [deleteTarget,  setDeleteTarget]  = useState(null)
-  const [deleting,      setDeleting]      = useState(false)
+  const [search,          setSearch]          = useState('')
+  const [grade,           setGrade]           = useState('')
+  const [modal,           setModal]           = useState(null)
+  const [deleteTarget,    setDeleteTarget]    = useState(null)
+  const [deleting,        setDeleting]        = useState(false)
+  const [passwordTarget,  setPasswordTarget]  = useState(null)
 
   const { data: students, isLoading, refetch: refetchStudents } = useQuery({
     queryKey: ['students', search, grade],
@@ -458,13 +594,20 @@ export default function StudentsPage() {
                       <span className={statusBadge[s.status] || 'badge-slate'}>{s.status}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setModal(s)}
                           className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"
                           title="Edit student"
                         >
                           <Edit2 size={14}/>
+                        </button>
+                        <button
+                          onClick={() => setPasswordTarget(s)}
+                          className="p-1.5 hover:bg-amber-50 text-amber-600 rounded-lg"
+                          title="Reset password"
+                        >
+                          <KeyRound size={14}/>
                         </button>
                         <button
                           onClick={() => setDeleteTarget(s)}
@@ -505,6 +648,14 @@ export default function StudentsPage() {
           onClose={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
           deleting={deleting}
+        />
+      )}
+
+      {/* Reset Password Modal */}
+      {passwordTarget && (
+        <PasswordModal
+          student={passwordTarget}
+          onClose={() => setPasswordTarget(null)}
         />
       )}
     </div>

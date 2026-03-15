@@ -7,13 +7,10 @@ const { logAction } = require('../utils/audit');
 
 router.use(authenticate);
 
-// GET all sections
 router.get('/', getSections);
 
-// POST create section
 router.post('/', authorize('admin'), createSection);
 
-// PUT update section
 router.put('/:id', authorize('admin'), async (req, res) => {
   try {
     const { sectionName, gradeLevel, strand, adviserId } = req.body;
@@ -33,19 +30,28 @@ router.put('/:id', authorize('admin'), async (req, res) => {
   }
 });
 
-// DELETE section (blocked if has active students)
 router.delete('/:id', authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+
+    // FIX: must check BOTH students.status AND users.is_active
+    // Deleted students have is_active=0 so they should NOT block deletion
     const [[count]] = await pool.execute(
-      `SELECT COUNT(*) as cnt FROM students WHERE section_id=? AND status='active'`,
+      `SELECT COUNT(*) as cnt
+       FROM students s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.section_id = ?
+         AND s.status = 'active'
+         AND u.is_active = 1`,
       [id]
     );
+
     if (count.cnt > 0)
       return res.status(409).json({
         success: false,
-        message: `Cannot delete — this section has ${count.cnt} active student(s). Reassign them first.`
+        message: `Cannot delete — this section has ${count.cnt} active student(s). Delete or reassign them first.`
       });
+
     await pool.execute(`DELETE FROM sections WHERE id=?`, [id]);
     await logAction(req.user.id, 'DELETE_SECTION', 'sections', id, null, req.ip);
     res.json({ success: true, message: 'Section deleted.' });

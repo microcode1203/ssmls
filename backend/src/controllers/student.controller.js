@@ -202,4 +202,33 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-module.exports = { getAllStudents, getStudent, createStudent, updateStudent, deleteStudent };
+// POST /api/students/:id/reset-password  (admin)
+const resetStudentPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8)
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+
+    const [rows] = await pool.execute(
+      `SELECT s.user_id, u.first_name, u.last_name
+       FROM students s JOIN users u ON u.id=s.user_id
+       WHERE s.id=? AND u.is_active=1`,
+      [id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ success: false, message: 'Student not found.' });
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    await pool.execute(`UPDATE users SET password_hash=? WHERE id=?`, [hash, rows[0].user_id]);
+    await logAction(req.user.id, 'RESET_STUDENT_PASSWORD', 'students', id, { studentName: rows[0].first_name + ' ' + rows[0].last_name }, req.ip);
+
+    res.json({ success: true, message: 'Password reset successfully.' });
+  } catch (err) {
+    console.error('resetStudentPassword error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+module.exports = { getAllStudents, getStudent, createStudent, updateStudent, deleteStudent, resetStudentPassword };
