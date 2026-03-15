@@ -135,7 +135,16 @@ function SidebarContent({ user, onClose, onLogout }) {
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-logo">
-          <img src="/favicon.svg" alt="SSMLS" width="20" height="20" style={{filter:'brightness(10)'}}/>
+          <svg viewBox="0 0 64 64" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+            {/* Open book */}
+            <path d="M10 44 C10 44 18 40 32 41 L32 20 C18 19 10 23 10 23 Z" fill="white" fillOpacity="0.9"/>
+            <path d="M54 44 C54 44 46 40 32 41 L32 20 C46 19 54 23 54 23 Z" fill="white" fillOpacity="0.65"/>
+            <line x1="32" y1="20" x2="32" y2="41" stroke="white" strokeWidth="1.5" strokeOpacity="0.4"/>
+            {/* Graduation cap */}
+            <path d="M32 11 L44 16.5 L32 22 L20 16.5 Z" fill="white"/>
+            <line x1="44" y1="16.5" x2="44" y2="23" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8"/>
+            <circle cx="44" cy="24.5" r="1.5" fill="white" fillOpacity="0.8"/>
+          </svg>
         </div>
         <div>
           <div className="sidebar-brand-name">SSMLS</div>
@@ -237,7 +246,13 @@ export default function AppLayout() {
           </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
-              <img src="/favicon.svg" alt="SSMLS" width="16" height="16" style={{filter:'brightness(10)'}}/>
+              <svg viewBox="0 0 64 64" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 44 C10 44 18 40 32 41 L32 20 C18 19 10 23 10 23 Z" fill="white" fillOpacity="0.9"/>
+                <path d="M54 44 C54 44 46 40 32 41 L32 20 C46 19 54 23 54 23 Z" fill="white" fillOpacity="0.65"/>
+                <path d="M32 11 L44 16.5 L32 22 L20 16.5 Z" fill="white"/>
+                <line x1="44" y1="16.5" x2="44" y2="23" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                <circle cx="44" cy="24.5" r="1.5" fill="white"/>
+              </svg>
             </div>
             <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>SSMLS</span>
           </div>
