@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../api/client'
@@ -111,11 +112,21 @@ function QRGenerator() {
   const stopSession = async () => {
     stopTimers()
     if (classIdRef.current) {
-      try { await api.patch(`/attendance/close/${classIdRef.current}`) } catch {}
-      toast.success('Attendance session closed.')
+      try {
+        const res = await api.patch(`/attendance/close/${classIdRef.current}`)
+        const absent = res.data?.markedAbsent || 0
+        if (absent > 0) {
+          toast.success(`Session closed. ${absent} student${absent !== 1 ? 's' : ''} marked absent.`, { duration: 5000 })
+        } else {
+          toast.success('Attendance session closed. All students were present.')
+        }
+      } catch {
+        toast.success('Attendance session closed.')
+      }
     }
     classIdRef.current = null
     setQrData(null)
+    setAttLog([])
     setCountdown(60)
     countRef.current = 60
   }
@@ -207,7 +218,13 @@ function QRGenerator() {
               <button onClick={generateQR} className="btn-secondary flex-1 justify-center">
                 <RefreshCw size={15}/> Refresh
               </button>
-              <button onClick={stopSession} className="btn-danger flex-1 justify-center">
+              <button
+                onClick={() => {
+                  if (window.confirm('End attendance session? Students who have not scanned will be automatically marked ABSENT.')) {
+                    stopSession()
+                  }
+                }}
+                className="btn-danger flex-1 justify-center">
                 <StopCircle size={15}/> End Session
               </button>
             </div>

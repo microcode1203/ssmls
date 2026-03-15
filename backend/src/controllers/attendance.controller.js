@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 const QRCode = require('qrcode');
 const crypto = require('crypto');
 const { pool } = require('../config/database');
@@ -253,13 +254,105 @@ const getStudentAttendance = async (req, res) => {
 };
 
 // POST /api/attendance/close/:classId  (teacher)
+// Auto-marks all enrolled students who didn't scan as ABSENT
 const closeAttendance = async (req, res) => {
   try {
     const { classId } = req.params;
-    await pool.execute(`UPDATE classes SET attendance_open = 0 WHERE id = ?`, [classId]);
-    res.json({ success: true, message: 'Attendance session closed.' });
+
+    // 1. Get the section for this class
+    const [classRows] = await pool.execute(
+      `SELECT c.id, c.schedule_id, c.class_date, s.section_id
+       FROM classes c
+       JOIN schedules s ON s.id = c.schedule_id
+       WHERE c.id = ?`,
+      [classId]
+    );
+    if (!classRows.length)
+      return res.status(404).json({ success: false, message: 'Class not found.' });
+
+    const cls = classRows[0];
+
+    // 2. Get all active students in that section
+    const [allStudents] = await pool.execute(
+      `SELECT s.id as student_id
+       FROM students s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.section_id = ? AND s.status = 'active' AND u.is_active = 1`,
+      [cls.section_id]
+    );
+
+    // 3. Get students who already have a record (present or late)
+    const [scanned] = await pool.execute(
+      `SELECT student_id FROM attendance WHERE class_id = ?`,
+      [classId]
+    );
+    const scannedIds = new Set(scanned.map(r => r.student_id));
+
+    // 4. Insert ABSENT for everyone who didn't scan
+    let markedAbsent = 0;
+    for (const stu of allStudents) {
+      if (!scannedIds.has(stu.student_id)) {
+        await pool.execute(
+          `INSERT INTO attendance (class_id, student_id, status, scanned_via)
+           VALUES (?, ?, 'absent', 'auto')`,
+          [classId, stu.student_id]
+        );
+        markedAbsent++;
+      }
+    }
+
+    // 5. Close the session
+    await pool.execute(
+      `UPDATE classes SET attendance_open = 0 WHERE id = ?`,
+      [classId]
+    );
+
+    // 6. Check absence threshold alerts per student
+    try {
+      const [[cfg]] = await pool.execute(
+        `SELECT config_value FROM school_config WHERE config_key = 'attendance_threshold'`
+      ).catch(() => [[{ config_value: '3' }]]);
+      const threshold = parseInt(cfg?.config_value || '3');
+
+      // For each newly absent student, check total absences in this subject
+      for (const stu of allStudents) {
+        if (!scannedIds.has(stu.student_id)) {
+          const [absCnt] = await pool.execute(
+            `SELECT COUNT(*) as cnt
+             FROM attendance a
+             JOIN classes c ON c.id = a.class_id
+             WHERE a.student_id = ? AND a.status = 'absent'
+               AND c.schedule_id = ?`,
+            [stu.student_id, cls.schedule_id]
+          );
+          if (Number(absCnt[0].cnt) >= threshold) {
+            // Insert notification for teacher/admin (non-blocking)
+            await pool.execute(
+              `INSERT INTO notifications (user_id, type, title, body)
+               SELECT t.user_id, 'alert',
+                 CONCAT('Absence alert: ', u.first_name, ' ', u.last_name),
+                 CONCAT(u.first_name, ' ', u.last_name, ' has ', ?, ' absences in this subject.')
+               FROM schedules sc
+               JOIN teachers t ON t.id = sc.teacher_id
+               JOIN students st ON st.id = ?
+               JOIN users u ON u.id = st.user_id
+               WHERE sc.id = ?
+               LIMIT 1`,
+              [absCnt[0].cnt, stu.student_id, cls.schedule_id]
+            ).catch(() => {});
+          }
+        }
+      }
+    } catch (_) { /* notifications are non-critical */ }
+
+    res.json({
+      success: true,
+      message: `Session closed. ${markedAbsent} student(s) marked absent.`,
+      markedAbsent,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    console.error('Close attendance error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
