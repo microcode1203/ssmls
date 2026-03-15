@@ -427,25 +427,6 @@ function SidebarContent({ user, onClose, onLogout }) {
         ))}
       </nav>
 
-      {/* Search shortcut hint */}
-      <div style={{padding:'6px 8px'}}>
-        <button
-          onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { metaKey: true, key: 'k', bubbles: true }))}
-          style={{
-            width:'100%', display:'flex', alignItems:'center', gap:8,
-            padding:'7px 10px', borderRadius:8, background:'rgba(255,255,255,.05)',
-            border:'1px solid rgba(255,255,255,.08)', cursor:'pointer',
-            color:'rgba(255,255,255,.35)', fontSize:12, transition:'all .15s',
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.color='rgba(255,255,255,.6)'}}
-          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.05)';e.currentTarget.style.color='rgba(255,255,255,.35)'}}
-        >
-          <Search size={13}/>
-          <span style={{flex:1,textAlign:'left'}}>Search…</span>
-          <span style={{fontSize:10,padding:'1px 5px',background:'rgba(255,255,255,.08)',borderRadius:4,fontFamily:'monospace'}}>⌘K</span>
-        </button>
-      </div>
-
       {/* Logout */}
       <div style={{padding:'8px', borderTop:'1px solid rgba(255,255,255,.06)'}}>
         <button
