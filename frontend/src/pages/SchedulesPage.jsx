@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect} from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -182,8 +182,8 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
- <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[94vh] flex flex-col">
 
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
@@ -477,18 +477,6 @@ export default function SchedulesPage() {
  const [confirm, setConfirm] = useState(null)
  const [filter, setFilter] = useState({ day:'', subject:'', section:'' })
  const [statusFilter, setStatusFilter] = useState('all')
-
-  // Prevent body scroll when any modal is open
-  useEffect(() => {
-    const hasModal = modal
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [modal])
-
 
  const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
  const { data: subjects } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })

@@ -1,7 +1,7 @@
 /* @v2-fixed-imports */
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -9,12 +9,6 @@ import toast from 'react-hot-toast'
 import { BarChart3, X, Users, BookOpen, GraduationCap } from 'lucide-react'
 
 const dedupeSchedules = (schedules) => {
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
  const seen = new Map()
  return (schedules || [])
  .filter(s => !('status' in s) || s.status === 'approved')
@@ -91,8 +85,8 @@ function GradeModal({ mySchedules, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
- <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">

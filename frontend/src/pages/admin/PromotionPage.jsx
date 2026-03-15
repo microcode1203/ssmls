@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState, useEffect} from 'react'
+import { useState } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -15,18 +15,6 @@ export default function PromotionPage() {
  const [phrase, setPhrase] = useState('')
  const [promoting, setPromoting] = useState(false)
  const [done, setDone] = useState(null)
-
-  // Prevent body scroll when any modal is open
-  useEffect(() => {
-    const hasModal = confirm
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [confirm])
-
 
  const CONFIRM_PHRASE = 'PROMOTE SCHOOL YEAR'
 
@@ -181,8 +169,8 @@ export default function PromotionPage() {
 
  {/* Confirmation modal */}
  {confirm && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
- <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
  <AlertTriangle size={28} className="text-red-500"/>
  </div>

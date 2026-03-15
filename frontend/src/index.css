@@ -668,15 +668,22 @@ button, a, [role="button"] {
   display: none;
 }
 
-/* ── Modal scroll lock ──────────────────────────────────────────────────────
-   When any fixed overlay (z-50) is present in the DOM, prevent body scroll.
-   This is the modern CSS-only approach - no JS needed.
-   :has() is supported in Chrome 105+, Safari 15.4+, Firefox 121+           */
-body:has(.fixed.z-50:not(.pointer-events-none)) {
+/* Fallback: .modal-open class toggled by JS */
+
+
+
+/* ── Modal: lock body scroll + floating centered animation ──────────────
+   Uses CSS :has() - supported in all modern browsers (Chrome 105+, 
+   Safari 15.4+, Firefox 121+). No JavaScript needed for scroll lock.   */
+body:has(.modal-active) {
   overflow: hidden;
 }
 
-/* Fallback: .modal-open class toggled by JS */
-body.modal-open {
-  overflow: hidden;
+/* Modal entrance animation */
+@keyframes ssmls-modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+.modal-card {
+  animation: ssmls-modal-in 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
 }

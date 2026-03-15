@@ -1,5 +1,5 @@
 /* @v2-fixed-imports */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -14,12 +14,6 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 // ─── Dedup helper — one entry per subject+section ────────────────────────────
 const dedupeSchedules = (schedules) => {
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
  const seen = new Map()
  return (schedules || [])
  .filter(s => !('status' in s) || s.status === 'approved')
@@ -228,8 +222,8 @@ export default function MaterialsPage() {
  <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
  {/* Upload Modal */}
  {modal && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
- <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">

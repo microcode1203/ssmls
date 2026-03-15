@@ -1,77 +1,51 @@
-/* @v2-fixed-imports */
-import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
-/**
- * Modal — professional overlay with body scroll lock
- * 
- * Usage:
- *   <Modal open={show} onClose={() => setShow(false)} title="Add Teacher">
- *     <form>...</form>
- *   </Modal>
- */
-export default function Modal({ open, onClose, title, subtitle, size = 'md', children }) {
-  const maxW = {
-    sm:  'max-w-sm',
-    md:  'max-w-md',
-    lg:  'max-w-lg',
-    xl:  'max-w-xl',
-    '2xl': 'max-w-2xl',
-  }[size] || 'max-w-lg'
+export default function Modal({ open, onClose, size = 'md', children }) {
+  const maxW = { sm:'28rem', md:'36rem', lg:'42rem', xl:'52rem', '2xl':'56rem' }[size] ?? '36rem'
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      return () => { document.body.style.overflow = prev }
-    }
-  }, [open])
-
-  // Close on Escape
   useEffect(() => {
     if (!open) return
-    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [open, onClose])
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
+  const onKey = useCallback((e) => { if (e.key === 'Escape') onClose?.() }, [onClose])
+  useEffect(() => {
+    if (!open) return
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onKey])
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
+      style={{
+        position:'fixed', inset:0, zIndex:9999,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        padding:'1rem',
+        background:'rgba(15,23,42,0.5)',
+        backdropFilter:'blur(4px)',
+      }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
       <div
-        className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxW} flex flex-col`}
-        style={{ maxHeight: 'calc(100vh - 2rem)' }}
-        onClick={(e) => e.stopPropagation()}
+        style={{
+          position:'relative', width:'100%', maxWidth:maxW,
+          maxHeight:'calc(100dvh - 2rem)',
+          background:'#fff', borderRadius:'1.25rem',
+          boxShadow:'0 20px 60px -10px rgba(0,0,0,0.3),0 0 0 1px rgba(0,0,0,0.05)',
+          display:'flex', flexDirection:'column', overflow:'hidden',
+          animation:'ssmls-modal-in .18s cubic-bezier(0.34,1.4,0.64,1)',
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        {(title || onClose) && (
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
-            <div>
-              {title && <h2 className="font-display font-bold text-slate-900 text-lg">{title}</h2>}
-              {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-            </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600"
-              >
-                <X size={18}/>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {children}
-        </div>
+        {children}
       </div>
-    </div>
+      <style>{`@keyframes ssmls-modal-in{from{opacity:0;transform:scale(.95) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+    </div>,
+    document.body
   )
 }

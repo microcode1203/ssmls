@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState, useEffect} from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -23,18 +23,6 @@ export default function CalendarPage() {
  const [adding, setAdding] = useState(false)
  const [confirm, setConfirm] = useState(null)
  const [form, setForm] = useState({ title:'', description:'', eventDate:'', endDate:'', type:'activity', targetRole:'all' })
-
-  // Prevent body scroll when any modal is open
-  useEffect(() => {
-    const hasModal = adding
-    if (hasModal) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [adding])
-
 
  const { data: events } = useQuery({
  queryKey: ['calendar', current.month, current.year],
@@ -163,8 +151,8 @@ export default function CalendarPage() {
 
  {/* Add event modal */}
  {adding&&(
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
- <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Add Event</h2>
  <button onClick={()=>setAdding(false)} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
