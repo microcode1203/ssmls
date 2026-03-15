@@ -1,3 +1,4 @@
+// @v2-fixed-imports
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const { pool }     = require('../config/database');
@@ -75,7 +76,8 @@ const login = async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT u.*,
          COALESCE(s.id, NULL) as student_db_id,
-         COALESCE(t.id, NULL) as teacher_db_id
+         COALESCE(t.id, NULL) as teacher_db_id,
+         s.status as student_status
        FROM users u
        LEFT JOIN students s ON s.user_id = u.id
        LEFT JOIN teachers t ON t.user_id = u.id
@@ -89,6 +91,14 @@ const login = async (req, res) => {
     const dummyHash = '$2a$12$dummyhashfordummyuserpreventingtimingattack000000000000';
     const hashToCheck = user ? user.password_hash : dummyHash;
     const valid = await bcrypt.compare(password, hashToCheck);
+
+    // Check if graduated student is trying to log in
+    if (user && valid && user.is_active && user.student_status === 'graduated') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been graduated. Please contact the school administrator for your records.',
+      });
+    }
 
     if (!user || !valid || !user.is_active) {
       // Record failure
