@@ -1,10 +1,11 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import api from '../../api/client'
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
-  ClipboardList, BarChart3, FileText, Bell, QrCode, Shield,
+  ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield,
   LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
   MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList
 } from 'lucide-react'
@@ -160,6 +161,176 @@ const BOTTOM_NAV = {
   ],
 }
 
+// ─── Notification Bell Component ─────────────────────────────────────────────
+function NotificationBell() {
+  const [open,   setOpen]   = useState(false)
+  const [notifs, setNotifs] = useState([])
+  const [unread, setUnread] = useState(0)
+  const ref = useRef(null)
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await api.get('/notifications')
+      setNotifs(res.data.data || [])
+      setUnread(res.data.unread || 0)
+    } catch {}
+  }
+
+  useEffect(() => {
+    fetchNotifs()
+    const interval = setInterval(fetchNotifs, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const markAllRead = async () => {
+    try {
+      await api.patch('/notifications/read-all')
+      setUnread(0)
+      setNotifs(p => p.map(n => ({ ...n, is_read: 1 })))
+    } catch {}
+  }
+
+  const markRead = async (id) => {
+    try {
+      await api.patch(`/notifications/${id}/read`)
+      setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: 1 } : n))
+      setUnread(p => Math.max(0, p - 1))
+    } catch {}
+  }
+
+  const TYPE_ICON = {
+    grade:       '📊',
+    attendance:  '📋',
+    assignment:  '📝',
+    announcement:'📢',
+    alert:       '⚠️',
+    message:     '💬',
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => { setOpen(p => !p); if (!open) fetchNotifs() }}
+        style={{
+          position: 'relative', background: 'rgba(255,255,255,.08)',
+          border: 'none', borderRadius: 8, width: 32, height: 32,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'rgba(255,255,255,.7)',
+          transition: 'background .15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.15)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}
+        title="Notifications"
+      >
+        {unread > 0 ? <BellDot size={16}/> : <Bell size={16}/>}
+        {unread > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            background: '#ef4444', color: 'white',
+            fontSize: 9, fontWeight: 800,
+            minWidth: 16, height: 16, borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px', border: '1.5px solid #0f172a',
+          }}>
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 40, left: 0, zIndex: 999,
+          background: 'white', borderRadius: 12, width: 300,
+          boxShadow: '0 8px 32px rgba(15,23,42,.18)',
+          border: '0.5px solid #e2e8f0',
+          overflow: 'hidden',
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px', borderBottom: '0.5px solid #f1f5f9',
+          }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+              Notifications {unread > 0 && <span style={{ color: '#ef4444' }}>({unread})</span>}
+            </span>
+            {unread > 0 && (
+              <button onClick={markAllRead} style={{
+                fontSize: 11, color: '#2563eb', background: 'none',
+                border: 'none', cursor: 'pointer', fontWeight: 600,
+              }}>
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {notifs.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>No notifications yet</p>
+                <p style={{ fontSize: 11, marginTop: 4 }}>You're all caught up!</p>
+              </div>
+            ) : (
+              notifs.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => markRead(n.id)}
+                  style={{
+                    display: 'flex', gap: 10, padding: '10px 14px',
+                    cursor: 'pointer', transition: 'background .1s',
+                    background: n.is_read ? 'white' : '#eff6ff',
+                    borderBottom: '0.5px solid #f8fafc',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={e => e.currentTarget.style.background = n.is_read ? 'white' : '#eff6ff'}
+                >
+                  <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>
+                    {TYPE_ICON[n.type] || '🔔'}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: 12, fontWeight: n.is_read ? 500 : 700,
+                      color: '#1e293b', margin: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{n.title}</p>
+                    {n.body && (
+                      <p style={{
+                        fontSize: 11, color: '#64748b', margin: '2px 0 0',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{n.body}</p>
+                    )}
+                    <p style={{ fontSize: 10, color: '#94a3b8', margin: '3px 0 0' }}>
+                      {new Date(n.created_at).toLocaleString('en-PH', {
+                        month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  {!n.is_read && (
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: '#2563eb', flexShrink: 0, marginTop: 4,
+                    }}/>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const ROLE_BADGE = {
   admin:   { label: 'Admin',   bg: 'bg-violet-500' },
   teacher: { label: 'Teacher', bg: 'bg-blue-500' },
@@ -209,6 +380,7 @@ function SidebarContent({ user, onClose, onLogout }) {
               {badge.label.toUpperCase()}
             </span>
           </div>
+          <NotificationBell/>
         </div>
       </div>
 
@@ -296,11 +468,14 @@ export default function AppLayout() {
             </div>
             <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>S.S.M.L.S</span>
           </div>
-          <button onClick={()=>navigate('/settings')}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-            style={{background:'var(--primary)'}}>
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <NotificationBell/>
+            <button onClick={()=>navigate('/settings')}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{background:'var(--primary)'}}>
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </button>
+          </div>
         </header>
 
         {/* Content */}
