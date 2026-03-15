@@ -122,11 +122,27 @@ function CreateModal({ schedules, onClose, onSave }) {
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class <span className="text-red-500">*</span></label>
             <select className="input-field" value={form.scheduleId} onChange={set('scheduleId')} required>
               <option value="">— Select class —</option>
-              {(schedules||[]).filter(s=>s.status==='approved').map(s=>(
-                <option key={s.id} value={s.id}>
-                  {s.subject||s.subject_name} · {s.grade_level} {s.section_name} · {s.day_of_week}
-                </option>
-              ))}
+              {/* Deduplicate: show only one entry per subject+section combo */}
+              {(schedules||[])
+                .filter(s => s.status === 'approved')
+                .reduce((unique, s) => {
+                  const key = (s.subject_id || s.subject || s.subject_name) + '_' + s.section_id
+                  if (!unique.find(u => (u.subject_id||u.subject||u.subject_name) + '_' + u.section_id === key)) {
+                    unique.push(s)
+                  }
+                  return unique
+                }, [])
+                .sort((a,b) => {
+                  const nameA = (a.subject||a.subject_name||'')
+                  const nameB = (b.subject||b.subject_name||'')
+                  return nameA.localeCompare(nameB) || a.grade_level?.localeCompare(b.grade_level)
+                })
+                .map(s => (
+                  <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+                    {s.subject||s.subject_name} · {s.grade_level} {s.section_name}
+                  </option>
+                ))
+              }
             </select>
           </div>
           <div>

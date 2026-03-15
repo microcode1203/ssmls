@@ -271,17 +271,67 @@ const createAnnouncement = async (req, res) => {
 
 // ─── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 const getAssignments = async (req, res) => {
-  const { scheduleId, sectionId } = req.query;
-  let q = `SELECT a.*, sub.name as subject_name, u.first_name, u.last_name
-           FROM assignments a JOIN schedules s ON s.id=a.schedule_id
-           JOIN subjects sub ON sub.id=s.subject_id
-           JOIN users u ON u.id=a.created_by WHERE 1=1`;
-  const p = [];
-  if (scheduleId) { q+=' AND a.schedule_id=?'; p.push(scheduleId); }
-  if (sectionId)  { q+=' AND s.section_id=?';  p.push(sectionId); }
-  q += ' ORDER BY a.due_date ASC';
-  const [rows] = await pool.execute(q, p);
-  res.json({ success:true, data:rows });
+  try {
+    const { scheduleId, sectionId } = req.query;
+
+    // For students — show assignments for their section
+    // For teachers — show assignments they created
+    // For admin — show all assignments
+    let q, p = [];
+
+    if (req.user.role === 'student') {
+      // Get student's section
+      const [sRows] = await pool.execute(
+        `SELECT section_id FROM students WHERE user_id = ?`, [req.user.id]
+      );
+      const secId = sRows[0]?.section_id;
+      if (!secId) return res.json({ success: true, data: [] });
+
+      q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+             u.first_name, u.last_name
+           FROM assignments a
+           JOIN schedules s   ON s.id = a.schedule_id
+           JOIN subjects sub  ON sub.id = s.subject_id
+           JOIN sections sec  ON sec.id = s.section_id
+           JOIN users u       ON u.id = a.created_by
+           WHERE s.section_id = ?
+           ORDER BY a.due_date ASC`;
+      p = [secId];
+
+    } else if (req.user.role === 'teacher') {
+      q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+             u.first_name, u.last_name
+           FROM assignments a
+           JOIN schedules s   ON s.id = a.schedule_id
+           JOIN subjects sub  ON sub.id = s.subject_id
+           JOIN sections sec  ON sec.id = s.section_id
+           JOIN teachers t    ON t.id = s.teacher_id
+           JOIN users u       ON u.id = a.created_by
+           WHERE t.user_id = ?
+           ORDER BY a.due_date ASC`;
+      p = [req.user.id];
+
+    } else {
+      // Admin — all assignments
+      q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+             u.first_name, u.last_name
+           FROM assignments a
+           JOIN schedules s   ON s.id = a.schedule_id
+           JOIN subjects sub  ON sub.id = s.subject_id
+           JOIN sections sec  ON sec.id = s.section_id
+           JOIN users u       ON u.id = a.created_by
+           ORDER BY a.due_date ASC`;
+    }
+
+    if (scheduleId) { q = q.replace('ORDER BY', 'AND a.schedule_id=? ORDER BY'); p.push(scheduleId); }
+    if (sectionId)  { q = q.replace('ORDER BY', 'AND s.section_id=? ORDER BY');  p.push(sectionId); }
+
+    const [rows] = await pool.execute(q, p);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getAssignments error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 const createAssignment = async (req, res) => {
