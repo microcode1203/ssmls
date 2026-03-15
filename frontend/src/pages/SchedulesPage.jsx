@@ -12,6 +12,29 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(null)
 
+  // Get selected section's grade level to filter subjects
+  const selectedSection = (sections||[]).find(s => String(s.id) === String(form.sectionId))
+  const filteredSubjects = (subjects||[]).filter(s =>
+    !selectedSection ||
+    s.grade_level === 'Both' ||
+    s.grade_level === selectedSection.grade_level
+  )
+
+  // When section changes, clear subject if it no longer matches
+  const handleSectionChange = (e) => {
+    const newSectionId = e.target.value
+    const newSection = (sections||[]).find(s => String(s.id) === String(newSectionId))
+    const currentSubject = (subjects||[]).find(s => String(s.id) === String(form.subjectId))
+    const subjectStillValid = !currentSubject || !newSection ||
+      currentSubject.grade_level === 'Both' ||
+      currentSubject.grade_level === newSection.grade_level
+    setForm(p => ({
+      ...p,
+      sectionId: newSectionId,
+      subjectId: subjectStillValid ? p.subjectId : ''
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true); setConflict(null)
     try {
@@ -44,15 +67,36 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
             </div>
           )}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Subject <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Subject <span className="text-red-500">*</span>
+              {selectedSection && (
+                <span className="ml-2 text-xs font-normal text-primary">
+                  (filtered for {selectedSection.grade_level})
+                </span>
+              )}
+            </label>
             <select className="input-field" value={form.subjectId} onChange={e=>setForm(p=>({...p,subjectId:e.target.value}))} required>
               <option value="">— Select Subject —</option>
-              {(subjects||[]).map(s=><option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+              {filteredSubjects.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.code}) {s.grade_level==='Both' ? '· G11 & G12' : ''}
+                </option>
+              ))}
             </select>
+            {filteredSubjects.length === 0 && subjects?.length > 0 && (
+              <p className="text-xs text-amber-600 mt-1 font-medium">
+                ⚠ No subjects available for {selectedSection?.grade_level}. Add subjects in the Subjects page first.
+              </p>
+            )}
+            {!subjects?.length && (
+              <p className="text-xs text-amber-600 mt-1 font-medium">
+                ⚠ No subjects found. Go to <strong>Subjects</strong> page to add them first.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Section <span className="text-red-500">*</span></label>
-            <select className="input-field" value={form.sectionId} onChange={e=>setForm(p=>({...p,sectionId:e.target.value}))} required>
+            <select className="input-field" value={form.sectionId} onChange={handleSectionChange} required>
               <option value="">— Select Section —</option>
               {(sections||[]).map(s=><option key={s.id} value={s.id}>{s.grade_level} · {s.section_name} ({s.strand})</option>)}
             </select>
@@ -105,7 +149,7 @@ export default function SchedulesPage() {
   const [view,  setView]  = useState('list') // list | grid
 
   const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
-  const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/schedules/section/0').then(()=>[]).catch(()=>[]) })
+  const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
   const { data: teachers  } = useQuery({ queryKey:['teachers'], queryFn:()=>api.get('/teachers').then(r=>r.data.data), enabled: user?.role==='admin' })
 
   // Fetch schedules based on role
