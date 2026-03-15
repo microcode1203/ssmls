@@ -135,11 +135,7 @@ function SidebarContent({ user, onClose, onLogout }) {
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-logo">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-            <path d="M5 18L12 6L19 18H5Z" fill="white" fillOpacity=".15"/>
-            <path d="M9 18L12 12L15 18H9Z" fill="white"/>
-            <circle cx="12" cy="6" r="2" fill="#93c5fd"/>
-          </svg>
+          <img src="/favicon.svg" alt="SSMLS" width="20" height="20" style={{filter:'brightness(10)'}}/>
         </div>
         <div>
           <div className="sidebar-brand-name">SSMLS</div>
@@ -241,9 +237,7 @@ export default function AppLayout() {
           </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
-              <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-                <path d="M9 18L12 12L15 18H9Z" fill="white"/>
-              </svg>
+              <img src="/favicon.svg" alt="SSMLS" width="16" height="16" style={{filter:'brightness(10)'}}/>
             </div>
             <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>SSMLS</span>
           </div>

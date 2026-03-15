@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#1e3a8a" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+  <!-- Shine -->
+  <rect width="180" height="90" rx="40" fill="url(#shine)"/>
+  <rect y="50" width="180" height="40" fill="url(#shine)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.06">
+    <line x1="0" y1="36" x2="180" y2="36" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="72" x2="180" y2="72" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="108" x2="180" y2="108" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="144" x2="180" y2="144" stroke="white" stroke-width="1"/>
+    <line x1="36" y1="0" x2="36" y2="180" stroke="white" stroke-width="1"/>
+    <line x1="72" y1="0" x2="72" y2="180" stroke="white" stroke-width="1"/>
+    <line x1="108" y1="0" x2="108" y2="180" stroke="white" stroke-width="1"/>
+    <line x1="144" y1="0" x2="144" y2="180" stroke="white" stroke-width="1"/>
+  </g>
+
+  <!-- Main icon group -->
+  <g filter="url(#shadow)">
+    <!-- Open book -->
+    <!-- Left page -->
+    <path d="M28 126 C28 126 52 118 90 120 L90 58 C52 56 28 64 28 64 Z"
+          fill="white" fill-opacity="0.92"/>
+    <!-- Right page -->
+    <path d="M152 126 C152 126 128 118 90 120 L90 58 C128 56 152 64 152 64 Z"
+          fill="white" fill-opacity="0.72"/>
+    <!-- Spine -->
+    <line x1="90" y1="58" x2="90" y2="120" stroke="white" stroke-width="2" stroke-opacity="0.4"/>
+    <!-- Bottom curve -->
+    <path d="M28 126 C28 126 52 122 90 123 C128 122 152 126 152 126"
+          stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-opacity="0.5"/>
+
+    <!-- Text lines left page -->
+    <line x1="38" y1="86"  x2="84"  y2="85"  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.3"/>
+    <line x1="38" y1="96"  x2="80"  y2="95"  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.22"/>
+    <line x1="38" y1="106" x2="82"  y2="105" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.16"/>
+    <line x1="38" y1="116" x2="76"  y2="115" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.12"/>
+
+    <!-- Text lines right page -->
+    <line x1="142" y1="86"  x2="96"  y2="85"  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.22"/>
+    <line x1="140" y1="96"  x2="96"  y2="95"  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.16"/>
+    <line x1="141" y1="106" x2="96"  y2="105" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.12"/>
+
+    <!-- Graduation cap -->
+    <!-- Cap board (mortarboard) -->
+    <path d="M90 30 L124 46 L90 62 L56 46 Z" fill="white"/>
+    <!-- Cap top highlight -->
+    <path d="M90 30 L124 46 L107 54 L90 46 Z" fill="white" fill-opacity="0.65"/>
+    <!-- Center dot -->
+    <circle cx="90" cy="46" r="3" fill="#1d4ed8" fill-opacity="0.5"/>
+    <!-- Tassel string -->
+    <path d="M124 46 Q126 54 124 64" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-opacity="0.85"/>
+    <!-- Tassel end -->
+    <circle cx="124" cy="65" r="4" fill="white" fill-opacity="0.85"/>
+    <line x1="121" y1="68" x2="119" y2="74" stroke="white" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+    <line x1="124" y1="69" x2="124" y2="75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+    <line x1="127" y1="68" x2="129" y2="74" stroke="white" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+  </g>
+
+  <!-- Corner glow accents -->
+  <circle cx="22" cy="22" r="30" fill="white" fill-opacity="0.04"/>
+  <circle cx="158" cy="158" r="40" fill="white" fill-opacity="0.03"/>
+</svg>
