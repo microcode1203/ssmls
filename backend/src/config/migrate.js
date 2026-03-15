@@ -13,6 +13,7 @@ const migrations = [
   `CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(80) NOT NULL,
+    middle_name VARCHAR(80) NULL,
     last_name VARCHAR(80) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -50,6 +51,8 @@ const migrations = [
     strand ENUM('STEM','HUMSS','ABM','TVL','GAS') NOT NULL,
     status ENUM('active','inactive','transferred','graduated') NOT NULL DEFAULT 'active',
     phone VARCHAR(20),
+    birthday DATE NULL,
+    birthplace VARCHAR(120) NULL,
     address TEXT,
     guardian_name VARCHAR(120),
     guardian_phone VARCHAR(20),

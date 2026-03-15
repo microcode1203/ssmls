@@ -146,6 +146,7 @@ function PasswordModal({ student, onClose }) {
 function StudentModal({ student, sections, onClose, onSave }) {
   const [form, setForm] = useState(student ? {
     firstName:    student.first_name     || '',
+    middleName:   student.middle_name    || '',
     lastName:     student.last_name      || '',
     email:        student.email          || '',
     lrn:          student.lrn            || '',
@@ -153,12 +154,15 @@ function StudentModal({ student, sections, onClose, onSave }) {
     sectionId:    student.section_id     || '',
     strand:       student.strand         || 'STEM',
     phone:        student.phone          || '',
+    birthday:     student.birthday?.slice(0,10) || '',
+    birthplace:   student.birthplace     || '',
     guardianName: student.guardian_name  || '',
     guardianPhone:student.guardian_phone || '',
   } : {
-    firstName:'', lastName:'', email:'', lrn:'',
+    firstName:'', middleName:'', lastName:'', email:'', lrn:'',
     gradeLevel:'Grade 11', sectionId:'', strand:'STEM',
-    phone:'', guardianName:'', guardianPhone:''
+    phone:'', birthday:'', birthplace:'',
+    guardianName:'', guardianPhone:''
   })
   const [saving, setSaving] = useState(false)
 
@@ -205,14 +209,23 @@ function StudentModal({ student, sections, onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-4">
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">First Name <span className="text-red-500">*</span></label>
-            <input className="input-field" value={form.firstName} onChange={set('firstName')} required />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Last Name <span className="text-red-500">*</span></label>
-            <input className="input-field" value={form.lastName} onChange={set('lastName')} required />
+          {/* Name row — 3 columns */}
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">First Name <span className="text-red-500">*</span></label>
+              <input className="input-field" placeholder="Given name" value={form.firstName} onChange={set('firstName')} required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Middle Name
+                <span className="ml-1 text-xs font-normal text-slate-400">(optional)</span>
+              </label>
+              <input className="input-field" placeholder="Middle name" value={form.middleName} onChange={set('middleName')} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Last Name <span className="text-red-500">*</span></label>
+              <input className="input-field" placeholder="Surname" value={form.lastName} onChange={set('lastName')} required />
+            </div>
           </div>
 
           {!student && (
@@ -302,6 +315,39 @@ function StudentModal({ student, sections, onClose, onSave }) {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
             <input type="tel" className="input-field" placeholder="09XX-XXX-XXXX" value={form.phone} onChange={set('phone')} />
+          </div>
+
+          {/* Date of Birth + Birthplace */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Date of Birth
+              <span className="ml-1 text-xs font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              type="date"
+              className="input-field"
+              value={form.birthday}
+              onChange={set('birthday')}
+              max={new Date().toISOString().slice(0,10)}
+            />
+            {form.birthday && (
+              <p className="text-xs text-slate-400 mt-1">
+                Age: {Math.floor((new Date() - new Date(form.birthday)) / (365.25*24*60*60*1000))} years old
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Birthplace
+              <span className="ml-1 text-xs font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              className="input-field"
+              placeholder="City / Municipality, Province"
+              value={form.birthplace}
+              onChange={set('birthplace')}
+            />
           </div>
 
           <div>

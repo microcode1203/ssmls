@@ -30,7 +30,8 @@ const getAllStudents = async (req, res) => {
 
     let query = `
       SELECT s.id, s.lrn, s.grade_level, s.strand, s.status, s.phone,
-        u.id as user_id, u.first_name, u.last_name, u.email,
+        s.birthday, s.birthplace,
+        u.id as user_id, u.first_name, u.middle_name, u.last_name, u.email,
         sec.section_name, sec.id as section_id
       FROM students s
       JOIN users u   ON u.id   = s.user_id
@@ -67,7 +68,7 @@ const getAllStudents = async (req, res) => {
 const getStudent = async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT s.*, u.first_name, u.last_name, u.email,
+      `SELECT s.*, u.first_name, u.middle_name, u.last_name, u.email,
          sec.section_name, sec.grade_level as sec_grade
        FROM students s
        JOIN users u ON u.id = s.user_id
@@ -90,8 +91,10 @@ const createStudent = async (req, res) => {
     await conn.beginTransaction();
 
     const {
-      firstName, lastName, email, password, lrn,
-      gradeLevel, sectionId, strand, phone, guardianName, guardianPhone
+      firstName, middleName, lastName, email, password, lrn,
+      gradeLevel, sectionId, strand, phone,
+      birthday, birthplace,
+      guardianName, guardianPhone
     } = req.body;
 
     // Validate LRN — must be exactly 12 digits
@@ -129,19 +132,22 @@ const createStudent = async (req, res) => {
     const hash = await bcrypt.hash(password || 'Student@2026', 12);
 
     const [userRes] = await conn.execute(
-      `INSERT INTO users (first_name, last_name, email, password_hash, role)
-       VALUES (?, ?, ?, ?, 'student')`,
-      [firstName, lastName, email.toLowerCase().trim(), hash]
+      `INSERT INTO users (first_name, middle_name, last_name, email, password_hash, role)
+       VALUES (?, ?, ?, ?, ?, 'student')`,
+      [firstName, middleName || null, lastName, email.toLowerCase().trim(), hash]
     );
 
     await conn.execute(
       `INSERT INTO students
-         (user_id, lrn, grade_level, section_id, strand, phone, guardian_name, guardian_phone)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, lrn, grade_level, section_id, strand, phone,
+          birthday, birthplace, guardian_name, guardian_phone)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userRes.insertId, cleanLrn, gradeLevel,
         sectionId || null, strand,
-        phone || null, guardianName || null, guardianPhone || null
+        phone || null,
+        birthday || null, birthplace || null,
+        guardianName || null, guardianPhone || null
       ]
     );
 
@@ -164,7 +170,7 @@ const createStudent = async (req, res) => {
 // PUT /api/students/:id  (admin)
 const updateStudent = async (req, res) => {
   try {
-    const { firstName, lastName, gradeLevel, sectionId, strand, status, phone } = req.body;
+    const { firstName, middleName, lastName, gradeLevel, sectionId, strand, status, phone, birthday, birthplace } = req.body;
     const { id } = req.params;
 
     const [st] = await pool.execute(`SELECT user_id FROM students WHERE id=?`, [id]);
@@ -172,12 +178,14 @@ const updateStudent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student not found.' });
 
     await pool.execute(
-      `UPDATE users SET first_name=?, last_name=? WHERE id=?`,
-      [firstName, lastName, st[0].user_id]
+      `UPDATE users SET first_name=?, middle_name=?, last_name=? WHERE id=?`,
+      [firstName, middleName || null, lastName, st[0].user_id]
     );
     await pool.execute(
-      `UPDATE students SET grade_level=?, section_id=?, strand=?, status=?, phone=? WHERE id=?`,
-      [gradeLevel, sectionId || null, strand, status || 'active', phone || null, id]
+      `UPDATE students SET grade_level=?, section_id=?, strand=?, status=?, phone=?,
+         birthday=?, birthplace=? WHERE id=?`,
+      [gradeLevel, sectionId || null, strand, status || 'active', phone || null,
+       birthday || null, birthplace || null, id]
     );
 
     await logAction(req.user.id, 'UPDATE_STUDENT', 'students', id, req.body, req.ip);

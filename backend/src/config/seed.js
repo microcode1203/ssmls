@@ -42,6 +42,25 @@ async function seed() {
       }
     }
 
+    // ── Step 1b: Add new columns if missing (safe for existing DBs) ─────────
+    const addCol = async (table, col, definition) => {
+      try {
+        const [rows] = await conn.query(
+          `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+          [table, col]
+        );
+        if (rows[0].cnt === 0) {
+          await conn.query(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
+          console.log(`✅ Added column ${table}.${col}`);
+        }
+      } catch (e) { console.warn(`⚠ Could not add ${table}.${col}:`, e.message); }
+    };
+
+    await addCol('users',    'middle_name', 'VARCHAR(80) NULL AFTER first_name');
+    await addCol('students', 'birthday',    'DATE NULL');
+    await addCol('students', 'birthplace',  'VARCHAR(120) NULL');
+
     // ── Step 2: Add UNIQUE constraint to subjects if missing ──────────────────
     try {
       await conn.query(`ALTER TABLE subjects ADD CONSTRAINT uq_subject_code UNIQUE (code)`);
