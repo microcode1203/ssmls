@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
-import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield, KeyRound, Eye, EyeOff, Copy, Check } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield, KeyRound, Eye, EyeOff, Copy, Check, LayoutList, LayoutGrid, Filter, GraduationCap, Users } from 'lucide-react'
 
 const CONFIRM_PHRASE = 'DELETE'
 
@@ -481,18 +482,29 @@ function DeleteStudentModal({ student, onClose, onConfirm, deleting }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function StudentsPage() {
+  const { user } = useAuth()
   const qc = useQueryClient()
+  const isTeacher = user?.role === 'teacher'
+
   const [search,          setSearch]          = useState('')
   const [grade,           setGrade]           = useState('')
+  const [sectionFilter,   setSectionFilter]   = useState('')
+  const [strandFilter,    setStrandFilter]    = useState('')
+  const [viewMode,        setViewMode]        = useState('grouped') // grouped | list
   const [modal,           setModal]           = useState(null)
   const [deleteTarget,    setDeleteTarget]    = useState(null)
   const [deleting,        setDeleting]        = useState(false)
   const [passwordTarget,  setPasswordTarget]  = useState(null)
 
   const { data: students, isLoading, refetch: refetchStudents } = useQuery({
-    queryKey: ['students', search, grade],
+    queryKey: ['students', search, grade, sectionFilter, strandFilter],
     queryFn: () => api.get('/students', {
-      params: { search, gradeLevel: grade }
+      params: {
+        search,
+        gradeLevel: grade,
+        sectionId:  sectionFilter || undefined,
+        strand:     strandFilter  || undefined,
+      }
     }).then(r => r.data.data),
     keepPreviousData: true,
     staleTime: 0,
@@ -502,6 +514,25 @@ export default function StudentsPage() {
     queryKey: ['sections'],
     queryFn: () => api.get('/sections').then(r => r.data.data),
   })
+
+  // Group students by grade → section
+  const grouped = (students || []).reduce((acc, s) => {
+    const gradeKey   = s.grade_level || 'Unknown'
+    const sectionKey = s.section_name || 'No Section'
+    const key        = `${gradeKey}||${sectionKey}||${s.strand || ''}`
+    if (!acc[gradeKey]) acc[gradeKey] = {}
+    if (!acc[gradeKey][key]) acc[gradeKey][key] = {
+      sectionName: sectionKey,
+      gradeLevel:  gradeKey,
+      strand:      s.strand || '',
+      students:    []
+    }
+    acc[gradeKey][key].students.push(s)
+    return acc
+  }, {})
+
+  const gradeOrder = ['Grade 11', 'Grade 12']
+  const hasFilters = search || grade || sectionFilter || strandFilter
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -526,110 +557,258 @@ export default function StudentsPage() {
     graduated:   'badge-blue',
   }
 
+  const strandColor = {
+    STEM:  'bg-blue-100 text-blue-700',
+    HUMSS: 'bg-purple-100 text-purple-700',
+    ABM:   'bg-green-100 text-green-700',
+    TVL:   'bg-amber-100 text-amber-700',
+    GAS:   'bg-slate-100 text-slate-600',
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="page-title">Students</h1>
-          <p className="text-slate-500 text-sm mt-1">{students?.length || 0} students found</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {students?.length || 0} student{students?.length !== 1 ? 's' : ''}
+            {sectionFilter && sections && ` · ${sections.find(s=>String(s.id)===sectionFilter)?.section_name || ''}`}
+          </p>
         </div>
-        <button onClick={() => setModal('add')} className="btn-primary">
-          <Plus size={16}/> Add Student
-        </button>
+        {!isTeacher && (
+          <button onClick={() => setModal('add')} className="btn-primary">
+            <Plus size={16}/> Add Student
+          </button>
+        )}
       </div>
 
       {/* Filters */}
-      <div className="card p-4 mb-5 flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-          <input
-            className="input-field pl-9"
-            placeholder="Search by name or LRN…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      <div className="card p-4 mb-5">
+        <div className="flex gap-3 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 min-w-48">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+            <input
+              className="input-field pl-9"
+              placeholder="Search by name or LRN…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Grade */}
+          <select className="input-field w-36" value={grade} onChange={e => { setGrade(e.target.value); setSectionFilter('') }}>
+            <option value="">All Grades</option>
+            <option value="Grade 11">Grade 11</option>
+            <option value="Grade 12">Grade 12</option>
+          </select>
+
+          {/* Section */}
+          <select className="input-field w-48" value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
+            <option value="">All Sections</option>
+            {(sections || [])
+              .filter(s => !grade || s.grade_level === grade)
+              .map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.grade_level} · {s.section_name}
+                </option>
+              ))
+            }
+          </select>
+
+          {/* Strand */}
+          <select className="input-field w-36" value={strandFilter} onChange={e => setStrandFilter(e.target.value)}>
+            <option value="">All Strands</option>
+            {['STEM','HUMSS','ABM','TVL','GAS'].map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+
+          {/* Clear */}
+          {hasFilters && (
+            <button
+              onClick={() => { setSearch(''); setGrade(''); setSectionFilter(''); setStrandFilter('') }}
+              className="btn-ghost text-xs"
+            >
+              <X size={13}/> Clear
+            </button>
+          )}
+
+          {/* View mode toggle */}
+          <div className="flex gap-1 ml-auto">
+            <button
+              onClick={() => setViewMode('grouped')}
+              className={`p-2 rounded-lg transition-colors ${viewMode==='grouped' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-slate-500'}`}
+              title="Grouped view"
+            >
+              <LayoutGrid size={16}/>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${viewMode==='list' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-slate-500'}`}
+              title="List view"
+            >
+              <LayoutList size={16}/>
+            </button>
+          </div>
         </div>
-        <select className="input-field w-40" value={grade} onChange={e => setGrade(e.target.value)}>
-          <option value="">All Grades</option>
-          <option>Grade 11</option>
-          <option>Grade 12</option>
-        </select>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center">
+      {/* Student Table — reusable row */}
+      {(() => {
+        const StudentRow = ({ s }) => (
+          <tr key={s.id} className="hover:bg-slate-50/60 group transition-colors">
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                  {s.first_name?.[0]}{s.last_name?.[0]}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">{s.first_name} {s.last_name}</p>
+                  <p className="text-xs text-slate-400">{s.email}</p>
+                </div>
+              </div>
+            </td>
+            <td className="px-4 py-3 font-mono text-xs text-slate-500">{s.lrn}</td>
+            {viewMode === 'list' && (
+              <>
+                <td className="px-4 py-3 text-xs text-slate-600">{s.grade_level}</td>
+                <td className="px-4 py-3 text-xs text-slate-600">{s.section_name || '—'}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${strandColor[s.strand]||'bg-slate-100 text-slate-600'}`}>{s.strand}</span>
+                </td>
+              </>
+            )}
+            <td className="px-4 py-3">
+              <span className={statusBadge[s.status] || 'badge-slate'}>{s.status}</span>
+            </td>
+            <td className="px-4 py-3">
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {!isTeacher && (
+                  <button onClick={() => setModal(s)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg" title="Edit">
+                    <Edit2 size={13}/>
+                  </button>
+                )}
+                {!isTeacher && (
+                  <button onClick={() => setPasswordTarget(s)} className="p-1.5 hover:bg-amber-50 text-amber-500 rounded-lg" title="Reset password">
+                    <KeyRound size={13}/>
+                  </button>
+                )}
+                {!isTeacher && (
+                  <button onClick={() => setDeleteTarget(s)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg" title="Delete">
+                    <Trash2 size={13}/>
+                  </button>
+                )}
+              </div>
+            </td>
+          </tr>
+        )
+
+        const TableHead = ({ grouped }) => (
+          <thead className="bg-slate-50/80 border-b border-slate-100 sticky top-0">
+            <tr>
+              {['Student','LRN', ...(grouped ? [] : ['Grade','Section','Strand']), 'Status',''].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+        )
+
+        if (isLoading) return (
+          <div className="card p-12 text-center">
             <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"/>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  {['Student','LRN','Grade & Section','Strand','Status','Actions'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {(students || []).map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50 group">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                          {s.first_name?.[0]}{s.last_name?.[0]}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-800">{s.first_name} {s.last_name}</p>
-                          <p className="text-xs text-slate-400">{s.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{s.lrn}</td>
-                    <td className="px-4 py-3 text-slate-600">{s.grade_level} · {s.section_name || '—'}</td>
-                    <td className="px-4 py-3"><span className="badge-blue">{s.strand}</span></td>
-                    <td className="px-4 py-3">
-                      <span className={statusBadge[s.status] || 'badge-slate'}>{s.status}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => setModal(s)}
-                          className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"
-                          title="Edit student"
-                        >
-                          <Edit2 size={14}/>
-                        </button>
-                        <button
-                          onClick={() => setPasswordTarget(s)}
-                          className="p-1.5 hover:bg-amber-50 text-amber-600 rounded-lg"
-                          title="Reset password"
-                        >
-                          <KeyRound size={14}/>
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(s)}
-                          className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg"
-                          title="Delete student"
-                        >
-                          <Trash2 size={14}/>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!students?.length && (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-400">No students found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        )
+
+        if (!students?.length) return (
+          <div className="card p-12 text-center text-slate-400">
+            <GraduationCap size={32} className="mx-auto mb-3 opacity-30"/>
+            <p className="font-semibold">No students found</p>
+            <p className="text-xs mt-1">Try adjusting your filters</p>
           </div>
-        )}
-      </div>
+        )
+
+        /* ── GROUPED VIEW ── */
+        if (viewMode === 'grouped') {
+          return (
+            <div className="space-y-6">
+              {gradeOrder.map(gradeKey => {
+                const gradeSections = grouped[gradeKey]
+                if (!gradeSections) return null
+                const sectionGroups = Object.values(gradeSections)
+                const totalInGrade  = sectionGroups.reduce((a,g) => a + g.students.length, 0)
+                return (
+                  <div key={gradeKey}>
+                    {/* Grade header */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap size={16} className="text-primary"/>
+                        <span className="font-bold text-slate-900 text-sm tracking-tight">{gradeKey}</span>
+                      </div>
+                      <div className="flex-1 h-px bg-slate-200"/>
+                      <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+                        {totalInGrade} student{totalInGrade!==1?'s':''}
+                      </span>
+                    </div>
+
+                    {/* Section cards */}
+                    <div className="space-y-3">
+                      {sectionGroups.map(group => (
+                        <div key={group.sectionName} className="card overflow-hidden">
+                          {/* Section header */}
+                          <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/80 border-b border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Users size={13} className="text-primary"/>
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-800 text-sm">{group.sectionName}</span>
+                                <span className="text-slate-400 text-xs ml-2">{group.gradeLevel}</span>
+                              </div>
+                            </div>
+                            {group.strand && (
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${strandColor[group.strand]||'bg-slate-100 text-slate-600'}`}>
+                                {group.strand}
+                              </span>
+                            )}
+                            <span className="ml-auto text-xs font-semibold text-slate-400">
+                              {group.students.length} student{group.students.length!==1?'s':''}
+                            </span>
+                          </div>
+                          {/* Students table */}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <TableHead grouped={true}/>
+                              <tbody className="divide-y divide-slate-50/80">
+                                {group.students.map(s => <StudentRow key={s.id} s={s}/>)}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        }
+
+        /* ── LIST VIEW ── */
+        return (
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <TableHead grouped={false}/>
+                <tbody className="divide-y divide-slate-50">
+                  {(students||[]).map(s => <StudentRow key={s.id} s={s}/>)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Add / Edit Modal */}
       {modal && (
