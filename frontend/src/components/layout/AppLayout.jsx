@@ -522,7 +522,7 @@ export default function AppLayout() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto page-transition">
+        <main id="ssmls-main" className="flex-1 overflow-y-auto page-transition">
           <div className="page-transition">
             <Outlet/>
           </div>
