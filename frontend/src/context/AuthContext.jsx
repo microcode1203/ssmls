@@ -26,10 +26,9 @@ export function AuthProvider({ children }) {
   const doLogout = useCallback(async (reason = 'manual') => {
     clearTimers()
     setSessionWarning(false)
+    // Call logout API before clearing token (needs token in header)
     try {
-      if (localStorage.getItem('ssmls_token')) {
-        await api.post('/auth/logout').catch(() => {})
-      }
+      await api.post('/auth/logout').catch(() => {})
     } finally {
       localStorage.removeItem('ssmls_token')
       localStorage.removeItem('ssmls_user')
@@ -88,12 +87,15 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Login ─────────────────────────────────────────────────────
-  const login = useCallback((token, userData) => {
+  // ── Login — accepts (email, password), calls API, returns user ──
+  const login = useCallback(async (email, password) => {
+    const res = await api.post('/auth/login', { email, password })
+    const { token, user: userData } = res.data.data
     localStorage.setItem('ssmls_token', token)
     localStorage.setItem('ssmls_user',  JSON.stringify(userData))
     setUser(userData)
     resetInactivityTimer()
+    return userData
   }, [resetInactivityTimer])
 
   // ── Logout ────────────────────────────────────────────────────
