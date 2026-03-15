@@ -239,9 +239,10 @@ export default function TeachersPage() {
   const [deleteTarget,  setDeleteTarget]  = useState(null)
   const [deleting,      setDeleting]      = useState(false)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch: refetchTeachers } = useQuery({
     queryKey: ['teachers'],
-    queryFn: () => api.get('/teachers').then(r => r.data.data)
+    queryFn: () => api.get('/teachers').then(r => r.data.data),
+    staleTime: 0,
   })
 
   const handleDelete = async () => {
@@ -251,7 +252,8 @@ export default function TeachersPage() {
       await api.delete(`/teachers/${deleteTarget.id}`)
       toast.success(`${deleteTarget.first_name} ${deleteTarget.last_name}'s account has been deactivated.`)
       setDeleteTarget(null)
-      qc.invalidateQueries(['teachers'])
+      await qc.invalidateQueries(['teachers'])
+      await refetchTeachers()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete teacher.')
     } finally {

@@ -144,16 +144,37 @@ const getDashboard = async (req, res) => {
 
 // ─── SECTIONS ────────────────────────────────────────────────────────────────
 const getSections = async (req, res) => {
-  const { gradeLevel } = req.query;
-  const [rows] = await pool.execute(
-    `SELECT s.*, u.first_name, u.last_name,
-       (SELECT COUNT(*) FROM students WHERE section_id=s.id AND status='active') as student_count
-     FROM sections s LEFT JOIN users u ON u.id=s.adviser_id
-     ${gradeLevel ? 'WHERE s.grade_level=?' : ''}
-     ORDER BY s.grade_level, s.section_name`,
-    gradeLevel ? [gradeLevel] : []
-  );
-  res.json({ success:true, data:rows });
+  try {
+    const { gradeLevel } = req.query;
+
+    // Fix 1: student_count only counts students whose USER account is active
+    // (students.status='active' alone is not enough — deleted accounts
+    //  set is_active=0 on users table but may still have status='active' on students)
+    const whereClause = gradeLevel ? 'WHERE s.grade_level = ?' : '';
+    const [rows] = await pool.execute(
+      `SELECT
+         s.*,
+         u.first_name,
+         u.last_name,
+         (
+           SELECT COUNT(*)
+           FROM students st
+           JOIN users uu ON uu.id = st.user_id
+           WHERE st.section_id = s.id
+             AND st.status = 'active'
+             AND uu.is_active = 1
+         ) as student_count
+       FROM sections s
+       LEFT JOIN users u ON u.id = s.adviser_id
+       ${whereClause}
+       ORDER BY s.grade_level, s.section_name`,
+      gradeLevel ? [gradeLevel] : []
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getSections error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 };
 
 const createSection = async (req, res) => {

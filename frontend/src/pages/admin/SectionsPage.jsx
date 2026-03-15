@@ -235,9 +235,11 @@ export default function SectionsPage() {
   const [filterGrade, setFilterGrade] = useState('')
   const [filterStrand, setFilterStrand] = useState('')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['sections'],
     queryFn: () => api.get('/sections').then(r => r.data.data),
+    staleTime: 0,              // always treat as stale
+    refetchOnWindowFocus: true, // refetch when tab regains focus
   })
 
   const handleDelete = async () => {
@@ -247,7 +249,9 @@ export default function SectionsPage() {
       await api.delete(`/sections/${deleteTarget.id}`)
       toast.success('Section deleted.')
       setDeleteTarget(null)
-      qc.invalidateQueries(['sections'])
+      // Invalidate AND immediately refetch so deleted section disappears at once
+      await qc.invalidateQueries(['sections'])
+      await refetch()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete section.')
     } finally {

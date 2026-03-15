@@ -20,12 +20,15 @@ const getAllStudents = async (req, res) => {
     if (sectionId)  { query += ' AND s.section_id = ?';  params.push(sectionId); }
     if (strand)     { query += ' AND s.strand = ?';      params.push(strand); }
     if (status)     { query += ' AND s.status = ?';      params.push(status); }
-    if (search)     { query += ' AND (u.first_name LIKE ? OR u.last_name LIKE ? OR s.lrn LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (search) {
+      query += ' AND (u.first_name LIKE ? OR u.last_name LIKE ? OR s.lrn LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
     query += ' ORDER BY sec.section_name, u.last_name, u.first_name';
-
     const [rows] = await pool.execute(query, params);
     res.json({ success: true, data: rows, total: rows.length });
   } catch (err) {
+    console.error('getAllStudents error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -55,28 +58,74 @@ const createStudent = async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const { firstName, lastName, email, password, lrn, gradeLevel, sectionId, strand, phone, guardianName, guardianPhone } = req.body;
+
+    const {
+      firstName, lastName, email, password, lrn,
+      gradeLevel, sectionId, strand, phone, guardianName, guardianPhone
+    } = req.body;
+
+    // Validate LRN — must be exactly 12 digits
+    const cleanLrn = String(lrn || '').trim();
+    if (!/^\d{12}$/.test(cleanLrn)) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'LRN must be exactly 12 digits (numbers only).'
+      });
+    }
+
+    // Check if email already used by an ACTIVE user
+    const [emailCheck] = await conn.execute(
+      `SELECT id FROM users WHERE email = ? AND is_active = 1`,
+      [email.toLowerCase().trim()]
+    );
+    if (emailCheck.length > 0) {
+      await conn.rollback();
+      return res.status(409).json({ success: false, message: 'Email is already in use by an active account.' });
+    }
+
+    // Check if LRN already used by an active student
+    const [lrnCheck] = await conn.execute(
+      `SELECT s.id FROM students s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.lrn = ? AND u.is_active = 1`,
+      [cleanLrn]
+    );
+    if (lrnCheck.length > 0) {
+      await conn.rollback();
+      return res.status(409).json({ success: false, message: 'LRN is already assigned to an active student.' });
+    }
 
     const hash = await bcrypt.hash(password || 'Student@2026', 12);
+
     const [userRes] = await conn.execute(
-      `INSERT INTO users (first_name, last_name, email, password_hash, role) VALUES (?, ?, ?, ?, 'student')`,
-      [firstName, lastName, email, hash]
+      `INSERT INTO users (first_name, last_name, email, password_hash, role)
+       VALUES (?, ?, ?, ?, 'student')`,
+      [firstName, lastName, email.toLowerCase().trim(), hash]
     );
 
     await conn.execute(
-      `INSERT INTO students (user_id, lrn, grade_level, section_id, strand, phone, guardian_name, guardian_phone)
+      `INSERT INTO students
+         (user_id, lrn, grade_level, section_id, strand, phone, guardian_name, guardian_phone)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [userRes.insertId, lrn, gradeLevel, sectionId || null, strand, phone || null, guardianName || null, guardianPhone || null]
+      [
+        userRes.insertId, cleanLrn, gradeLevel,
+        sectionId || null, strand,
+        phone || null, guardianName || null, guardianPhone || null
+      ]
     );
 
     await conn.commit();
-    await logAction(req.user.id, 'CREATE_STUDENT', 'students', userRes.insertId, { lrn }, req.ip);
+    await logAction(req.user.id, 'CREATE_STUDENT', 'students', userRes.insertId, { lrn: cleanLrn }, req.ip);
     res.status(201).json({ success: true, message: 'Student created successfully.' });
   } catch (err) {
     await conn.rollback();
-    if (err.code === 'ER_DUP_ENTRY')
-      return res.status(409).json({ success: false, message: 'Email or LRN already exists.' });
-    res.status(500).json({ success: false, message: 'Server error.' });
+    console.error('createStudent error:', err);
+    // Fallback duplicate check (should not reach here with checks above)
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ success: false, message: 'Email or LRN is already in use.' });
+    }
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   } finally {
     conn.release();
   }
@@ -89,7 +138,8 @@ const updateStudent = async (req, res) => {
     const { id } = req.params;
 
     const [st] = await pool.execute(`SELECT user_id FROM students WHERE id=?`, [id]);
-    if (!st.length) return res.status(404).json({ success: false, message: 'Student not found.' });
+    if (!st.length)
+      return res.status(404).json({ success: false, message: 'Student not found.' });
 
     await pool.execute(
       `UPDATE users SET first_name=?, last_name=? WHERE id=?`,
@@ -112,7 +162,6 @@ const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get student details before deactivating
     const [rows] = await pool.execute(
       `SELECT s.id, s.lrn, s.user_id, u.email
        FROM students s JOIN users u ON u.id = s.user_id
@@ -124,29 +173,32 @@ const deleteStudent = async (req, res) => {
 
     const { user_id, email, lrn } = rows[0];
 
-    // Append a unique suffix to free up email and LRN
-    // so the same email/LRN can be reused when adding a new student
-    const suffix = '_deleted_' + Date.now();
-    const freedEmail = email + suffix;
-    const freedLrn   = lrn   + suffix;
+    // Use a short numeric suffix (last 8 digits of timestamp)
+    // to stay well within column length limits
+    const ts = String(Date.now()).slice(-8);
+    const freedEmail = `del${ts}_${email}`;
+    const freedLrn   = `del${ts}`;  // store short placeholder, original saved in audit log
 
-    // Deactivate and free up the unique email
     await pool.execute(
-      'UPDATE users SET is_active = 0, email = ? WHERE id = ?',
+      `UPDATE users SET is_active = 0, email = ? WHERE id = ?`,
       [freedEmail, user_id]
     );
 
-    // Free up the unique LRN and mark student inactive
     await pool.execute(
-      'UPDATE students SET lrn = ?, status = ? WHERE id = ?',
-      [freedLrn, 'inactive', id]
+      `UPDATE students SET lrn = ?, status = 'inactive' WHERE id = ?`,
+      [freedLrn, id]
     );
 
-    await logAction(req.user.id, 'DEACTIVATE_STUDENT', 'students', id, { email, lrn }, req.ip);
+    // Log original values so they are not lost
+    await logAction(
+      req.user.id, 'DEACTIVATE_STUDENT', 'students', id,
+      { original_email: email, original_lrn: lrn }, req.ip
+    );
+
     res.json({ success: true, message: 'Student account deactivated.' });
   } catch (err) {
     console.error('deleteStudent error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 };
 

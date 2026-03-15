@@ -87,8 +87,37 @@ function StudentModal({ student, sections, onClose, onSave }) {
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">LRN (12 digits) <span className="text-red-500">*</span></label>
-            <input className="input-field" value={form.lrn} onChange={set('lrn')} maxLength={12} required />
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              LRN <span className="text-red-500">*</span>
+              <span className="ml-1 text-xs font-normal text-slate-400">(exactly 12 digits)</span>
+            </label>
+            <input
+              className={`input-field font-mono tracking-wider ${
+                form.lrn && !/^\d{12}$/.test(form.lrn)
+                  ? 'border-red-300 bg-red-50 focus:ring-red-200'
+                  : form.lrn && /^\d{12}$/.test(form.lrn)
+                  ? 'border-green-400 bg-green-50 focus:ring-green-300'
+                  : ''
+              }`}
+              placeholder="e.g. 123456789012"
+              value={form.lrn}
+              onChange={set('lrn')}
+              maxLength={12}
+              required
+            />
+            {form.lrn && !/^\d{12}$/.test(form.lrn) && (
+              <p className="text-xs text-red-500 mt-1 font-medium">
+                {/\D/.test(form.lrn)
+                  ? '✗ Numbers only — no letters or spaces'
+                  : form.lrn.length < 12
+                  ? `✗ ${12 - form.lrn.length} more digit(s) needed`
+                  : '✗ Must be exactly 12 digits'
+                }
+              </p>
+            )}
+            {form.lrn && /^\d{12}$/.test(form.lrn) && (
+              <p className="text-xs text-green-600 mt-1 font-medium">✓ Valid LRN</p>
+            )}
           </div>
 
           {/* Section — full width, auto-fills grade & strand */}
@@ -151,7 +180,11 @@ function StudentModal({ student, sections, onClose, onSave }) {
 
           <div className="col-span-2 flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
+            <button
+              type="submit"
+              disabled={saving || (form.lrn && !/^\d{12}$/.test(form.lrn))}
+              className="btn-primary flex-1 justify-center"
+            >
               {saving
                 ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
                 : student ? 'Update Student' : 'Add Student'
@@ -320,12 +353,13 @@ export default function StudentsPage() {
   const [deleteTarget,  setDeleteTarget]  = useState(null)
   const [deleting,      setDeleting]      = useState(false)
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, refetch: refetchStudents } = useQuery({
     queryKey: ['students', search, grade],
     queryFn: () => api.get('/students', {
       params: { search, gradeLevel: grade }
     }).then(r => r.data.data),
     keepPreviousData: true,
+    staleTime: 0,
   })
 
   const { data: sections } = useQuery({
@@ -340,7 +374,8 @@ export default function StudentsPage() {
       await api.delete(`/students/${deleteTarget.id}`)
       toast.success(`${deleteTarget.first_name} ${deleteTarget.last_name}'s account has been deactivated.`)
       setDeleteTarget(null)
-      qc.invalidateQueries(['students'])
+      await qc.invalidateQueries(['students'])
+      await refetchStudents()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete student.')
     } finally {
