@@ -52,7 +52,7 @@ export default function RankingPage() {
             </select>
           </div>
 
-          {rankLoading&&<div className="flex justify-center py-8"><div className="w-7 h-7 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/></div>}
+          {rankLoading&&<TableSkeleton cols={6} rows={8}/>}
 
           {!sectionId&&!rankLoading&&(
             <div className="card p-14 text-center text-slate-400"><Trophy size={32} className="mx-auto mb-3 opacity-20"/><p>Select a section to view rankings.</p></div>
@@ -132,7 +132,7 @@ export default function RankingPage() {
 
       {tab==='at-risk' && (
         <>
-          {riskLoading&&<div className="flex justify-center py-8"><div className="w-7 h-7 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/></div>}
+          {riskLoading&&<TableSkeleton cols={6} rows={8}/>}
           {atRisk&&!riskLoading&&(
             <>
               <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 mb-5">

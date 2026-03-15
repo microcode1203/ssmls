@@ -7,6 +7,7 @@ import {
   Plus, X, AlertTriangle, CheckCircle, Trash2,
   Clock, CalendarDays, Zap, Search, Filter
 } from 'lucide-react'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' }
@@ -471,8 +472,9 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
 export default function SchedulesPage() {
   const { user } = useAuth()
   const qc       = useQueryClient()
-  const [modal,  setModal]  = useState(false)
-  const [filter, setFilter] = useState({ day:'', subject:'', section:'' })
+  const [modal,   setModal]   = useState(false)
+  const [confirm, setConfirm] = useState(null)
+  const [filter,  setFilter]  = useState({ day:'', subject:'', section:'' })
 
   const { data: sections } = useQuery({ queryKey:['sections'], queryFn:()=>api.get('/sections').then(r=>r.data.data) })
   const { data: subjects  } = useQuery({ queryKey:['subjects'], queryFn:()=>api.get('/subjects').then(r=>r.data.data) })
@@ -497,9 +499,15 @@ export default function SchedulesPage() {
     catch { toast.error('Failed.') }
   }
   const deleteMut = async (id) => {
-    if (!confirm('Delete this schedule?')) return
-    try { await api.delete(`/schedules/${id}`); toast.success('Deleted.'); qc.invalidateQueries(['schedules']) }
-    catch { toast.error('Failed.') }
+    setConfirm({
+      title: 'Delete Schedule?',
+      message: 'This schedule will be permanently removed.',
+      confirmLabel: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        try { await api.delete(`/schedules/${id}`); toast.success('Deleted.'); qc.invalidateQueries(['schedules']) }
+        catch { toast.error('Failed.') }
+      }
+    })
   }
 
   // Build unique subject/section options from loaded schedules
@@ -634,9 +642,7 @@ export default function SchedulesPage() {
             {user?.role==='admin' ? 'Pending Approvals' : 'All Schedules'}
           </span>
         </div>
-        {isLoading ? (
-          <div className="p-12 text-center"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"/></div>
-        ) : (
+        {isLoading ? <TableSkeleton cols={6} rows={8}/> : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50/80 border-b border-slate-100">
@@ -687,6 +693,7 @@ export default function SchedulesPage() {
         )}
       </div>
 
+      <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
       {modal && (
         <ScheduleModal
           userRole={user?.role}

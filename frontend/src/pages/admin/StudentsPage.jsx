@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState, useEffect } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../../utils/nameUtils'
 import { useAuth } from '../../context/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -765,7 +766,7 @@ export default function StudentsPage() {
 
         if (isLoading) return (
           <div className="card p-12 text-center">
-            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"/>
+<TableSkeleton cols={6} rows={8}/>
           </div>
         )
 

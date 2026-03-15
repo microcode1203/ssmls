@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState, useEffect } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
@@ -323,11 +324,7 @@ function TeacherDrawer({ teacher, onClose, onDelete }) {
 
         {/* Schedule list */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
-            </div>
-          ) : Object.keys(byDay).length === 0 ? (
+          {isLoading ? <TableSkeleton cols={5} rows={5}/> : Object.keys(byDay).length === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <CalendarDays size={32} className="mx-auto mb-3 opacity-30"/>
               <p className="font-semibold text-sm">No schedules found</p>
@@ -485,7 +482,7 @@ export default function TeachersPage() {
       <div className="card overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"/>
+<TableSkeleton cols={6} rows={8}/>
           </div>
         ) : (
           <div className="overflow-x-auto">

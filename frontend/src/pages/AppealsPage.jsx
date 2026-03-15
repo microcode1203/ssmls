@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -43,9 +44,7 @@ export default function AppealsPage() {
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/></div>
-      ) : (appeals||[]).length===0 ? (
+      {isLoading ? <TableSkeleton cols={6} rows={8}/> : (appeals||[]).length===0 ? (
         <div className="card p-14 text-center text-slate-400">
           <MessageSquare size={32} className="mx-auto mb-3 opacity-20"/>
           <p>No appeals yet.</p>

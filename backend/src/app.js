@@ -185,6 +185,7 @@ const calendarRoutes     = require('./routes/calendar.routes');
 const appealRoutes       = require('./routes/appeal.routes');
 const configRoutes       = require('./routes/config.routes');
 const reportRoutes       = require('./routes/report.routes');
+const searchRoutes       = require('./routes/search.routes');
 const importRoutes       = require('./routes/import.routes');
 const promotionRoutes    = require('./routes/promotion.routes');
 
@@ -208,6 +209,7 @@ app.use('/api/calendar',      writeLimiter,    calendarRoutes);
 app.use('/api/appeals',       writeLimiter,    appealRoutes);
 app.use('/api/config',                         configRoutes);
 app.use('/api/reports',                        reportRoutes);
+app.use('/api/search',                         searchRoutes);
 app.use('/api/import',        writeLimiter,    importRoutes);
 app.use('/api/promotion',                      promotionRoutes);
 

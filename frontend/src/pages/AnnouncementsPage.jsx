@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -36,9 +37,7 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/></div>
-      ) : (
+      {isLoading ? <CardGridSkeleton count={6}/> : (
         <div className="space-y-4">
           {(data||[]).map(a=>(
             <div key={a.id} className="card p-5 hover:shadow-md transition-shadow">

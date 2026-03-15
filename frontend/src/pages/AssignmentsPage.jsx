@@ -1,5 +1,6 @@
 /* @v2-fixed-imports */
 import { fullName, formalName, initials } from '../utils/nameUtils'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -11,6 +12,7 @@ import {
   FileText, Image, File, Paperclip, Download,
   CheckCircle, Upload
 } from 'lucide-react'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { format, isPast, formatDistanceToNow } from 'date-fns'
 
 const TYPE_CONFIG = {
@@ -88,6 +90,7 @@ function FileAttachment({ fileName, fileType, fileSize, fileData, compact = fals
           <Download size={13} className="text-slate-500"/>
         </button>
       </div>
+    <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
     </div>
   )
 }
@@ -411,11 +414,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
-            </div>
-          ) : !(data||[]).length ? (
+          {isLoading ? <CardGridSkeleton count={6}/> : !(data||[]).length ? (
             <div className="text-center py-12 text-slate-400">
               <FileText size={28} className="mx-auto mb-2 opacity-20"/>
               <p>No submissions yet.</p>
@@ -541,6 +540,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
 export default function AssignmentsPage() {
   const { user } = useAuth()
   const qc       = useQueryClient()
+  const [confirm,        setConfirm]         = useState(null)
   const [createModal,    setCreateModal]    = useState(false)
   const [submitModal,    setSubmitModal]    = useState(null)
   const [submissionsFor, setSubmissionsFor] = useState(null)
@@ -576,12 +576,18 @@ export default function AssignmentsPage() {
   }), [assignments, filter])
 
   const deleteAssignment = async (id) => {
-    if (!window.confirm('Delete this assignment? All submissions will be lost.')) return
-    try {
-      await api.delete(`/assignments/${id}`)
-      toast.success('Assignment deleted.')
-      qc.invalidateQueries(['assignments'])
-    } catch { toast.error('Failed to delete.') }
+    setConfirm({
+      title: 'Delete Assignment?',
+      message: 'All student submissions will be permanently deleted.',
+      confirmLabel: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/assignments/${id}`)
+          toast.success('Assignment deleted.')
+          qc.invalidateQueries(['assignments'])
+        } catch { toast.error('Failed to delete.') }
+      }
+    })
   }
 
   const activeCount  = (assignments||[]).filter(a => !isPast(new Date(a.due_date))).length
@@ -630,11 +636,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Grid */}
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
-        </div>
-      ) : filtered.length === 0 ? (
+      {isLoading ? <CardGridSkeleton count={6}/> : filtered.length === 0 ? (
         <div className="card p-16 text-center text-slate-400">
           <BookOpen size={36} className="mx-auto mb-3 opacity-20"/>
           <p className="font-semibold">No assignments found.</p>

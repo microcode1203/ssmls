@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState, useEffect } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -412,7 +413,7 @@ export default function AdminAccountsPage() {
       {/* Admin list */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
+<TableSkeleton cols={6} rows={8}/>
         </div>
       ) : (
         <div className="space-y-3">

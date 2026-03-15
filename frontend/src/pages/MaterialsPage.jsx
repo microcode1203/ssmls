@@ -1,5 +1,6 @@
 /* @v2-fixed-imports */
 import { useState, useRef } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +10,7 @@ import {
   Link, BookOpen, Trash2, Download, Eye,
   FileVideo, File, Presentation
 } from 'lucide-react'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 // ─── Dedup helper — one entry per subject+section ────────────────────────────
 const dedupeSchedules = (schedules) => {
@@ -45,7 +47,8 @@ export default function MaterialsPage() {
   const [form,   setForm]   = useState({
     scheduleId: '', title: '', description: '', fileUrl: '', fileType: 'PDF'
   })
-  const [saving, setSaving] = useState(false)
+  const [saving,  setSaving]  = useState(false)
+  const [confirm, setConfirm] = useState(null)
 
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
@@ -78,12 +81,18 @@ export default function MaterialsPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this material?')) return
-    try {
-      await api.delete(`/materials/${id}`)
-      toast.success('Material deleted.')
-      qc.invalidateQueries(['materials'])
-    } catch { toast.error('Failed to delete.') }
+    setConfirm({
+      title: 'Delete Material?',
+      message: 'This material will be removed for all students.',
+      confirmLabel: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/materials/${id}`)
+          toast.success('Material deleted.')
+          qc.invalidateQueries(['materials'])
+        } catch { toast.error('Failed to delete.') }
+      }
+    })
   }
 
   const openModal = () => {
@@ -142,11 +151,7 @@ export default function MaterialsPage() {
       )}
 
       {/* Materials grid */}
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
-        </div>
-      ) : filtered.length === 0 ? (
+      {isLoading ? <CardGridSkeleton count={6}/> : filtered.length === 0 ? (
         <div className="card p-16 text-center text-slate-400">
           <BookOpen size={36} className="mx-auto mb-3 opacity-20"/>
           <p className="font-semibold">No materials yet.</p>
@@ -214,6 +219,7 @@ export default function MaterialsPage() {
         </div>
       )}
 
+      <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
       {/* Upload Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

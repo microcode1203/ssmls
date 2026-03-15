@@ -1,3 +1,5 @@
+import React from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import api from '../api/client'
@@ -5,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts'
+import { DashboardSkeleton } from '../components/ui/Skeleton'
 import {
   Users, GraduationCap, CalendarDays, ClipboardList,
   Clock, BookOpen, AlertCircle, TrendingUp,
@@ -330,6 +333,19 @@ function StudentDashboard({ data }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <p className="text-xl font-bold font-mono text-slate-800 tabular-nums">
+      {time.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </p>
+  )
+}
+
 export default function DashboardPage() {
   const { user } = useAuth()
 
@@ -344,20 +360,23 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-5 sm:mb-6">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>!
-          {' '}Here's what's happening today.
-        </p>
+      <div className="mb-5 sm:mb-6 flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>!
+            {' '}Here's what's happening today.
+          </p>
+        </div>
+        <div className="text-right">
+          <LiveClock/>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
+          </p>
+        </div>
       </div>
 
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <div className="w-9 h-9 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
-          <p className="text-sm text-slate-400 font-medium">Loading dashboard…</p>
-        </div>
-      )}
+      {isLoading && <DashboardSkeleton/>}
 
       {error && !isLoading && (
         <div className="card p-8 text-center text-slate-400">

@@ -1,5 +1,6 @@
 // @v2-fixed-imports
 import { useState } from 'react'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
@@ -326,7 +327,7 @@ export default function SubjectsPage() {
       {/* Subject list */}
       {isLoading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
+<TableSkeleton cols={6} rows={8}/>
         </div>
       ) : filtered.length === 0 ? (
         <div className="card p-16 text-center text-slate-400">

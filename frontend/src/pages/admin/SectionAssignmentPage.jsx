@@ -1,4 +1,5 @@
 /* @v2-fixed-imports */
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -202,7 +203,7 @@ export default function SectionAssignmentPage() {
 
             {loadingStudents ? (
               <div className="p-12 text-center">
-                <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"/>
+    <TableSkeleton cols={6} rows={8}/>
               </div>
             ) : filtered.length === 0 ? (
               <div className="p-12 text-center text-slate-400">

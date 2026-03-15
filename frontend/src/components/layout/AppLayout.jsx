@@ -3,9 +3,10 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/client'
+import GlobalSearch from './GlobalSearch'
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
-  ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield,
+  ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield, Search,
   LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
   MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList
 } from 'lucide-react'
@@ -402,6 +403,9 @@ function SidebarContent({ user, onClose, onLogout }) {
         </div>
       </div>
 
+      {/* Global search */}
+      <GlobalSearch/>
+
       {/* Nav groups */}
       <nav className="flex-1 pb-4 overflow-y-auto">
         {groups.map((group, gi) => (
@@ -422,6 +426,25 @@ function SidebarContent({ user, onClose, onLogout }) {
           </div>
         ))}
       </nav>
+
+      {/* Search shortcut hint */}
+      <div style={{padding:'6px 8px'}}>
+        <button
+          onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { metaKey: true, key: 'k', bubbles: true }))}
+          style={{
+            width:'100%', display:'flex', alignItems:'center', gap:8,
+            padding:'7px 10px', borderRadius:8, background:'rgba(255,255,255,.05)',
+            border:'1px solid rgba(255,255,255,.08)', cursor:'pointer',
+            color:'rgba(255,255,255,.35)', fontSize:12, transition:'all .15s',
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.color='rgba(255,255,255,.6)'}}
+          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.05)';e.currentTarget.style.color='rgba(255,255,255,.35)'}}
+        >
+          <Search size={13}/>
+          <span style={{flex:1,textAlign:'left'}}>Search…</span>
+          <span style={{fontSize:10,padding:'1px 5px',background:'rgba(255,255,255,.08)',borderRadius:4,fontFamily:'monospace'}}>⌘K</span>
+        </button>
+      </div>
 
       {/* Logout */}
       <div style={{padding:'8px', borderTop:'1px solid rgba(255,255,255,.06)'}}>
@@ -474,6 +497,13 @@ export default function AppLayout() {
           <button onClick={()=>setOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 -ml-1 transition-colors">
             <Menu size={20} className="text-slate-600"/>
           </button>
+          <button
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { metaKey: true, key: 'k', bubbles: true }))}
+            className="search-trigger topbar-search">
+            <Search size={13}/>
+            <span>Search…</span>
+            <kbd>⌘K</kbd>
+          </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
               <svg viewBox="0 0 64 64" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
@@ -497,8 +527,10 @@ export default function AppLayout() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet/>
+        <main className="flex-1 overflow-y-auto page-transition">
+          <div className="page-transition">
+            <Outlet/>
+          </div>
         </main>
       </div>
 
@@ -528,5 +560,6 @@ export default function AppLayout() {
         })}
       </nav>
     </div>
+
   )
 }
