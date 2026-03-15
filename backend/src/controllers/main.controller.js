@@ -535,63 +535,101 @@ const submitAssignment = async (req, res) => {
 };
 
 const gradeSubmission = async (req, res) => {
-  const { score, feedback } = req.body;
-  await pool.execute(
-    `UPDATE submissions SET score=?, feedback=?, status='graded', graded_at=NOW(), graded_by=? WHERE id=?`,
-    [score, feedback||null, req.user.id, req.params.id]
-  );
-  res.json({ success:true, message:'Submission graded.' });
+  try {
+    const { score, feedback } = req.body;
+    if (score === undefined || score === null)
+      return res.status(400).json({ success: false, message: 'Score is required.' });
+    await pool.execute(
+      `UPDATE submissions SET score=?, feedback=?, status='graded', graded_at=NOW(), graded_by=? WHERE id=?`,
+      [parseFloat(score), feedback||null, req.user.id, req.params.id]
+    );
+    res.json({ success:true, message:'Submission graded.' });
+  } catch (err) {
+    console.error('gradeSubmission:', err.message);
+    res.status(500).json({ success:false, message: err.message });
+  }
 };
 
 // ─── GRADES ──────────────────────────────────────────────────────────────────
 const getGrades = async (req, res) => {
-  const { studentId, scheduleId } = req.query;
-  const [rows] = await pool.execute(
-    `SELECT g.*, sub.name as subject_name, sec.section_name
-     FROM grades g JOIN schedules s ON s.id=g.schedule_id
-     JOIN subjects sub ON sub.id=s.subject_id JOIN sections sec ON sec.id=s.section_id
-     WHERE g.student_id=? ${scheduleId ? 'AND g.schedule_id=?' : ''}
-     ORDER BY sub.name, g.quarter`,
-    scheduleId ? [studentId, scheduleId] : [studentId]
-  );
-  res.json({ success:true, data:rows });
+  try {
+    const { studentId, scheduleId } = req.query;
+    if (!studentId)
+      return res.status(400).json({ success: false, message: 'studentId is required.' });
+    const [rows] = await pool.execute(
+      `SELECT g.*, sub.name as subject_name, sec.section_name
+       FROM grades g JOIN schedules s ON s.id=g.schedule_id
+       JOIN subjects sub ON sub.id=s.subject_id JOIN sections sec ON sec.id=s.section_id
+       WHERE g.student_id=? ${scheduleId ? 'AND g.schedule_id=?' : ''}
+       ORDER BY sub.name, g.quarter`,
+      scheduleId ? [studentId, scheduleId] : [studentId]
+    );
+    res.json({ success:true, data:rows });
+  } catch (err) {
+    console.error('getGrades:', err.message);
+    res.status(500).json({ success:false, message: err.message });
+  }
 };
 
 const upsertGrade = async (req, res) => {
-  const { studentId, scheduleId, quarter, writtenWorks, performanceTasks, quarterlyAssessment } = req.body;
-  const final = ((writtenWorks||0)*.25 + (performanceTasks||0)*.50 + (quarterlyAssessment||0)*.25).toFixed(2);
-  const remarks = parseFloat(final) >= 75 ? 'Passed' : 'Failed';
-  await pool.execute(
-    `INSERT INTO grades (student_id, schedule_id, quarter, written_works, performance_tasks, quarterly_assessment, final_grade, remarks)
-     VALUES (?,?,?,?,?,?,?,?)
-     ON DUPLICATE KEY UPDATE written_works=?, performance_tasks=?, quarterly_assessment=?, final_grade=?, remarks=?`,
-    [studentId, scheduleId, quarter, writtenWorks, performanceTasks, quarterlyAssessment, final, remarks,
-     writtenWorks, performanceTasks, quarterlyAssessment, final, remarks]
-  );
-  res.json({ success:true, message:'Grade saved.', data:{ finalGrade:final, remarks } });
+  try {
+    const { studentId, scheduleId, quarter, writtenWorks, performanceTasks, quarterlyAssessment } = req.body;
+    if (!studentId || !scheduleId || !quarter)
+      return res.status(400).json({ success: false, message: 'studentId, scheduleId, and quarter are required.' });
+    const ww = parseFloat(writtenWorks) || 0;
+    const pt = parseFloat(performanceTasks) || 0;
+    const qa = parseFloat(quarterlyAssessment) || 0;
+    const final   = (ww * 0.25 + pt * 0.50 + qa * 0.25).toFixed(2);
+    const remarks  = parseFloat(final) >= 75 ? 'Passed' : 'Failed';
+    await pool.execute(
+      `INSERT INTO grades (student_id, schedule_id, quarter, written_works, performance_tasks, quarterly_assessment, final_grade, remarks)
+       VALUES (?,?,?,?,?,?,?,?)
+       ON DUPLICATE KEY UPDATE written_works=?, performance_tasks=?, quarterly_assessment=?, final_grade=?, remarks=?`,
+      [studentId, scheduleId, quarter, ww, pt, qa, final, remarks,
+       ww, pt, qa, final, remarks]
+    );
+    res.json({ success:true, message:'Grade saved.', data:{ finalGrade:final, remarks } });
+  } catch (err) {
+    console.error('upsertGrade:', err.message);
+    res.status(500).json({ success:false, message: err.message });
+  }
 };
 
 // ─── MATERIALS ───────────────────────────────────────────────────────────────
 const getMaterials = async (req, res) => {
-  const { scheduleId } = req.query;
-  const [rows] = await pool.execute(
-    `SELECT m.*, u.first_name, u.middle_name, u.last_name, sub.name as subject_name
-     FROM learning_materials m JOIN users u ON u.id=m.uploaded_by
-     JOIN schedules s ON s.id=m.schedule_id JOIN subjects sub ON sub.id=s.subject_id
-     ${scheduleId ? 'WHERE m.schedule_id=?' : ''}
-     ORDER BY m.created_at DESC`,
-    scheduleId ? [scheduleId] : []
-  );
-  res.json({ success:true, data:rows });
+  try {
+    const { scheduleId } = req.query;
+    const [rows] = await pool.execute(
+      `SELECT m.*, u.first_name, u.middle_name, u.last_name, sub.name as subject_name,
+         sec.section_name, sec.grade_level
+       FROM learning_materials m JOIN users u ON u.id=m.uploaded_by
+       JOIN schedules s ON s.id=m.schedule_id JOIN subjects sub ON sub.id=s.subject_id
+       JOIN sections sec ON sec.id=s.section_id
+       ${scheduleId ? 'WHERE m.schedule_id=?' : ''}
+       ORDER BY m.created_at DESC`,
+      scheduleId ? [scheduleId] : []
+    );
+    res.json({ success:true, data:rows });
+  } catch (err) {
+    console.error('getMaterials:', err.message);
+    res.status(500).json({ success:false, message: err.message });
+  }
 };
 
 const createMaterial = async (req, res) => {
-  const { scheduleId, title, description, fileUrl, fileType } = req.body;
-  await pool.execute(
-    `INSERT INTO learning_materials (schedule_id, title, description, file_url, file_type, uploaded_by) VALUES (?,?,?,?,?,?)`,
-    [scheduleId, title, description||null, fileUrl||null, fileType||null, req.user.id]
-  );
-  res.status(201).json({ success:true, message:'Material uploaded.' });
+  try {
+    const { scheduleId, title, description, fileUrl, fileType } = req.body;
+    if (!scheduleId || !title)
+      return res.status(400).json({ success: false, message: 'scheduleId and title are required.' });
+    await pool.execute(
+      `INSERT INTO learning_materials (schedule_id, title, description, file_url, file_type, uploaded_by) VALUES (?,?,?,?,?,?)`,
+      [scheduleId, title.trim(), description||null, fileUrl||null, fileType||null, req.user.id]
+    );
+    res.status(201).json({ success:true, message:'Material uploaded.' });
+  } catch (err) {
+    console.error('createMaterial:', err.message);
+    res.status(500).json({ success:false, message: err.message });
+  }
 };
 
 module.exports = {

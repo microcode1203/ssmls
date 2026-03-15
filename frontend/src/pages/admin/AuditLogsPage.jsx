@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fullName, formalName, initials } from '../../utils/nameUtils'
 import api from '../../api/client'
 import { Shield } from 'lucide-react'
+import { TableSkeleton } from '../../components/ui/Skeleton'
 
 export default function AuditLogsPage() {
  const { data, isLoading } = useQuery({ queryKey:['audit'], queryFn:()=>api.get('/admin/audit-logs').then(r=>r.data.data) })
