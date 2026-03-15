@@ -178,6 +178,12 @@ const announcementRoutes = require('./routes/announcement.routes');
 const dashboardRoutes    = require('./routes/dashboard.routes');
 const settingsRoutes     = require('./routes/settings.routes');
 const subjectRoutes      = require('./routes/subject.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const messageRoutes      = require('./routes/message.routes');
+const calendarRoutes     = require('./routes/calendar.routes');
+const appealRoutes       = require('./routes/appeal.routes');
+const configRoutes       = require('./routes/config.routes');
+const reportRoutes       = require('./routes/report.routes');
 
 app.use('/api/auth',          authLimiter,     authRoutes);
 app.use('/api/students',      writeLimiter,    studentRoutes);
@@ -192,7 +198,13 @@ app.use('/api/sections',      writeLimiter,    sectionRoutes);
 app.use('/api/announcements', writeLimiter,    announcementRoutes);
 app.use('/api/dashboard',                      dashboardRoutes);
 app.use('/api/settings',      passwordLimiter, settingsRoutes);
-app.use('/api/subjects',      writeLimiter,    subjectRoutes);
+app.use('/api/subjects',                       subjectRoutes);
+app.use('/api/notifications',                  notificationRoutes);
+app.use('/api/messages',      writeLimiter,    messageRoutes);
+app.use('/api/calendar',      writeLimiter,    calendarRoutes);
+app.use('/api/appeals',       writeLimiter,    appealRoutes);
+app.use('/api/config',                         configRoutes);
+app.use('/api/reports',                        reportRoutes);
 
 // Health check — no auth, no rate limit
 app.get('/api/health', (req, res) => {
