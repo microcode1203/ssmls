@@ -533,7 +533,6 @@ function SubmissionsDrawer({ assignment, onClose }) {
  </div>
  )}
  </div>
- </div>
  </Modal>
  )
 }
