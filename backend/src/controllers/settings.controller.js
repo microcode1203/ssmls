@@ -1,6 +1,6 @@
-const { pool } = require('./backend/src/config/database');
+const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
-const { logAction } = require('./backend/src/utils/audit');
+const { logAction } = require('../utils/audit');
 
 // Safe column adder — works on ALL MySQL versions
 const safeAddColumn = async (table, column, definition) => {
