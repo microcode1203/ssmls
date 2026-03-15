@@ -15,6 +15,7 @@ import GradesPage      from './pages/GradesPage'
 import MaterialsPage   from './pages/MaterialsPage'
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import AuditLogsPage   from './pages/admin/AuditLogsPage'
+import SubjectsPage    from './pages/admin/SubjectsPage'
 import SettingsPage    from './pages/SettingsPage'
 import NotFoundPage    from './pages/NotFoundPage'
 
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="/students"  element={<ProtectedRoute allowedRoles={['admin','teacher']}><StudentsPage /></ProtectedRoute>} />
         <Route path="/teachers"  element={<ProtectedRoute allowedRoles={['admin']}><TeachersPage /></ProtectedRoute>} />
         <Route path="/sections"  element={<ProtectedRoute allowedRoles={['admin']}><SectionsPage /></ProtectedRoute>} />
+        <Route path="/subjects"  element={<ProtectedRoute allowedRoles={['admin']}><SubjectsPage /></ProtectedRoute>} />
         <Route path="/audit-logs" element={<ProtectedRoute allowedRoles={['admin']}><AuditLogsPage /></ProtectedRoute>} />
         <Route path="/settings"   element={<SettingsPage />} />
       </Route>

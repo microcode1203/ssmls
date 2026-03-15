@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
   ClipboardList, BarChart3, FileText, Bell, QrCode, Shield,
-  LogOut, Menu, X, ChevronRight, School, Settings
+  LogOut, Menu, X, ChevronRight, School, Settings, BookMarked
 } from 'lucide-react'
 
 const navByRole = {
@@ -13,6 +13,7 @@ const navByRole = {
     { label: 'Students',      icon: GraduationCap,   to: '/students' },
     { label: 'Teachers',      icon: Users,            to: '/teachers' },
     { label: 'Sections',      icon: School,           to: '/sections' },
+    { label: 'Subjects',      icon: BookMarked,       to: '/subjects' },
     { label: 'Schedules',     icon: CalendarDays,     to: '/schedules' },
     { label: 'Attendance',    icon: ClipboardList,    to: '/attendance' },
     { label: 'Assignments',   icon: BookOpen,         to: '/assignments' },
