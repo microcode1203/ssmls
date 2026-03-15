@@ -74,3 +74,92 @@
   to   { transform: translateX(0);    opacity: 1; }
 }
 .animate-slide-in { animation: slide-in 0.25s ease-out; }
+
+/* ============================================================
+   RESPONSIVE — Mobile / Tablet improvements
+   Breakpoints: sm=640px  md=768px  lg=1024px
+   ============================================================ */
+
+/* ── Prevent horizontal scroll on all pages ── */
+html, body { overflow-x: hidden; }
+
+/* ── Better touch targets on mobile ── */
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary, .btn-danger {
+    @apply px-3 py-2.5 text-sm min-h-[44px];
+  }
+  .input-field {
+    @apply py-3 text-base; /* 16px prevents iOS auto-zoom */
+  }
+  select.input-field {
+    font-size: 16px; /* prevent iOS zoom on select */
+  }
+  .page-title {
+    @apply text-xl;
+  }
+}
+
+/* ── Tables: horizontal scroll on small screens ── */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Modals: full-screen on mobile ── */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 0 !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    max-height: 90vh !important;
+    width: 100% !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+}
+
+/* ── Cards: full width on mobile ── */
+@media (max-width: 640px) {
+  .card {
+    border-radius: 0.75rem;
+  }
+}
+
+/* ── Page padding: tighter on mobile ── */
+@media (max-width: 640px) {
+  .page-content {
+    padding: 1rem !important;
+  }
+}
+
+/* ── Drawer: full width on very small screens ── */
+@media (max-width: 480px) {
+  .animate-slide-in {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ── Bottom navigation bar for mobile (students/teachers) ── */
+.mobile-nav {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    z-index: 40;
+    padding: 0.5rem 0 env(safe-area-inset-bottom, 0.5rem);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  }
+  /* Push content above mobile nav */
+  main.flex-1 {
+    padding-bottom: 70px;
+  }
+}
