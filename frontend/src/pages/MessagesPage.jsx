@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,8 +19,8 @@ function ComposeModal({ onClose, onSent, contacts }) {
  finally { setSaving(false) }
  }
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">New Message</h2>
  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
@@ -61,6 +61,18 @@ export default function MessagesPage() {
  const [tab, setTab] = useState('inbox')
  const [compose, setCompose] = useState(false)
  const [selected, setSelected] = useState(null)
+
+  // Prevent body scroll when any modal is open
+  useEffect(() => {
+    const hasModal = saving
+    if (hasModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [saving])
+
 
  const { data: inbox } = useQuery({ queryKey:['inbox'], queryFn:()=>api.get('/messages/inbox').then(r=>r.data), staleTime:0 })
  const { data: sent } = useQuery({ queryKey:['sent'], queryFn:()=>api.get('/messages/sent').then(r=>r.data.data), staleTime:0 })

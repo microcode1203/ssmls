@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -13,6 +13,18 @@ export default function AnnouncementsPage() {
  const [modal, setModal] = useState(false)
  const [form, setForm] = useState({ title:'', content:'', targetRole:'all' })
  const [saving, setSaving] = useState(false)
+
+  // Prevent body scroll when any modal is open
+  useEffect(() => {
+    const hasModal = modal
+    if (hasModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [modal])
+
 
  const { data, isLoading } = useQuery({ queryKey:['announcements'], queryFn:()=>api.get('/announcements').then(r=>r.data.data) })
 
@@ -70,8 +82,8 @@ export default function AnnouncementsPage() {
  )}
 
  {modal && (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Post Announcement</h2>
  <button onClick={()=>setModal(false)}><X size={18}/></button>

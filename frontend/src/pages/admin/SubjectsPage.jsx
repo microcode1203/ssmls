@@ -1,5 +1,5 @@
 // @v2-fixed-imports
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -47,8 +47,8 @@ function SubjectModal({ subject, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -174,8 +174,8 @@ function SubjectModal({ subject, onClose, onSave }) {
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 function DeleteSubjectModal({ subject, onClose, onConfirm, deleting }) {
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
  <div className="flex flex-col items-center text-center gap-3 mb-6">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
  <Trash2 size={24} className="text-red-500"/>
@@ -230,6 +230,18 @@ export default function SubjectsPage() {
  const [deleting, setDeleting] = useState(false)
  const [search, setSearch] = useState('')
  const [filterGrade, setFilterGrade] = useState('')
+
+  // Prevent body scroll when any modal is open
+  useEffect(() => {
+    const hasModal = saving
+    if (hasModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [saving])
+
 
  const { data, isLoading, refetch } = useQuery({
  queryKey: ['subjects'],

@@ -667,3 +667,16 @@ button, a, [role="button"] {
 .topbar-search {
   display: none;
 }
+
+/* ── Modal scroll lock ──────────────────────────────────────────────────────
+   When any fixed overlay (z-50) is present in the DOM, prevent body scroll.
+   This is the modern CSS-only approach - no JS needed.
+   :has() is supported in Chrome 105+, Safari 15.4+, Firefox 121+           */
+body:has(.fixed.z-50:not(.pointer-events-none)) {
+  overflow: hidden;
+}
+
+/* Fallback: .modal-open class toggled by JS */
+body.modal-open {
+  overflow: hidden;
+}

@@ -47,8 +47,8 @@ function SectionModal({ section, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -170,8 +170,8 @@ function DeleteModal({ section, onClose, onConfirm, deleting }) {
  }, [deleting, onConfirm, onClose])
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
  <div className="flex flex-col items-center text-center gap-3 mb-6">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
  <Trash2 size={24} className="text-red-500"/>
@@ -237,6 +237,18 @@ export default function SectionsPage() {
  const [deleting, setDeleting] = useState(false)
  const [filterGrade, setFilterGrade] = useState('')
  const [filterStrand, setFilterStrand] = useState('')
+
+  // Prevent body scroll when any modal is open
+  useEffect(() => {
+    const hasModal = saving
+    if (hasModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [saving])
+
 
  const { data, isLoading, refetch } = useQuery({
  queryKey: ['sections'],

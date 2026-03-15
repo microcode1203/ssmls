@@ -61,8 +61,8 @@ function AddAdminModal({ onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -216,8 +216,8 @@ function ResetPasswordModal({ admin, onClose }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -290,8 +290,8 @@ function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  }, [isMatch, deleting])
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-md">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
@@ -362,6 +362,18 @@ export default function AdminAccountsPage() {
  const [resetTarget, setResetTarget] = useState(null)
  const [deleteTarget, setDeleteTarget] = useState(null)
  const [deleting, setDeleting] = useState(false)
+
+  // Prevent body scroll when any modal is open
+  useEffect(() => {
+    const hasModal = showPw || showPw || addModal
+    if (hasModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [showPw, showPw, addModal])
+
 
  const { data, isLoading, refetch } = useQuery({
  queryKey: ['admin-accounts'],

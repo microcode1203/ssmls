@@ -1,7 +1,7 @@
 /* @v2-fixed-imports */
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
-import { useState, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -34,6 +34,12 @@ const fileIcon = (fileType) => {
 }
 
 const formatBytes = (bytes) => {
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
  if (!bytes) return ''
  if (bytes < 1024) return bytes + ' B'
  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -115,8 +121,8 @@ function CreateModal({ schedules, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Create Assignment</h2>
  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
@@ -256,8 +262,8 @@ function SubmitModal({ assignment, onClose, onSave }) {
  }
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4">
- <div className="relative mx-auto my-8 bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div>
  <h2 className="font-display font-bold text-slate-900">{assignment.title}</h2>
@@ -385,7 +391,7 @@ function SubmissionsDrawer({ assignment, onClose }) {
  const graded = (data||[]).filter(s => s.status === 'graded').length
 
  return (
- <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm px-4 overflow-y-auto">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
  <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92vh] flex flex-col">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
