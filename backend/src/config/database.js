@@ -9,8 +9,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit:    10,
   queueLimit:         0,
-  timezone:           '+08:00',
-  ssl: process.env.DB_SSL === 'false' ? false : undefined,
+  timezone:           '+08:00', // Philippine time
 });
 
 async function testConnection() {

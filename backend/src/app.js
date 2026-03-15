@@ -55,6 +55,7 @@ const materialRoutes    = require('./routes/material.routes');
 const sectionRoutes     = require('./routes/section.routes');
 const announcementRoutes = require('./routes/announcement.routes');
 const dashboardRoutes   = require('./routes/dashboard.routes');
+const settingsRoutes    = require('./routes/settings.routes');
 
 app.use('/api/auth',          authLimiter, authRoutes);
 app.use('/api/students',      studentRoutes);
@@ -68,6 +69,7 @@ app.use('/api/materials',     materialRoutes);
 app.use('/api/sections',      sectionRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
+app.use('/api/settings',      settingsRoutes);
 
 // ── Health check
 app.get('/api/health', (req, res) => {
