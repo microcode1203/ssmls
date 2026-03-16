@@ -79,24 +79,33 @@ function KpiTile({ icon: Icon, label, value, sub, color = 'blue', onClick, trend
 
 // ─── Attendance Ring ──────────────────────────────────────────────────────────
 function AttRing({ rate, size = 80 }) {
-  const r = size / 2 - 8
+  const cx = size / 2
+  const cy = size / 2
+  const r = size / 2 - 9
   const circ = 2 * Math.PI * r
   const pct = Math.min(100, Math.max(0, parseFloat(rate) || 0))
   const offset = circ - (pct / 100) * circ
   const color = pct >= 90 ? '#10b981' : pct >= 75 ? '#f59e0b' : '#ef4444'
+  // Font size scales with ring size so it always fits
+  const fontSize = size <= 60 ? 10 : size <= 80 ? 13 : 15
+  const subSize = size <= 60 ? 7 : 9
   return (
-    <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90" style={{ position: 'absolute' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth="8" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="8"
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
-      </svg>
-      <div className="text-center z-10">
-        <p className="text-base font-bold leading-none tabular-nums" style={{ color }}>{pct}%</p>
-        <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Rate</p>
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="7"/>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="7"
+        strokeDasharray={circ} strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${cx} ${cy})`}
+        style={{ transition: 'stroke-dashoffset 1.2s ease' }}/>
+      <text x={cx} y={cy - subSize / 2 - 1} textAnchor="middle" dominantBaseline="middle"
+        fontSize={fontSize} fontWeight="800" fill={color} fontFamily="inherit">
+        {pct}%
+      </text>
+      <text x={cx} y={cy + fontSize / 2 + 2} textAnchor="middle" dominantBaseline="middle"
+        fontSize={subSize} fontWeight="600" fill="#94a3b8" fontFamily="inherit">
+        Rate
+      </text>
+    </svg>
   )
 }
 
