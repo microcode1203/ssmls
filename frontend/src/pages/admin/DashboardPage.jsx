@@ -11,7 +11,7 @@ import {
   FileCheck, School, BarChart3
 } from 'lucide-react'
 
-function StatCard({ icon: Icon, label, value, color = 'blue', sub, trend }) {
+function StatCard({ icon: Icon, label, value, color = 'blue', sub }) {
   const colors = {
     blue:   'bg-blue-50 text-blue-600',
     green:  'bg-green-50 text-green-600',
@@ -21,14 +21,14 @@ function StatCard({ icon: Icon, label, value, color = 'blue', sub, trend }) {
     teal:   'bg-teal-50 text-teal-600',
   }
   return (
-    <div className="card p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${colors[color]}`}>
-        <Icon size={20} />
+    <div className="card p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colors[color]}`}>
+        <Icon size={18} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-2xl font-display font-bold text-slate-900 leading-none">{value ?? <span className="text-slate-300">—</span>}</p>
-        <p className="text-sm font-semibold text-slate-500 mt-1">{label}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        <p className="text-xl font-display font-bold text-slate-900 leading-none">{value ?? <span className="text-slate-300">—</span>}</p>
+        <p className="text-xs font-semibold text-slate-500 mt-0.5 truncate">{label}</p>
+        {sub && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   )
@@ -36,22 +36,22 @@ function StatCard({ icon: Icon, label, value, color = 'blue', sub, trend }) {
 
 // Attendance rate ring
 function AttRing({ rate }) {
-  const r = 40
+  const r = 36
   const circ = 2 * Math.PI * r
   const pct = Math.min(100, Math.max(0, parseFloat(rate) || 0))
   const offset = circ - (pct / 100) * circ
   const color = pct >= 90 ? '#22c55e' : pct >= 75 ? '#f59e0b' : '#ef4444'
   return (
-    <div className="flex flex-col items-center justify-center">
-      <svg width="100" height="100" className="-rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10"/>
-        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="10"
+    <div className="relative flex items-center justify-center w-24 h-24 flex-shrink-0">
+      <svg width="96" height="96" className="-rotate-90 absolute inset-0">
+        <circle cx="48" cy="48" r={r} fill="none" stroke="#f1f5f9" strokeWidth="9"/>
+        <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="9"
           strokeDasharray={circ} strokeDashoffset={offset}
           strokeLinecap="round" style={{transition:'stroke-dashoffset 1s ease'}}/>
       </svg>
-      <div className="text-center -mt-16">
-        <p className="text-2xl font-display font-bold" style={{color}}>{pct}%</p>
-        <p className="text-xs text-slate-400 font-semibold mt-0.5">Rate</p>
+      <div className="text-center relative z-10">
+        <p className="text-lg font-display font-bold leading-none" style={{color}}>{pct}%</p>
+        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Rate</p>
       </div>
     </div>
   )
@@ -84,9 +84,9 @@ function AdminDashboard({ data }) {
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Row 1 — Primary stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={GraduationCap} label="Active Students"    value={totals.total_students?.toLocaleString()}  color="blue" />
         <StatCard icon={Users}         label="Teachers"            value={totals.total_teachers?.toLocaleString()}  color="purple" />
         <StatCard icon={School}        label="Sections"            value={totals.total_sections?.toLocaleString()}  color="teal" />
@@ -94,58 +94,58 @@ function AdminDashboard({ data }) {
       </div>
 
       {/* Row 2 — Secondary stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={ClipboardList} label="Total Scans (All)"   value={totals.total_scans?.toLocaleString()}     color="blue"   sub="All-time attendance records" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={ClipboardList} label="Total Scans"         value={totals.total_scans?.toLocaleString()}     color="blue"   sub="All-time records" />
         <StatCard icon={BookOpen}      label="Active Assignments"   value={totals.active_assignments?.toLocaleString()} color="amber" sub="Not yet due" />
-        <StatCard icon={FileCheck}     label="Ungraded Submissions" value={totals.ungraded_submissions?.toLocaleString()} color="red" sub="Awaiting teacher review" />
-        <StatCard icon={Clock}         label="Pending Schedules"    value={totals.pending_schedules?.toLocaleString()} color="amber" sub="Awaiting your approval" />
+        <StatCard icon={FileCheck}     label="Ungraded Work"        value={totals.ungraded_submissions?.toLocaleString()} color="red" sub="Awaiting teacher" />
+        <StatCard icon={Clock}         label="Pending Approvals"    value={totals.pending_schedules?.toLocaleString()} color="amber" sub="Schedules to review" />
       </div>
 
       {/* Row 3 — Charts */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4">
 
         {/* Attendance rate ring + today breakdown */}
         <div className="card p-5">
-          <h3 className="font-display font-bold text-slate-800 mb-1">Overall Attendance Rate</h3>
-          <p className="text-xs text-slate-400 mb-4">Based on all recorded scans</p>
-          <div className="flex items-center justify-around">
+          <h3 className="font-display font-bold text-slate-800 text-sm mb-0.5">Attendance Overview</h3>
+          <p className="text-xs text-slate-400 mb-4">All-time · active students</p>
+          <div className="flex items-center gap-4">
             <AttRing rate={totals.attendance_rate} />
-            <div className="space-y-2 text-sm">
+            <div className="flex-1 space-y-2">
               {[
                 { label:'Present', value: totals.present_count, color:'text-green-600', dot:'bg-green-500' },
                 { label:'Late',    value: totals.late_count,    color:'text-amber-600', dot:'bg-amber-400' },
                 { label:'Absent',  value: totals.absent_count,  color:'text-red-500',   dot:'bg-red-400' },
               ].map(({ label, value, color, dot }) => (
                 <div key={label} className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dot}`}/>
-                  <span className="text-slate-500 text-xs">{label}</span>
-                  <span className={`font-bold text-xs ml-auto ${color}`}>{Number(value||0).toLocaleString()}</span>
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`}/>
+                  <span className="text-xs text-slate-500 flex-1">{label}</span>
+                  <span className={`font-bold text-xs ${color}`}>{Number(value||0).toLocaleString()}</span>
                 </div>
               ))}
-              <div className="pt-1 border-t border-slate-100 flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-300 flex-shrink-0"/>
-                <span className="text-slate-400 text-xs">Total</span>
-                <span className="font-bold text-xs ml-auto text-slate-600">{Number(totals.total_scans||0).toLocaleString()}</span>
+              <div className="pt-1.5 border-t border-slate-100 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"/>
+                <span className="text-xs text-slate-400 flex-1">Total</span>
+                <span className="font-bold text-xs text-slate-600">{Number(totals.total_scans||0).toLocaleString()}</span>
               </div>
             </div>
           </div>
 
           {/* Today's summary */}
           {todayTotal > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Today</p>
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Today</p>
               <div className="flex gap-2">
                 {attChartData.filter(d=>d.value>0).map(d=>(
-                  <div key={d.name} className="flex-1 text-center py-2 rounded-lg" style={{background:d.fill+'18'}}>
-                    <p className="text-base font-bold" style={{color:d.fill}}>{d.value}</p>
-                    <p className="text-xs font-medium text-slate-500">{d.name}</p>
+                  <div key={d.name} className="flex-1 text-center py-1.5 rounded-lg" style={{background:d.fill+'18'}}>
+                    <p className="text-sm font-bold" style={{color:d.fill}}>{d.value}</p>
+                    <p className="text-[10px] font-medium text-slate-500">{d.name}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
           {todayTotal === 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100 text-center text-xs text-slate-400">
+            <div className="mt-3 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400">
               No attendance recorded today yet
             </div>
           )}
@@ -153,8 +153,8 @@ function AdminDashboard({ data }) {
 
         {/* Weekly attendance chart */}
         <div className="card p-5">
-          <h3 className="font-display font-bold text-slate-800 mb-1">Weekly Attendance</h3>
-          <p className="text-xs text-slate-400 mb-4">Last 7 days — scans per day</p>
+          <h3 className="font-display font-bold text-slate-800 text-sm mb-0.5">This Week's Attendance</h3>
+          <p className="text-xs text-slate-400 mb-3">Students attended per day</p>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={weekData} margin={{top:0,right:0,left:-24,bottom:0}}>
               <XAxis dataKey="day" tick={{fontSize:11,fontWeight:600}} axisLine={false} tickLine={false}/>
@@ -170,8 +170,8 @@ function AdminDashboard({ data }) {
 
         {/* Students by strand */}
         <div className="card p-5">
-          <h3 className="font-display font-bold text-slate-800 mb-1">Students by Strand</h3>
-          <p className="text-xs text-slate-400 mb-4">Active enrollment breakdown</p>
+          <h3 className="font-display font-bold text-slate-800 text-sm mb-0.5">Enrollment by Strand</h3>
+          <p className="text-xs text-slate-400 mb-3">Active students breakdown</p>
           {strandBreakdown?.length > 0 ? (
             <div className="space-y-2">
               {(strandBreakdown||[]).map((s,i) => {
@@ -213,7 +213,7 @@ function AdminDashboard({ data }) {
 
       {/* Activity log */}
       <div className="card p-5">
-        <h3 className="font-display font-bold text-slate-800 mb-4">Recent System Activity</h3>
+        <h3 className="font-display font-bold text-slate-800 text-sm mb-3">Recent Activity</h3>
         <div className="space-y-0 divide-y divide-slate-50">
           {(recentLogs||[]).map(log => (
             <div key={log.id} className="flex items-center gap-3 py-2.5">
@@ -358,12 +358,11 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="mb-6">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+      <div className="mb-5">
         <h1 className="page-title">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>!
-          {' '}Here's what's happening today.
+        <p className="text-slate-500 text-sm mt-0.5">
+          Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>! Here's what's happening today.
         </p>
       </div>
       {isLoading && (
