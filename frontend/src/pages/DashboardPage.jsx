@@ -54,18 +54,18 @@ function KpiTile({ icon: Icon, label, value, sub, color = 'blue', onClick, trend
   return (
     <div
       onClick={onClick}
-      className={`bg-white border ${c.border} rounded-xl p-4 flex items-center gap-3
-        ${onClick ? 'cursor-pointer hover:shadow-sm active:scale-[0.99]' : ''} transition-all duration-150`}
+      className={`bg-white border ${c.border} rounded-2xl p-5 flex items-center gap-4
+        ${onClick ? 'cursor-pointer hover:shadow-md active:scale-[0.99]' : ''} transition-all duration-150`}
     >
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${c.bg}`}>
-        <Icon size={16} className={c.val} />
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${c.bg}`}>
+        <Icon size={22} className={c.val} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-xl font-bold leading-none tabular-nums ${c.val}`}>
+        <p className={`text-3xl font-bold leading-none tabular-nums ${c.val}`}>
           {value ?? <span className="text-slate-200">—</span>}
         </p>
-        <p className="text-xs font-medium text-slate-500 mt-0.5 truncate">{label}</p>
-        {sub && <p className="text-[11px] text-slate-400 truncate">{sub}</p>}
+        <p className="text-sm font-semibold text-slate-600 mt-1 truncate">{label}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
       </div>
       {trend != null && (
         <div className={`text-xs font-bold flex items-center gap-0.5 flex-shrink-0 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
@@ -132,10 +132,10 @@ const Card = ({ children, className = '', onClick }) => (
 
 function SectionHeader({ title, sub, action, onAction }) {
   return (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between mb-4">
       <div>
-        <p className="text-sm font-bold text-slate-800">{title}</p>
-        {sub && <p className="text-xs text-slate-400">{sub}</p>}
+        <p className="text-base font-bold text-slate-800">{title}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
       {action && (
         <button onClick={onAction} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">
@@ -181,16 +181,16 @@ function AdminDashboard({ data }) {
   const trendData = (monthlyTrend || []).map(m => ({ month: m.month, rate: Number(m.rate || 0) }))
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Row 1 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiTile icon={GraduationCap} label="Active Students" value={Number(totals.total_students || 0).toLocaleString()} color="blue"   onClick={() => navigate('/students')} />
         <KpiTile icon={Users}         label="Teachers"         value={Number(totals.total_teachers || 0).toLocaleString()} color="purple" onClick={() => navigate('/teachers')} />
         <KpiTile icon={School}        label="Sections"         value={Number(totals.total_sections || 0).toLocaleString()} color="teal"   onClick={() => navigate('/sections')} />
         <KpiTile icon={CalendarDays}  label="Active Classes"   value={Number(totals.total_classes || 0).toLocaleString()}  color="green"  onClick={() => navigate('/schedules')} />
       </div>
       {/* Row 2 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiTile icon={Clock}     label="Pending Approvals"  value={Number(totals.pending_schedules || 0)}     color="amber"  sub="Schedules to review"  onClick={() => navigate('/schedules')} />
         <KpiTile icon={FileCheck} label="Ungraded Work"       value={Number(totals.ungraded_submissions || 0)} color="red"    sub="Awaiting teacher"     onClick={() => navigate('/grades')} />
         <KpiTile icon={BookOpen}  label="Active Assignments"  value={Number(totals.active_assignments || 0)}   color="indigo" sub="Not yet due"           onClick={() => navigate('/assignments')} />
@@ -198,16 +198,16 @@ function AdminDashboard({ data }) {
       </div>
 
       {/* Row 3: Attendance + Weekly + Strand */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-bold text-slate-800">Attendance Overview</p>
-              <p className="text-xs text-slate-400">All-time · active students</p>
+              <p className="text-base font-bold text-slate-800">Attendance Overview</p>
+              <p className="text-xs text-slate-400 mt-0.5">All-time · active students</p>
             </div>
-            <AttRing rate={totals.attendance_rate} size={60} />
+            <AttRing rate={totals.attendance_rate} size={88} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {[
               { label: 'Present', value: totals.present_count, color: '#10b981' },
               { label: 'Late',    value: totals.late_count,    color: '#f59e0b' },
@@ -216,90 +216,95 @@ function AdminDashboard({ data }) {
               const t = Number(totals.total_scans || 1)
               const pct = t > 0 ? Math.round(Number(value || 0) / t * 100) : 0
               return (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 w-12 flex-shrink-0">{label}</span>
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div key={label} className="flex items-center gap-3">
+                  <span className="text-sm text-slate-500 w-14 flex-shrink-0">{label}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
                   </div>
-                  <span className="text-xs font-bold tabular-nums w-10 text-right" style={{ color }}>{Number(value || 0).toLocaleString()}</span>
+                  <span className="text-sm font-bold tabular-nums w-10 text-right" style={{ color }}>{Number(value || 0).toLocaleString()}</span>
                 </div>
               )
             })}
           </div>
           {todayTotal > 0 && (
-            <div className="mt-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Today</p>
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Today</p>
               <div className="flex gap-2">
                 {[{ label: 'Present', val: todayPresent, color: '#10b981' }, { label: 'Late', val: todayLate, color: '#f59e0b' }, { label: 'Absent', val: todayAbsent, color: '#ef4444' }]
                   .filter(d => d.val > 0).map(d => (
-                    <div key={d.label} className="flex-1 py-1.5 rounded-lg text-center" style={{ background: d.color + '18' }}>
-                      <p className="text-sm font-bold" style={{ color: d.color }}>{d.val}</p>
-                      <p className="text-[10px] font-medium text-slate-500">{d.label}</p>
+                    <div key={d.label} className="flex-1 py-2 rounded-xl text-center" style={{ background: d.color + '18' }}>
+                      <p className="text-lg font-bold" style={{ color: d.color }}>{d.val}</p>
+                      <p className="text-xs font-medium text-slate-500">{d.label}</p>
                     </div>
                   ))}
               </div>
             </div>
           )}
+          {todayTotal === 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-100 text-center text-xs text-slate-400">
+              No attendance recorded today yet
+            </div>
+          )}
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="This Week's Attendance" sub="Students attended per day" />
-          <ResponsiveContainer width="100%" height={148}>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={weekData} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="Enrollment by Strand" sub="Active students breakdown" />
           {strandBreakdown?.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {strandBreakdown.map((s, i) => {
                 const pct = strandTotal > 0 ? Math.round(Number(s.count) / strandTotal * 100) : 0
                 return (
                   <div key={s.strand}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-semibold text-slate-700">{s.strand}</span>
-                      <span className="text-xs font-bold tabular-nums" style={{ color: strandColors[i % strandColors.length] }}>
-                        {Number(s.count)} <span className="text-slate-400 font-normal">· {pct}%</span>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-sm font-semibold text-slate-700">{s.strand}</span>
+                      <span className="text-sm font-bold tabular-nums" style={{ color: strandColors[i % strandColors.length] }}>
+                        {Number(s.count)} <span className="text-slate-400 font-normal text-xs">· {pct}%</span>
                       </span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: strandColors[i % strandColors.length] }} />
                     </div>
                   </div>
                 )
               })}
               {(gradeBreakdown || []).length > 0 && (
-                <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                <div className="flex gap-3 mt-3 pt-3 border-t border-slate-100">
                   {(gradeBreakdown || []).map(g => (
-                    <div key={g.grade_level} className="flex-1 bg-primary/5 rounded-lg p-2 text-center border border-primary/10">
-                      <p className="text-lg font-bold text-primary tabular-nums">{Number(g.count)}</p>
-                      <p className="text-[10px] text-slate-500 font-semibold">{g.grade_level?.replace('Grade ', 'G')}</p>
+                    <div key={g.grade_level} className="flex-1 bg-primary/5 rounded-xl p-3 text-center border border-primary/10">
+                      <p className="text-2xl font-bold text-primary tabular-nums">{Number(g.count)}</p>
+                      <p className="text-xs text-slate-500 font-semibold mt-0.5">{g.grade_level?.replace('Grade ', 'G')}</p>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-32 text-slate-300">
-              <BarChart3 size={20} className="mb-1.5" /><p className="text-xs">No data yet</p>
+            <div className="flex flex-col items-center justify-center h-36 text-slate-300">
+              <BarChart3 size={24} className="mb-2" /><p className="text-sm">No data yet</p>
             </div>
           )}
         </Card>
       </div>
 
       {/* Row 4: Trend + Grade Dist */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="p-5">
           <SectionHeader title="6-Month Attendance Trend" sub="Monthly attendance rate (%)" />
           {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={138}>
+            <ResponsiveContainer width="100%" height={170}>
               <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="attGrad" x1="0" y1="0" x2="0" y2="1">
@@ -308,120 +313,120 @@ function AdminDashboard({ data }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="rate" name="Rate (%)" stroke="#3b82f6" fill="url(#attGrad)" strokeWidth={2} dot={{ fill: '#3b82f6', r: 2.5 }} />
+                <Area type="monotone" dataKey="rate" name="Rate (%)" stroke="#3b82f6" fill="url(#attGrad)" strokeWidth={2.5} dot={{ fill: '#3b82f6', r: 3.5 }} />
               </AreaChart>
             </ResponsiveContainer>
-          ) : <div className="flex items-center justify-center h-36 text-slate-300 text-xs">No monthly data yet</div>}
+          ) : <div className="flex items-center justify-center h-44 text-slate-300 text-sm">No monthly data yet</div>}
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="Grade Distribution" sub="Student performance breakdown" />
           {gradeDistribution?.length > 0 ? (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width={110} height={110}>
+            <div className="flex items-center gap-5">
+              <ResponsiveContainer width={130} height={130}>
                 <PieChart>
-                  <Pie data={gradeDistribution} cx="50%" cy="50%" innerRadius={28} outerRadius={50} dataKey="count" paddingAngle={3}>
+                  <Pie data={gradeDistribution} cx="50%" cy="50%" innerRadius={32} outerRadius={58} dataKey="count" paddingAngle={3}>
                     {gradeDistribution.map((entry, i) => <Cell key={i} fill={GRADE_COLORS[entry.category] || '#e2e8f0'} stroke="none" />)}
                   </Pie>
                   <Tooltip content={<ChartTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 space-y-2">
                 {gradeDistribution.map((entry, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: GRADE_COLORS[entry.category] || '#e2e8f0' }} />
-                    <span className="text-xs text-slate-600 flex-1 truncate">{entry.category}</span>
-                    <span className="text-xs font-bold tabular-nums text-slate-700">{entry.count}</span>
+                  <div key={i} className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: GRADE_COLORS[entry.category] || '#e2e8f0' }} />
+                    <span className="text-sm text-slate-600 flex-1 truncate">{entry.category}</span>
+                    <span className="text-sm font-bold tabular-nums text-slate-700">{entry.count}</span>
                   </div>
                 ))}
               </div>
             </div>
-          ) : <div className="flex items-center justify-center h-32 text-slate-300 text-xs">No grade data yet</div>}
+          ) : <div className="flex items-center justify-center h-40 text-slate-300 text-sm">No grade data yet</div>}
         </Card>
       </div>
 
       {/* Row 5: At-Risk + Submissions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="p-5">
           <SectionHeader title="At-Risk Students" sub="Highest absence count" action="View all" onAction={() => navigate('/ranking')} />
           {atRiskStudents?.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {atRiskStudents.map((s, i) => (
-                <div key={i} className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center text-xs font-bold text-red-600 flex-shrink-0">
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-sm font-bold text-red-600 flex-shrink-0">
                     {initials(s.first_name, s.last_name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{formalName(s.first_name, s.middle_name, s.last_name)}</p>
-                    <p className="text-[11px] text-slate-400">{s.grade_level} · {s.section_name}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">{formalName(s.first_name, s.middle_name, s.last_name)}</p>
+                    <p className="text-xs text-slate-400">{s.grade_level} · {s.section_name}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-red-500">{s.absences}</p>
-                    <p className="text-[10px] text-slate-400">absences</p>
+                    <p className="text-lg font-bold text-red-500">{s.absences}</p>
+                    <p className="text-xs text-slate-400">absences</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-20 text-slate-300">
-              <CheckCircle size={20} className="mb-1 text-emerald-300" />
-              <p className="text-xs font-semibold text-slate-400">No at-risk students</p>
+            <div className="flex flex-col items-center justify-center h-24 text-slate-300">
+              <CheckCircle size={24} className="mb-1.5 text-emerald-300" />
+              <p className="text-sm font-semibold text-slate-400">No at-risk students</p>
             </div>
           )}
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="Submission Rates" sub="Recent past-due assignments" action="View all" onAction={() => navigate('/assignments')} />
           {submissionStats?.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {submissionStats.map((a, i) => {
                 const pct = a.enrolled > 0 ? Math.round(a.submitted / a.enrolled * 100) : 0
                 const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444'
                 return (
                   <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-medium text-slate-700 truncate flex-1 mr-3">{a.title}</p>
-                      <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{ color }}>{a.submitted}/{a.enrolled}</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-sm font-medium text-slate-700 truncate flex-1 mr-3">{a.title}</p>
+                      <span className="text-sm font-bold tabular-nums flex-shrink-0" style={{ color }}>{a.submitted}/{a.enrolled}</span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
                     </div>
                   </div>
                 )
               })}
             </div>
-          ) : <div className="flex items-center justify-center h-20 text-slate-300 text-xs">No past-due assignments</div>}
+          ) : <div className="flex items-center justify-center h-24 text-slate-300 text-sm">No past-due assignments</div>}
         </Card>
       </div>
 
       {/* Row 6: Recent Activity */}
-      <Card className="p-4">
+      <Card className="p-5">
         <SectionHeader title="Recent System Activity" action="View all" onAction={() => navigate('/audit-logs')} />
         <div className="divide-y divide-slate-50">
           {(recentLogs || []).slice(0, 6).map(log => {
             const roleColor = log.role === 'admin' ? 'bg-violet-100 text-violet-700' : log.role === 'teacher' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
             return (
-              <div key={log.id} className="flex items-center gap-3 py-2.5">
-                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+              <div key={log.id} className="flex items-center gap-3 py-3">
+                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
                   {initials(log.first_name, log.last_name)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-800 truncate">{fullName(log.first_name, log.middle_name, log.last_name)}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{log.action}</p>
+                  <p className="text-sm font-semibold text-slate-800 truncate">{fullName(log.first_name, log.middle_name, log.last_name)}</p>
+                  <p className="text-xs text-slate-400 truncate">{log.action}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${roleColor}`}>{log.role}</span>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${roleColor}`}>{log.role}</span>
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {new Date(log.timestamp).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
             )
           })}
-          {!recentLogs?.length && <p className="py-6 text-center text-xs text-slate-400">No activity yet.</p>}
+          {!recentLogs?.length && <p className="py-8 text-center text-sm text-slate-400">No activity yet.</p>}
         </div>
       </Card>
     </div>
@@ -455,75 +460,75 @@ function TeacherDashboard({ data }) {
   }, [myClasses])
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <KpiTile icon={CalendarDays} label="My Classes"     value={uniqueClasses.length}           color="blue" />
         <KpiTile icon={Users}        label="Today's Scans"  value={Number(attStats?.total || 0)}    color="green" sub={attStats?.total > 0 ? `${todayRate}% attended` : 'No class today'} />
         <KpiTile icon={FileCheck}    label="Ungraded"       value={Number(pendingGradesCount || 0)} color="red"   sub="Submissions pending" onClick={() => navigate('/assignments')} />
         <KpiTile icon={BookOpen}     label="Active Assigns" value={(myClasses?.length || 0)}        color="amber" sub="Across all classes" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="p-5">
           <SectionHeader title="Today's Attendance" />
           {attStats?.total > 0 ? (
-            <div className="flex items-center gap-4">
-              <AttRing rate={todayRate} size={80} />
-              <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-5">
+              <AttRing rate={todayRate} size={100} />
+              <div className="flex-1 space-y-3">
                 {[{ label: 'Present', val: attStats?.present, color: '#10b981' }, { label: 'Late', val: attStats?.late, color: '#f59e0b' }, { label: 'Absent', val: attStats?.absent, color: '#ef4444' }].map(({ label, val, color }) => (
                   <div key={label} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                    <span className="text-xs text-slate-500 flex-1">{label}</span>
-                    <span className="text-xs font-bold tabular-nums" style={{ color }}>{Number(val || 0)}</span>
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <span className="text-sm text-slate-500 flex-1">{label}</span>
+                    <span className="text-sm font-bold tabular-nums" style={{ color }}>{Number(val || 0)}</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-24 text-slate-300">
-              <CalendarDays size={24} className="mb-1.5 opacity-40" />
-              <p className="text-xs text-slate-400 font-semibold">No attendance today</p>
-              <button onClick={() => navigate('/attendance')} className="mt-2 text-xs text-primary font-semibold hover:underline">Start a session →</button>
+            <div className="flex flex-col items-center justify-center h-28 text-slate-300">
+              <CalendarDays size={28} className="mb-2 opacity-40" />
+              <p className="text-sm text-slate-400 font-semibold">No attendance today</p>
+              <button onClick={() => navigate('/attendance')} className="mt-2 text-sm text-primary font-semibold hover:underline">Start a session →</button>
             </div>
           )}
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="This Week" sub="Attendance per day" />
           {weekData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={130}>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart data={weekData} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className="flex items-center justify-center h-32 text-slate-300 text-xs">No data this week</div>}
+          ) : <div className="flex items-center justify-center h-40 text-slate-300 text-sm">No data this week</div>}
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5">
           <SectionHeader title="Submission Rates" sub="Recent assignments" />
           {teacherSubmissions?.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {teacherSubmissions.map((a, i) => {
                 const pct = a.enrolled > 0 ? Math.round(a.submitted / a.enrolled * 100) : 0
                 const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444'
                 return (
                   <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-medium text-slate-700 truncate flex-1 mr-2">{a.title}</p>
-                      <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{ color }}>{pct}%</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-sm font-medium text-slate-700 truncate flex-1 mr-2">{a.title}</p>
+                      <span className="text-sm font-bold tabular-nums flex-shrink-0" style={{ color }}>{pct}%</span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color, transition: 'width .7s ease' }} />
                     </div>
                   </div>
                 )
               })}
             </div>
-          ) : <div className="flex items-center justify-center h-24 text-slate-300 text-xs">No completed assignments</div>}
+          ) : <div className="flex items-center justify-center h-28 text-slate-300 text-sm">No completed assignments</div>}
         </Card>
       </div>
 
@@ -600,8 +605,8 @@ function StudentDashboard({ data }) {
   const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <KpiTile icon={Activity}    label="Attendance Rate" value={`${rate}%`} color={rate >= 90 ? 'green' : rate >= 75 ? 'amber' : 'red'} />
         <KpiTile icon={CheckCircle} label="Present"         value={present}    color="green" />
         <KpiTile icon={Clock}       label="Late"            value={late}       color="amber" />
@@ -609,38 +614,38 @@ function StudentDashboard({ data }) {
       </div>
 
       {overallGWA && (
-        <div className={`bg-white border-2 rounded-xl p-4 flex items-center gap-4 ${parseFloat(overallGWA) >= 90 ? 'border-emerald-200' : parseFloat(overallGWA) >= 75 ? 'border-blue-200' : 'border-red-200'}`}>
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${parseFloat(overallGWA) >= 90 ? 'bg-emerald-100' : parseFloat(overallGWA) >= 75 ? 'bg-blue-100' : 'bg-red-100'}`}>
-            <Award size={18} className={parseFloat(overallGWA) >= 90 ? 'text-emerald-600' : parseFloat(overallGWA) >= 75 ? 'text-blue-600' : 'text-red-500'} />
+        <div className={`bg-white border-2 rounded-2xl p-5 flex items-center gap-5 ${parseFloat(overallGWA) >= 90 ? 'border-emerald-200' : parseFloat(overallGWA) >= 75 ? 'border-blue-200' : 'border-red-200'}`}>
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${parseFloat(overallGWA) >= 90 ? 'bg-emerald-100' : parseFloat(overallGWA) >= 75 ? 'bg-blue-100' : 'bg-red-100'}`}>
+            <Award size={24} className={parseFloat(overallGWA) >= 90 ? 'text-emerald-600' : parseFloat(overallGWA) >= 75 ? 'text-blue-600' : 'text-red-500'} />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">General Weighted Average</p>
-            <p className={`text-3xl font-bold leading-tight ${parseFloat(overallGWA) >= 90 ? 'text-emerald-700' : parseFloat(overallGWA) >= 75 ? 'text-blue-700' : 'text-red-600'}`}>{overallGWA}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">General Weighted Average</p>
+            <p className={`text-4xl font-bold leading-tight mt-0.5 ${parseFloat(overallGWA) >= 90 ? 'text-emerald-700' : parseFloat(overallGWA) >= 75 ? 'text-blue-700' : 'text-red-600'}`}>{overallGWA}</p>
+            <p className="text-sm text-slate-500 mt-0.5">
               {parseFloat(overallGWA) >= 90 ? '🏆 Outstanding' : parseFloat(overallGWA) >= 85 ? '⭐ Very Satisfactory' : parseFloat(overallGWA) >= 80 ? '✅ Satisfactory' : parseFloat(overallGWA) >= 75 ? '📘 Fairly Satisfactory' : '⚠️ Needs improvement'}
             </p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="p-5">
           <SectionHeader title="My Attendance Summary" />
-          <div className="flex items-center gap-4 mb-3">
-            <AttRing rate={rate} size={80} />
-            <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-5 mb-4">
+            <AttRing rate={rate} size={100} />
+            <div className="flex-1 space-y-3">
               {[
                 { label: 'Present', val: present, color: '#10b981', pct: total > 0 ? Math.round(present / total * 100) : 0 },
                 { label: 'Late',    val: late,    color: '#f59e0b', pct: total > 0 ? Math.round(late / total * 100) : 0 },
                 { label: 'Absent',  val: absent,  color: '#ef4444', pct: total > 0 ? Math.round(absent / total * 100) : 0 },
               ].map(({ label, val, color, pct }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="text-xs text-slate-500 w-11">{label}</span>
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div key={label} className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="text-sm text-slate-500 w-14">{label}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color, transition: 'width .7s' }} />
                   </div>
-                  <span className="text-xs font-bold w-5 text-right tabular-nums" style={{ color }}>{val}</span>
+                  <span className="text-sm font-bold w-6 text-right tabular-nums" style={{ color }}>{val}</span>
                 </div>
               ))}
             </div>
@@ -766,11 +771,11 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-5 gap-3">
+    <div className="p-5 sm:p-7 lg:p-9 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6 gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>! Here's what's happening today.
           </p>
         </div>
