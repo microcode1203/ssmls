@@ -36,28 +36,28 @@ function StatCard({ icon: Icon, label, value, color = 'blue', sub }) {
 
 // Attendance rate ring
 function AttRing({ rate }) {
-  const r = 38
+  const cx = 55, cy = 55, r = 42
   const circ = 2 * Math.PI * r
   const pct = Math.min(100, Math.max(0, parseFloat(rate) || 0))
   const offset = circ - (pct / 100) * circ
   const color = pct >= 90 ? '#22c55e' : pct >= 75 ? '#f59e0b' : '#ef4444'
   return (
-    <svg width="96" height="96" viewBox="0 0 96 96" className="flex-shrink-0">
-      {/* Track */}
-      <circle cx="48" cy="48" r={r} fill="none" stroke="#f1f5f9" strokeWidth="9"/>
-      {/* Progress — rotated from top */}
-      <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="9"
+    <svg width="110" height="110" viewBox="0 0 110 110" className="flex-shrink-0">
+      {/* Background track */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="7"/>
+      {/* Progress arc */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="7"
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round"
-        transform="rotate(-90 48 48)"
+        transform={`rotate(-90 ${cx} ${cy})`}
         style={{transition:'stroke-dashoffset 1s ease'}}/>
-      {/* Percentage text — centered in SVG */}
-      <text x="48" y="44" textAnchor="middle" dominantBaseline="middle"
-        fontSize="14" fontWeight="700" fill={color} fontFamily="inherit">
+      {/* Percentage — vertically centered in the ring hole */}
+      <text x={cx} y={cy - 6} textAnchor="middle" dominantBaseline="middle"
+        fontSize="16" fontWeight="800" fill={color} fontFamily="inherit">
         {pct}%
       </text>
-      {/* Label */}
-      <text x="48" y="60" textAnchor="middle" dominantBaseline="middle"
+      {/* "Rate" label below */}
+      <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle"
         fontSize="10" fontWeight="600" fill="#94a3b8" fontFamily="inherit">
         Rate
       </text>
