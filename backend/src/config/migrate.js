@@ -4,252 +4,235 @@ const { pool } = require('./database');
 const migrations = [
   // 1. Roles
   `CREATE TABLE IF NOT EXISTS roles (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name ENUM('admin','teacher','student') NOT NULL UNIQUE,
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE CHECK (name IN ('admin','teacher','student')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 2. Users
   `CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     first_name VARCHAR(80) NOT NULL,
     middle_name VARCHAR(80) NULL,
     last_name VARCHAR(80) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin','teacher','student') NOT NULL DEFAULT 'student',
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    role VARCHAR(20) NOT NULL DEFAULT 'student' CHECK (role IN ('admin','teacher','student')),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_email (email),
-    INDEX idx_role (role)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+
+  // Index for users
+  `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 
   // 3. Sections
   `CREATE TABLE IF NOT EXISTS sections (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     section_name VARCHAR(60) NOT NULL,
-    grade_level ENUM('Grade 11','Grade 12') NOT NULL,
-    strand ENUM('STEM','HUMSS','ABM','TVL','GAS') NOT NULL,
-    adviser_id INT NULL,
+    grade_level VARCHAR(20) NOT NULL CHECK (grade_level IN ('Grade 11','Grade 12')),
+    strand VARCHAR(10) NOT NULL CHECK (strand IN ('STEM','HUMSS','ABM','TVL','GAS')),
+    adviser_id INT NULL REFERENCES users(id) ON DELETE SET NULL,
     school_year VARCHAR(20) NOT NULL DEFAULT '2025-2026',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_section_grade (section_name, grade_level),
-    FOREIGN KEY (adviser_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_grade (grade_level)
+    UNIQUE (section_name, grade_level)
   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_sections_grade ON sections(grade_level)`,
 
   // 4. Students
   `CREATE TABLE IF NOT EXISTS students (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL UNIQUE,
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     lrn VARCHAR(20) NOT NULL UNIQUE,
-    grade_level ENUM('Grade 11','Grade 12') NOT NULL,
-    section_id INT NULL,
-    strand ENUM('STEM','HUMSS','ABM','TVL','GAS') NOT NULL,
-    status ENUM('active','inactive','transferred','graduated') NOT NULL DEFAULT 'active',
+    grade_level VARCHAR(20) NOT NULL CHECK (grade_level IN ('Grade 11','Grade 12')),
+    section_id INT NULL REFERENCES sections(id) ON DELETE SET NULL,
+    strand VARCHAR(10) NOT NULL CHECK (strand IN ('STEM','HUMSS','ABM','TVL','GAS')),
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','transferred','graduated')),
     phone VARCHAR(20),
     birthday DATE NULL,
     birthplace VARCHAR(120) NULL,
     address TEXT,
     guardian_name VARCHAR(120),
     guardian_phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL,
-    INDEX idx_section (section_id),
-    INDEX idx_grade (grade_level)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_students_section ON students(section_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_students_grade ON students(grade_level)`,
 
   // 5. Teachers
   `CREATE TABLE IF NOT EXISTS teachers (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL UNIQUE,
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     employee_id VARCHAR(30) NOT NULL UNIQUE,
     department VARCHAR(80),
     phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 6. Subjects
   `CREATE TABLE IF NOT EXISTS subjects (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(120) NOT NULL,
     description TEXT,
-    grade_level ENUM('Grade 11','Grade 12','Both') NOT NULL DEFAULT 'Both',
+    grade_level VARCHAR(20) NOT NULL DEFAULT 'Both' CHECK (grade_level IN ('Grade 11','Grade 12','Both')),
     units INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 7. Schedules
   `CREATE TABLE IF NOT EXISTS schedules (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    teacher_id INT NOT NULL,
-    subject_id INT NOT NULL,
-    section_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    teacher_id INT NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+    subject_id INT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    section_id INT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
     room VARCHAR(40) NOT NULL,
-    day_of_week ENUM('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday') NOT NULL,
+    day_of_week VARCHAR(15) NOT NULL CHECK (day_of_week IN ('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    status VARCHAR(15) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
     school_year VARCHAR(20) NOT NULL DEFAULT '2025-2026',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
-    INDEX idx_teacher_day (teacher_id, day_of_week),
-    INDEX idx_section (section_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
-  // 8. Classes (instances of schedule per day)
+  `CREATE INDEX IF NOT EXISTS idx_schedules_teacher_day ON schedules(teacher_id, day_of_week)`,
+  `CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id)`,
+
+  // 8. Classes
   `CREATE TABLE IF NOT EXISTS classes (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    schedule_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    schedule_id INT NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
     class_date DATE NOT NULL,
     qr_token VARCHAR(255) NULL,
     qr_expires_at TIMESTAMP NULL,
-    attendance_open TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-    INDEX idx_schedule_date (schedule_id, class_date)
+    attendance_open BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_classes_schedule_date ON classes(schedule_id, class_date)`,
 
   // 9. Attendance
   `CREATE TABLE IF NOT EXISTS attendance (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    class_id INT NOT NULL,
-    student_id INT NOT NULL,
-    status ENUM('present','late','absent') NOT NULL DEFAULT 'present',
+    id SERIAL PRIMARY KEY,
+    class_id INT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    status VARCHAR(10) NOT NULL DEFAULT 'present' CHECK (status IN ('present','late','absent')),
     time_in TIMESTAMP NULL,
-    scanned_via ENUM('qr','manual') NOT NULL DEFAULT 'qr',
+    scanned_via VARCHAR(10) NOT NULL DEFAULT 'qr' CHECK (scanned_via IN ('qr','manual')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_class_student (class_id, student_id),
-    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    INDEX idx_student (student_id),
-    INDEX idx_class (class_id)
+    UNIQUE (class_id, student_id)
   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance(student_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_attendance_class ON attendance(class_id)`,
 
   // 10. Assignments
   `CREATE TABLE IF NOT EXISTS assignments (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    schedule_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    schedule_id INT NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    due_date DATETIME NOT NULL,
+    due_date TIMESTAMP NOT NULL,
     max_score DECIMAL(5,2) NOT NULL DEFAULT 100.00,
-    type ENUM('quiz','activity','project','homework','exam') NOT NULL DEFAULT 'homework',
+    type VARCHAR(15) NOT NULL DEFAULT 'homework' CHECK (type IN ('quiz','activity','project','homework','exam')),
     file_url VARCHAR(500) NULL,
-    created_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    created_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 11. Submissions
   `CREATE TABLE IF NOT EXISTS submissions (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    assignment_id INT NOT NULL,
-    student_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    assignment_id INT NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+    student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     file_url VARCHAR(500) NULL,
     text_answer TEXT NULL,
     score DECIMAL(5,2) NULL,
     feedback TEXT NULL,
-    status ENUM('submitted','graded','late','missing') NOT NULL DEFAULT 'submitted',
+    status VARCHAR(15) NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','graded','late','missing')),
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     graded_at TIMESTAMP NULL,
-    graded_by INT NULL,
-    UNIQUE KEY uniq_assign_student (assignment_id, student_id),
-    FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    FOREIGN KEY (graded_by) REFERENCES users(id) ON DELETE SET NULL
+    graded_by INT NULL REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (assignment_id, student_id)
   )`,
 
   // 12. Grades
   `CREATE TABLE IF NOT EXISTS grades (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    student_id INT NOT NULL,
-    schedule_id INT NOT NULL,
-    quarter ENUM('Q1','Q2','Q3','Q4') NOT NULL,
+    id SERIAL PRIMARY KEY,
+    student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    schedule_id INT NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
+    quarter VARCHAR(5) NOT NULL CHECK (quarter IN ('Q1','Q2','Q3','Q4')),
     written_works DECIMAL(5,2),
     performance_tasks DECIMAL(5,2),
     quarterly_assessment DECIMAL(5,2),
     final_grade DECIMAL(5,2),
-    remarks ENUM('Passed','Failed','Incomplete') DEFAULT NULL,
+    remarks VARCHAR(15) DEFAULT NULL CHECK (remarks IN ('Passed','Failed','Incomplete')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_student_sched_quarter (student_id, schedule_id, quarter),
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (student_id, schedule_id, quarter)
   )`,
 
   // 13. Learning Materials
   `CREATE TABLE IF NOT EXISTS learning_materials (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    schedule_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    schedule_id INT NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     description TEXT,
     file_url VARCHAR(500),
     file_type VARCHAR(20),
-    uploaded_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
+    uploaded_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 14. Announcements
   `CREATE TABLE IF NOT EXISTS announcements (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
-    target_role ENUM('all','student','teacher') NOT NULL DEFAULT 'all',
-    section_id INT NULL,
-    created_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    target_role VARCHAR(15) NOT NULL DEFAULT 'all' CHECK (target_role IN ('all','student','teacher')),
+    section_id INT NULL REFERENCES sections(id) ON DELETE SET NULL,
+    created_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // 15. Audit Logs
   `CREATE TABLE IF NOT EXISTS audit_logs (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     action VARCHAR(100) NOT NULL,
     entity VARCHAR(50),
     entity_id INT,
-    details JSON,
+    details JSONB,
     ip_address VARCHAR(45),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user (user_id),
-    INDEX idx_timestamp (timestamp)
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)`,
 ];
 
 async function migrate() {
-  console.log('🔄 Running SSMLS database migrations...\n');
+  console.log('🔄 Running SSMLS PostgreSQL migrations...\n');
+  const client = await pool.connect();
   try {
-    const conn = await pool.getConnection();
-    // Use query() not execute() for DDL commands (CREATE DATABASE, USE)
-    // execute() uses prepared statements which don't support DDL
-    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``);
-    await conn.query(`USE \`${process.env.DB_NAME}\``);
-
     for (let i = 0; i < migrations.length; i++) {
-      await conn.query(migrations[i]);
-      const tableName = migrations[i].match(/CREATE TABLE IF NOT EXISTS (\w+)/)?.[1] || `Migration ${i+1}`;
-      console.log(`  ✅ Table "${tableName}" ready`);
+      await client.query(migrations[i]);
+      const match = migrations[i].match(/CREATE (?:TABLE|INDEX)[^\s]* (?:IF NOT EXISTS )?(\w+)/);
+      const name = match?.[1] || `Step ${i + 1}`;
+      console.log(`  ✅ "${name}" ready`);
     }
-    conn.release();
     console.log('\n🎉 All migrations completed successfully!\n');
-    process.exit(0);
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
-    process.exit(1);
+    throw err;
+  } finally {
+    client.release();
+    process.exit(0);
   }
 }
 

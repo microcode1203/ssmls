@@ -1,27 +1,37 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
-const pool = mysql.createPool({
-  host:               process.env.DB_HOST     || 'localhost',
-  port:               parseInt(process.env.DB_PORT) || 3306,
-  user:               process.env.DB_USER     || 'root',
-  password:           process.env.DB_PASSWORD || '',
-  database:           process.env.DB_NAME     || 'ssmls_db',
-  waitForConnections: true,
-  connectionLimit:    10,
-  queueLimit:         0,
-  timezone:           '+08:00', // Philippine time
-});
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }, // required for Render PostgreSQL
+      }
+    : {
+        host:     process.env.DB_HOST     || 'localhost',
+        port:     parseInt(process.env.DB_PORT) || 5432,
+        user:     process.env.DB_USER     || 'postgres',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME     || 'ssmls_db',
+      }
+);
 
 async function testConnection() {
   try {
-    const conn = await pool.getConnection();
-    console.log('✅ MySQL connected successfully');
-    conn.release();
+    const client = await pool.connect();
+    console.log('✅ PostgreSQL connected successfully');
+    client.release();
     return true;
   } catch (err) {
-    console.error('❌ MySQL connection error:', err.message);
+    console.error('❌ PostgreSQL connection error:', err.message);
     return false;
   }
 }
 
-module.exports = { pool, testConnection };
+// Helper: converts mysql2-style (?, ?) placeholders to pg-style ($1, $2)
+function toPostgres(sql, params = []) {
+  let i = 0;
+  const converted = sql.replace(/\?/g, () => `$${++i}`);
+  return { sql: converted, params };
+}
+
+module.exports = { pool, testConnection, toPostgres };
