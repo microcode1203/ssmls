@@ -5,162 +5,85 @@ const { pool } = require('./database');
 
 async function seed() {
   console.log('🌱 Seeding SSMLS database...\n');
-  const conn = await pool.getConnection();
+  const client = await pool.connect();
 
   try {
-
-    // ── Step 1: Add UNIQUE constraint to sections if missing ──────────────────
-    // This is the ROOT CAUSE of duplicates — without this constraint,
-    // INSERT IGNORE can't detect duplicates and inserts every time.
-    try {
-      await conn.query(`
-        ALTER TABLE sections
-        ADD CONSTRAINT uq_section_grade
-        UNIQUE (section_name, grade_level)
-      `);
-      console.log('✅ Unique constraint added to sections table');
-    } catch (e) {
-      if (e.message.includes('Duplicate key name') || e.message.includes('already exists')) {
-        console.log('✅ Unique constraint already exists on sections');
-      } else if (e.message.includes('Duplicate entry')) {
-        // Has duplicates — clean them first, then add constraint
-        console.log('⚠️  Duplicates exist — cleaning before adding constraint...');
-        await conn.query(`
-          DELETE s1 FROM sections s1
-          INNER JOIN sections s2
-          WHERE s1.id > s2.id
-            AND s1.section_name = s2.section_name
-            AND s1.grade_level  = s2.grade_level
-        `);
-        await conn.query(`
-          ALTER TABLE sections
-          ADD CONSTRAINT uq_section_grade
-          UNIQUE (section_name, grade_level)
-        `);
-        console.log('✅ Duplicates removed and unique constraint added');
-      } else {
-        console.warn('⚠️  Section constraint warning:', e.message);
-      }
-    }
-
-    // ── Step 0: Create new V2 tables ────────────────────────────────────────
-    const { NEW_TABLES } = require('./migrate_v2');
-    for (const sql of NEW_TABLES) {
-      try { await conn.query(sql); } catch(e) { console.warn('Table warning:', e.message.slice(0,60)); }
-    }
-    console.log('✅ V2 tables ready');
-
-    // ── Step 1b: Add new columns if missing (safe for existing DBs) ─────────
-    const addCol = async (table, col, definition) => {
-      try {
-        const [rows] = await conn.query(
-          `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
-           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
-          [table, col]
-        );
-        if (rows[0].cnt === 0) {
-          await conn.query(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
-          console.log(`✅ Added column ${table}.${col}`);
-        }
-      } catch (e) { console.warn(`⚠ Could not add ${table}.${col}:`, e.message); }
-    };
-
-    await addCol('users',    'middle_name', 'VARCHAR(80) NULL AFTER first_name');
-    await addCol('students',    'birthday',    'DATE NULL');
-    await addCol('submissions', 'file_data',   'LONGTEXT NULL');
-    await addCol('submissions', 'file_name',   'VARCHAR(255) NULL');
-    await addCol('submissions', 'file_type',   'VARCHAR(100) NULL');
-    await addCol('submissions', 'file_size',   'INT NULL');
-    await addCol('students', 'birthplace',  'VARCHAR(120) NULL');
-
-    // ── Step 2: Add UNIQUE constraint to subjects if missing ──────────────────
-    try {
-      await conn.query(`ALTER TABLE subjects ADD CONSTRAINT uq_subject_code UNIQUE (code)`);
-    } catch (e) { /* already exists — fine */ }
-
-    // ── Step 3: Seed admin ────────────────────────────────────────────────────
+    // ── Step 1: Seed admin ──────────────────────────────────────────────────
     const adminHash = await bcrypt.hash('Admin@2026', 12);
-    await conn.execute(
-      `INSERT IGNORE INTO users
-         (first_name, last_name, email, password_hash, role, is_active, email_verified)
-       VALUES (?, ?, ?, ?, 'admin', 1, 1)`,
-      ['System', 'Administrator', 'admin@ssmls.edu.ph', adminHash]
-    );
+    await client.query(`
+      INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
+      VALUES ('System', 'Administrator', 'admin@ssmls.edu.ph', $1, 'admin', true, true)
+      ON CONFLICT (email) DO NOTHING
+    `, [adminHash]);
+    console.log('✅ Admin seeded: admin@ssmls.edu.ph / Admin@2026');
 
-    // ── Step 4: Seed teachers ─────────────────────────────────────────────────
+    // ── Step 2: Seed teachers ───────────────────────────────────────────────
     const teacherHash = await bcrypt.hash('Teacher@2026', 12);
-    for (const [fn, ln, em] of [
+    const teachers = [
       ['Maria', 'Lourdes Cruz', 'mlcruz@ssmls.edu.ph'],
       ['Jose',  'Dela Vega',    'jdelavega@ssmls.edu.ph'],
       ['Anna',  'Reyes Santos', 'areyes@ssmls.edu.ph'],
-    ]) {
-      await conn.execute(
-        `INSERT IGNORE INTO users
-           (first_name, last_name, email, password_hash, role, is_active, email_verified)
-         VALUES (?, ?, ?, ?, 'teacher', 1, 1)`,
-        [fn, ln, em, teacherHash]
-      );
-    }
-
-    const [teacherUsers] = await conn.execute(
-      `SELECT id FROM users WHERE role='teacher' AND is_active=1 ORDER BY id LIMIT 3`
-    );
-    for (let i = 0; i < teacherUsers.length; i++) {
-      await conn.execute(
-        `INSERT IGNORE INTO teachers (user_id, employee_id, department) VALUES (?, ?, ?)`,
-        [teacherUsers[i].id, `EMP-${1001 + i}`, 'Senior High School']
-      );
-    }
-
-    // ── Step 5: Seed subjects (INSERT IGNORE works because code is UNIQUE) ────
-    for (const [code, name, grade, units] of [
-      ['MATH11',  'General Mathematics',         'Grade 11', 4],
-      ['SCI11',   'Earth and Life Science',       'Grade 11', 4],
-      ['ENG11',   'Oral Communication',           'Grade 11', 2],
-      ['STAT12',  'Statistics and Probability',   'Grade 12', 4],
-      ['PHILO12', 'Introduction to Philosophy',   'Grade 12', 2],
-      ['STEM11',  'Pre-Calculus',                 'Grade 11', 4],
-    ]) {
-      await conn.execute(
-        `INSERT IGNORE INTO subjects (code, name, grade_level, units) VALUES (?, ?, ?, ?)`,
-        [code, name, grade, units]
-      );
-    }
-
-    // ── Step 5b: Default school config ─────────────────────────────────────
-    const defaults = [
-      ['school_year',       '2025-2026'],
-      ['semester',          '1st Semester'],
-      ['school_name',       'Senior High School'],
-      ['school_address',    'Philippines'],
-      ['attendance_threshold', '3'],
-      ['grade_passing',     '75'],
-      ['dark_mode_default', 'false'],
     ];
-    for (const [k,v] of defaults) {
-      await conn.execute(
-        `INSERT IGNORE INTO school_config (config_key, config_value) VALUES (?,?)`, [k,v]
-      );
+    for (const [fn, ln, em] of teachers) {
+      await client.query(`
+        INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
+        VALUES ($1, $2, $3, $4, 'teacher', true, true)
+        ON CONFLICT (email) DO NOTHING
+      `, [fn, ln, em, teacherHash]);
     }
 
-    // ── Step 6: Seed sections (INSERT IGNORE now works with UNIQUE constraint) ─
-    for (const [name, grade, strand] of [
+    // Link teachers to teachers table
+    const { rows: teacherUsers } = await client.query(`
+      SELECT id FROM users WHERE role = 'teacher' AND is_active = true ORDER BY id LIMIT 3
+    `);
+    for (let i = 0; i < teacherUsers.length; i++) {
+      await client.query(`
+        INSERT INTO teachers (user_id, employee_id, department)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id) DO NOTHING
+      `, [teacherUsers[i].id, `EMP-${1001 + i}`, 'Senior High School']);
+    }
+    console.log('✅ Teachers seeded: Teacher@2026');
+
+    // ── Step 3: Seed subjects ───────────────────────────────────────────────
+    const subjects = [
+      ['MATH11',  'General Mathematics',        'Grade 11', 4],
+      ['SCI11',   'Earth and Life Science',      'Grade 11', 4],
+      ['ENG11',   'Oral Communication',          'Grade 11', 2],
+      ['STAT12',  'Statistics and Probability',  'Grade 12', 4],
+      ['PHILO12', 'Introduction to Philosophy',  'Grade 12', 2],
+      ['STEM11',  'Pre-Calculus',                'Grade 11', 4],
+    ];
+    for (const [code, name, grade, units] of subjects) {
+      await client.query(`
+        INSERT INTO subjects (code, name, grade_level, units)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (code) DO NOTHING
+      `, [code, name, grade, units]);
+    }
+    console.log('✅ Subjects seeded');
+
+    // ── Step 4: Seed sections ───────────────────────────────────────────────
+    const sections = [
       ['STEM-A',  'Grade 11', 'STEM'],
       ['STEM-B',  'Grade 11', 'STEM'],
       ['HUMSS-A', 'Grade 11', 'HUMSS'],
       ['ABM-A',   'Grade 11', 'ABM'],
       ['STEM-A',  'Grade 12', 'STEM'],
       ['HUMSS-A', 'Grade 12', 'HUMSS'],
-    ]) {
-      await conn.execute(
-        `INSERT IGNORE INTO sections (section_name, grade_level, strand) VALUES (?, ?, ?)`,
-        [name, grade, strand]
-      );
+    ];
+    for (const [name, grade, strand] of sections) {
+      await client.query(`
+        INSERT INTO sections (section_name, grade_level, strand)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (section_name, grade_level) DO NOTHING
+      `, [name, grade, strand]);
     }
+    console.log('✅ Sections seeded');
 
-    // ── Step 7: Seed students ─────────────────────────────────────────────────
+    // ── Step 5: Seed students ───────────────────────────────────────────────
     const studentHash = await bcrypt.hash('Student@2026', 12);
-    const [sectionRows] = await conn.execute(
+    const { rows: sectionRows } = await client.query(
       `SELECT id, section_name, grade_level FROM sections`
     );
     const sectionMap = {};
@@ -168,7 +91,7 @@ async function seed() {
       sectionMap[`${s.grade_level}-${s.section_name}`] = s.id;
     });
 
-    for (const [fn, ln, lrn, grade, strand] of [
+    const students = [
       ['Juan',     'Dela Cruz',        '11200001', 'Grade 11', 'STEM'],
       ['Maria',    'Santos Garcia',    '11200002', 'Grade 11', 'STEM'],
       ['Ana',      'Reyes Flores',     '11200003', 'Grade 11', 'HUMSS'],
@@ -176,45 +99,72 @@ async function seed() {
       ['Sofia',    'Garcia Lopez',     '11200005', 'Grade 11', 'STEM'],
       ['Miguel',   'Torres Rivera',    '11200006', 'Grade 12', 'STEM'],
       ['Isabella', 'Ramos Cruz',       '11200007', 'Grade 12', 'HUMSS'],
-    ]) {
+    ];
+
+    for (const [fn, ln, lrn, grade, strand] of students) {
       const email = `${fn.toLowerCase()}.${ln.split(' ')[0].toLowerCase()}@student.ssmls.edu.ph`;
-      const [existing] = await conn.execute(
-        `SELECT id FROM users WHERE email = ?`, [email]
+
+      // Insert user
+      const { rows: existing } = await client.query(
+        `SELECT id FROM users WHERE email = $1`, [email]
       );
+
       let userId;
       if (existing.length === 0) {
-        const [res] = await conn.execute(
-          `INSERT INTO users
-             (first_name, last_name, email, password_hash, role, is_active, email_verified)
-           VALUES (?, ?, ?, ?, 'student', 1, 1)`,
-          [fn, ln, email, studentHash]
-        );
-        userId = res.insertId;
+        const { rows: inserted } = await client.query(`
+          INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
+          VALUES ($1, $2, $3, $4, 'student', true, true)
+          RETURNING id
+        `, [fn, ln, email, studentHash]);
+        userId = inserted[0].id;
       } else {
         userId = existing[0].id;
       }
-      const sectionId = sectionMap[`${grade}-STEM-A`] || sectionRows[0]?.id;
-      await conn.execute(
-        `INSERT IGNORE INTO students
-           (user_id, lrn, grade_level, section_id, strand)
-         VALUES (?, ?, ?, ?, ?)`,
-        [userId, lrn, grade, sectionId, strand]
-      );
-    }
 
-    conn.release();
-    console.log('✅ Admin:    admin@ssmls.edu.ph / Admin@2026');
-    console.log('✅ Teachers: Teacher@2026');
-    console.log('✅ Students: Student@2026');
-    console.log('✅ Sections and Subjects seeded');
+      const sectionId = sectionMap[`${grade}-STEM-A`] || sectionRows[0]?.id;
+      await client.query(`
+        INSERT INTO students (user_id, lrn, grade_level, section_id, strand)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id) DO NOTHING
+      `, [userId, lrn, grade, sectionId, strand]);
+    }
+    console.log('✅ Students seeded: Student@2026');
+
+    // ── Step 6: Default school config ──────────────────────────────────────
+    const configs = [
+      ['school_year',          '2025-2026'],
+      ['semester',             '1st Semester'],
+      ['school_name',          'Senior High School'],
+      ['school_address',       'Philippines'],
+      ['attendance_threshold', '3'],
+      ['grade_passing',        '75'],
+      ['dark_mode_default',    'false'],
+    ];
+    for (const [k, v] of configs) {
+      await client.query(`
+        INSERT INTO school_config (config_key, config_value)
+        VALUES ($1, $2)
+        ON CONFLICT (config_key) DO NOTHING
+      `, [k, v]);
+    }
+    console.log('✅ School config seeded');
+
     console.log('\n🎉 Seeding completed!\n');
-    process.exit(0);
+    console.log('  Admin:    admin@ssmls.edu.ph  / Admin@2026');
+    console.log('  Teachers: Teacher@2026');
+    console.log('  Students: Student@2026\n');
 
   } catch (err) {
-    conn.release();
     console.error('❌ Seed failed:', err.message);
-    process.exit(1);
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
-seed();
+module.exports = { seed };
+
+// Run directly if called as script
+if (require.main === module) {
+  seed().then(() => process.exit(0)).catch(() => process.exit(1));
+}
