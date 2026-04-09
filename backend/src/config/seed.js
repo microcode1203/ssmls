@@ -9,18 +9,18 @@ async function seed() {
 
   try {
     // ── Step 1: Seed admin ──────────────────────────────────────────────────
-    const adminHash = await bcrypt.hash('Admin@2026', 12);
+    const adminHash = await bcrypt.hash('Hizaki1203', 12);
     await client.query(`
       INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
-      VALUES ('System', 'Administrator', 'admin@ssmls.edu.ph', $1, 'admin', true, true)
+      VALUES ('System', 'Administrator', 'aporia1203@gmail.com', $1, 'admin', true, true)
       ON CONFLICT (email) DO NOTHING
     `, [adminHash]);
-    console.log('✅ Admin seeded: admin@ssmls.edu.ph / Admin@2026');
+    console.log('✅ Admin seeded: aporia1203@gmail.com / Hizaki1203');
 
     // ── Step 2: Seed teachers ───────────────────────────────────────────────
     const teacherHash = await bcrypt.hash('Teacher@2026', 12);
     const teachers = [
-      ['Maria', 'Lourdes Cruz', 'mlcruz@ssmls.edu.ph'],
+      ['Joana', 'Dela Cruz', 'joana@ssmls.edu.ph'],
       ['Jose',  'Dela Vega',    'jdelavega@ssmls.edu.ph'],
       ['Anna',  'Reyes Santos', 'areyes@ssmls.edu.ph'],
     ];
