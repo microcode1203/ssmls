@@ -2,91 +2,38 @@ const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
 
-// Safe column adder — works on ALL MySQL versions
-const safeAddColumn = async (table, column, definition) => {
-  try {
-    // Check if column exists first
-    const [rows] = await pool.execute(
-      `SELECT COUNT(*) as cnt
-       FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA = DATABASE()
-         AND TABLE_NAME   = ?
-         AND COLUMN_NAME  = ?`,
-      [table, column]
-    );
-    if (rows[0].cnt === 0) {
-      await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
-      console.log(`✅ Added column ${table}.${column}`);
-    }
-  } catch (err) {
-    console.warn(`⚠️  safeAddColumn(${table}.${column}):`, err.message);
-  }
-};
-
-const ensureColumns = async () => {
-  await safeAddColumn('users',    'avatar_url', 'VARCHAR(500) NULL');
-  await safeAddColumn('students', 'birthday',   'DATE NULL');
-  await safeAddColumn('students', 'address',    'TEXT NULL');
-  await safeAddColumn('teachers', 'bio',        'TEXT NULL');
-};
-ensureColumns();
-
 // GET /api/settings/profile
 const getProfile = async (req, res) => {
   try {
-    // Build query dynamically based on what columns exist
-    const [cols] = await pool.execute(
-      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'`
-    );
-    const userCols = cols.map(c => c.COLUMN_NAME);
-    const hasAvatar = userCols.includes('avatar_url');
-
-    const [sCols] = await pool.execute(
-      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='students'`
-    );
-    const stuCols = sCols.map(c => c.COLUMN_NAME);
-    const hasBirthday = stuCols.includes('birthday');
-    const hasAddress  = stuCols.includes('address');
-
-    const [tCols] = await pool.execute(
-      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='teachers'`
-    );
-    const teachCols = tCols.map(c => c.COLUMN_NAME);
-    const hasBio = teachCols.includes('bio');
-
-    const [rows] = await pool.execute(
+    const { rows } = await pool.query(
       `SELECT
          u.id, u.first_name, u.middle_name, u.last_name, u.email, u.role, u.last_login,
-         ${hasAvatar ? "IFNULL(u.avatar_url,'')" : "''"} AS avatar_url,
+         COALESCE(u.avatar_url, '') AS avatar_url,
          s.id                              AS student_db_id,
-         IFNULL(s.lrn,           '')       AS lrn,
-         IFNULL(s.grade_level,   '')       AS grade_level,
-         IFNULL(s.strand,        '')       AS strand,
-         IFNULL(s.phone,         '')       AS student_phone,
-         IFNULL(s.guardian_name, '')       AS guardian_name,
-         IFNULL(s.guardian_phone,'')       AS guardian_phone,
-         ${hasAddress  ? "IFNULL(s.address,'')"  : "''"} AS address,
-         ${hasBirthday ? "IFNULL(s.birthday,'')" : "''"} AS birthday,
-         IFNULL(sec.section_name,'')       AS section_name,
-         IFNULL(sec.id, 0)                 AS section_id,
+         COALESCE(s.lrn,           '')     AS lrn,
+         COALESCE(s.grade_level,   '')     AS grade_level,
+         COALESCE(s.strand,        '')     AS strand,
+         COALESCE(s.phone,         '')     AS student_phone,
+         COALESCE(s.guardian_name, '')     AS guardian_name,
+         COALESCE(s.guardian_phone,'')     AS guardian_phone,
+         COALESCE(s.address::text, '')     AS address,
+         s.birthday                        AS birthday,
+         COALESCE(sec.section_name,'')     AS section_name,
+         COALESCE(sec.id::text, '0')       AS section_id,
          t.id                              AS teacher_db_id,
-         IFNULL(t.employee_id,   '')       AS employee_id,
-         IFNULL(t.department,    '')       AS department,
-         IFNULL(t.phone,         '')       AS teacher_phone,
-         ${hasBio ? "IFNULL(t.bio,'')" : "''"} AS bio
+         COALESCE(t.employee_id,   '')     AS employee_id,
+         COALESCE(t.department,    '')     AS department,
+         COALESCE(t.phone,         '')     AS teacher_phone,
+         COALESCE(t.bio,           '')     AS bio
        FROM users u
        LEFT JOIN students s   ON s.user_id  = u.id
        LEFT JOIN sections sec ON sec.id     = s.section_id
        LEFT JOIN teachers t   ON t.user_id  = u.id
-       WHERE u.id = ?`,
+       WHERE u.id = $1`,
       [req.user.id]
     );
 
-    if (!rows.length)
-      return res.status(404).json({ success: false, message: 'User not found.' });
+    if (!rows.length) return res.status(404).json({ success: false, message: 'User not found.' });
 
     const u = rows[0];
     res.json({
@@ -133,15 +80,12 @@ const changePassword = async (req, res) => {
     if (newPassword.length < 8)
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
 
-    const [rows] = await pool.execute(
-      `SELECT password_hash FROM users WHERE id = ?`, [req.user.id]
-    );
+    const { rows } = await pool.query(`SELECT password_hash FROM users WHERE id = $1`, [req.user.id]);
     const valid = await bcrypt.compare(currentPassword, rows[0].password_hash);
-    if (!valid)
-      return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
+    if (!valid) return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
 
     const hash = await bcrypt.hash(newPassword, 12);
-    await pool.execute(`UPDATE users SET password_hash = ? WHERE id = ?`, [hash, req.user.id]);
+    await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, req.user.id]);
     await logAction(req.user.id, 'CHANGE_PASSWORD', 'users', req.user.id, null, req.ip);
     res.json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {
@@ -154,10 +98,8 @@ const changePassword = async (req, res) => {
 const updateAvatar = async (req, res) => {
   try {
     const { avatarUrl } = req.body;
-    if (!avatarUrl)
-      return res.status(400).json({ success: false, message: 'Avatar URL required.' });
-    await safeAddColumn('users', 'avatar_url', 'VARCHAR(500) NULL');
-    await pool.execute(`UPDATE users SET avatar_url = ? WHERE id = ?`, [avatarUrl, req.user.id]);
+    if (!avatarUrl) return res.status(400).json({ success: false, message: 'Avatar URL required.' });
+    await pool.query(`UPDATE users SET avatar_url = $1 WHERE id = $2`, [avatarUrl, req.user.id]);
     await logAction(req.user.id, 'UPDATE_AVATAR', 'users', req.user.id, null, req.ip);
     res.json({ success: true, message: 'Profile photo updated.' });
   } catch (err) {
@@ -170,14 +112,10 @@ const updateAvatar = async (req, res) => {
 const updateStudentProfile = async (req, res) => {
   try {
     const { birthday, address, phone, guardianName, guardianPhone } = req.body;
-    await safeAddColumn('students', 'birthday', 'DATE NULL');
-    await safeAddColumn('students', 'address',  'TEXT NULL');
-    await pool.execute(
-      `UPDATE students
-       SET birthday=?, address=?, phone=?, guardian_name=?, guardian_phone=?
-       WHERE user_id=?`,
-      [birthday||null, address||null, phone||null,
-       guardianName||null, guardianPhone||null, req.user.id]
+    await pool.query(
+      `UPDATE students SET birthday = $1, address = $2, phone = $3, guardian_name = $4, guardian_phone = $5
+       WHERE user_id = $6`,
+      [birthday || null, address || null, phone || null, guardianName || null, guardianPhone || null, req.user.id]
     );
     await logAction(req.user.id, 'UPDATE_STUDENT_PROFILE', 'students', null, null, req.ip);
     res.json({ success: true, message: 'Profile updated successfully.' });
@@ -191,10 +129,9 @@ const updateStudentProfile = async (req, res) => {
 const updateTeacherProfile = async (req, res) => {
   try {
     const { phone, department, bio } = req.body;
-    await safeAddColumn('teachers', 'bio', 'TEXT NULL');
-    await pool.execute(
-      `UPDATE teachers SET phone=?, department=?, bio=? WHERE user_id=?`,
-      [phone||null, department||null, bio||null, req.user.id]
+    await pool.query(
+      `UPDATE teachers SET phone = $1, department = $2, bio = $3 WHERE user_id = $4`,
+      [phone || null, department || null, bio || null, req.user.id]
     );
     await logAction(req.user.id, 'UPDATE_TEACHER_PROFILE', 'teachers', null, null, req.ip);
     res.json({ success: true, message: 'Profile updated successfully.' });
@@ -204,7 +141,4 @@ const updateTeacherProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  getProfile, changePassword, updateAvatar,
-  updateStudentProfile, updateTeacherProfile
-};
+module.exports = { getProfile, changePassword, updateAvatar, updateStudentProfile, updateTeacherProfile };

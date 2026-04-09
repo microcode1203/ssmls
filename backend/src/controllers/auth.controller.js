@@ -4,8 +4,6 @@ const jwt    = require('jsonwebtoken');
 const { pool }     = require('../config/database');
 const { logAction } = require('../utils/audit');
 
-// In-memory failed login tracker (per email, resets on success)
-// For production scale, use Redis — this works for a school system
 const failedLogins = new Map();
 const MAX_FAILS    = 5;
 const LOCK_MINUTES = 15;
@@ -13,7 +11,6 @@ const LOCK_MINUTES = 15;
 const getFailRecord = (email) => {
   const rec = failedLogins.get(email);
   if (!rec) return { count: 0, lockedUntil: null };
-  // Auto-clear expired locks
   if (rec.lockedUntil && Date.now() > rec.lockedUntil) {
     failedLogins.delete(email);
     return { count: 0, lockedUntil: null };
@@ -35,33 +32,25 @@ const clearFails = (email) => failedLogins.delete(email);
 
 const generateToken = (userId, role) =>
   jwt.sign({ userId, role }, process.env.JWT_SECRET, {
-    expiresIn:  process.env.JWT_EXPIRES_IN || '8h',  // shorter than 7d
+    expiresIn:  process.env.JWT_EXPIRES_IN || '8h',
     algorithm:  'HS256',
     issuer:     'ssmls-api',
     audience:   'ssmls-app',
   });
 
-// ─────────────────────────────────────────────────────────────
-//  POST /api/auth/login
-// ─────────────────────────────────────────────────────────────
+// POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Basic input validation
     if (!email || !password)
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
-
     if (typeof email !== 'string' || typeof password !== 'string')
       return res.status(400).json({ success: false, message: 'Invalid input.' });
 
     const cleanEmail = email.toLowerCase().trim();
-
-    // Validate email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail))
       return res.status(400).json({ success: false, message: 'Invalid email format.' });
 
-    // Check account lockout
     const failRec = getFailRecord(cleanEmail);
     if (failRec.lockedUntil && Date.now() < failRec.lockedUntil) {
       const minsLeft = Math.ceil((failRec.lockedUntil - Date.now()) / 60000);
@@ -72,53 +61,37 @@ const login = async (req, res) => {
       });
     }
 
-    // Lookup user — always run bcrypt even if not found (prevents timing attack)
-    const [rows] = await pool.execute(
+    const { rows } = await pool.query(
       `SELECT u.*,
-         COALESCE(s.id, NULL) as student_db_id,
-         COALESCE(t.id, NULL) as teacher_db_id,
-         s.status as student_status
+         s.id AS student_db_id,
+         t.id AS teacher_db_id,
+         s.status AS student_status
        FROM users u
        LEFT JOIN students s ON s.user_id = u.id
        LEFT JOIN teachers t ON t.user_id = u.id
-       WHERE u.email = ?`,
+       WHERE u.email = $1`,
       [cleanEmail]
     );
 
     const user = rows[0];
-
-    // Always hash-compare even for non-existent users (timing attack prevention)
     const dummyHash = '$2a$12$dummyhashfordummyuserpreventingtimingattack000000000000';
     const hashToCheck = user ? user.password_hash : dummyHash;
     const valid = await bcrypt.compare(password, hashToCheck);
 
-    // Check if graduated student is trying to log in
     if (user && valid && user.is_active && user.student_status === 'graduated') {
       return res.status(403).json({
         success: false,
-        message: 'Your account has been graduated. Please contact the school administrator for your records.',
+        message: 'Your account has been graduated. Please contact the school administrator.',
       });
     }
 
     if (!user || !valid || !user.is_active) {
-      // Record failure
       const { count } = recordFail(cleanEmail);
       const remaining = MAX_FAILS - count;
-
-      // Log failed attempt (only if user exists, for audit)
-      if (user) {
-        await logAction(user.id, 'LOGIN_FAILED', 'users', user.id,
-          { ip: req.ip, attempts: count }, req.ip);
-      }
-
+      if (user) await logAction(user.id, 'LOGIN_FAILED', 'users', user.id, { ip: req.ip, attempts: count }, req.ip);
       if (remaining <= 0) {
-        return res.status(429).json({
-          success: false,
-          message: `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.`,
-        });
+        return res.status(429).json({ success: false, message: `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.` });
       }
-
-      // Intentionally vague — don't reveal which field is wrong
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password.',
@@ -126,16 +99,11 @@ const login = async (req, res) => {
       });
     }
 
-    // Success — clear fail record
     clearFails(cleanEmail);
-
-    // Update last login
-    await pool.execute(`UPDATE users SET last_login = NOW() WHERE id = ?`, [user.id]);
+    await pool.query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [user.id]);
     await logAction(user.id, 'LOGIN', 'users', user.id, { ip: req.ip }, req.ip);
 
     const token = generateToken(user.id, user.role);
-
-    // Set security headers for the response
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
 
@@ -144,7 +112,7 @@ const login = async (req, res) => {
       message: 'Login successful.',
       data: {
         token,
-        expiresIn: 8 * 60 * 60, // 8 hours in seconds
+        expiresIn: 8 * 60 * 60,
         user: {
           id:        user.id,
           firstName: user.first_name,
@@ -162,21 +130,19 @@ const login = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-//  GET /api/auth/me
-// ─────────────────────────────────────────────────────────────
+// GET /api/auth/me
 const getMe = async (req, res) => {
   try {
-    const [rows] = await pool.execute(
+    const { rows } = await pool.query(
       `SELECT u.id, u.first_name, u.middle_name, u.last_name, u.email, u.role, u.last_login,
-         s.id as student_db_id, s.lrn, s.grade_level, s.strand,
-         sec.section_name, sec.id as section_id,
-         t.id as teacher_db_id, t.employee_id
+         s.id AS student_db_id, s.lrn, s.grade_level, s.strand,
+         sec.section_name, sec.id AS section_id,
+         t.id AS teacher_db_id, t.employee_id
        FROM users u
        LEFT JOIN students s   ON s.user_id  = u.id
        LEFT JOIN sections sec ON sec.id     = s.section_id
        LEFT JOIN teachers t   ON t.user_id  = u.id
-       WHERE u.id = ? AND u.is_active = 1`,
+       WHERE u.id = $1 AND u.is_active = TRUE`,
       [req.user.id]
     );
     if (!rows.length)
@@ -200,45 +166,36 @@ const getMe = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-//  PUT /api/auth/change-password
-// ─────────────────────────────────────────────────────────────
+// PUT /api/auth/change-password
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword)
       return res.status(400).json({ success: false, message: 'Both passwords are required.' });
-
-    // Password strength validation
     if (newPassword.length < 8)
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
     if (!/[A-Z]/.test(newPassword))
       return res.status(400).json({ success: false, message: 'Password must contain at least one uppercase letter.' });
     if (!/[0-9]/.test(newPassword))
       return res.status(400).json({ success: false, message: 'Password must contain at least one number.' });
-
-    // Cannot reuse current password
     if (currentPassword === newPassword)
       return res.status(400).json({ success: false, message: 'New password must be different from current password.' });
 
-    const [rows] = await pool.execute(`SELECT password_hash FROM users WHERE id = ?`, [req.user.id]);
+    const { rows } = await pool.query(`SELECT password_hash FROM users WHERE id = $1`, [req.user.id]);
     const valid = await bcrypt.compare(currentPassword, rows[0].password_hash);
     if (!valid)
       return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
 
     const newHash = await bcrypt.hash(newPassword, 12);
-    await pool.execute(`UPDATE users SET password_hash = ? WHERE id = ?`, [newHash, req.user.id]);
+    await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [newHash, req.user.id]);
     await logAction(req.user.id, 'CHANGE_PASSWORD', 'users', req.user.id, null, req.ip);
-
     res.json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-//  POST /api/auth/logout  (client-side token invalidation hint)
-// ─────────────────────────────────────────────────────────────
+// POST /api/auth/logout
 const logout = async (req, res) => {
   try {
     await logAction(req.user.id, 'LOGOUT', 'users', req.user.id, null, req.ip);
