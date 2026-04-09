@@ -29,6 +29,8 @@ import AppealsPage        from './pages/AppealsPage'
 import SubjectsPage    from './pages/admin/SubjectsPage'
 import SettingsPage    from './pages/SettingsPage'
 import NotFoundPage    from './pages/NotFoundPage'
+import LearnPage       from './pages/LearnPage'
+import ScannerPage     from './pages/ScannerPage'
 
 // Layout
 import AppLayout from './components/layout/AppLayout'
@@ -89,6 +91,14 @@ function AppRoutes() {
         <Route path="/report-card"   element={<ProtectedRoute allowedRoles={['admin','teacher','student']}><ReportCardPage /></ProtectedRoute>} />
         <Route path="/appeals"       element={<ProtectedRoute><AppealsPage /></ProtectedRoute>} />
         <Route path="/settings"   element={<SettingsPage />} />
+
+        {/* Learning Hub — all roles */}
+        <Route path="/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
+
+        {/* Scanner — teacher and admin only */}
+        <Route path="/scanner" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><ScannerPage /></ProtectedRoute>
+        } />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

@@ -8,7 +8,8 @@ import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
   ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield, Search,
   LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
-  MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList
+  MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList,
+  Brain, Scan
 } from 'lucide-react'
 
 const NAV = {
@@ -33,6 +34,8 @@ const NAV = {
         { label: 'Assignments',    icon: BookOpen,         to: '/assignments' },
         { label: 'Grades',         icon: BarChart3,        to: '/grades' },
         { label: 'Materials',      icon: FileText,         to: '/materials' },
+        { label: 'Learning Hub',   icon: Brain,            to: '/learn' },
+        { label: 'Scanner',        icon: Scan,             to: '/scanner' },
       ]
     },
     { group: 'Communication',
@@ -77,6 +80,8 @@ const NAV = {
         { label: 'Assignments',   icon: BookOpen,  to: '/assignments' },
         { label: 'Grades',        icon: BarChart3, to: '/grades' },
         { label: 'Materials',     icon: FileText,  to: '/materials' },
+        { label: 'Learning Hub',  icon: Brain,     to: '/learn' },
+        { label: 'Scanner',       icon: Scan,      to: '/scanner' },
       ]
     },
     { group: 'Communication',
@@ -115,6 +120,7 @@ const NAV = {
         { label: 'Assignments',   icon: BookOpen,     to: '/assignments' },
         { label: 'Grades',        icon: BarChart3,    to: '/grades' },
         { label: 'Materials',     icon: FileText,     to: '/materials' },
+        { label: 'Learning Hub',  icon: Brain,        to: '/learn' },
       ]
     },
     { group: 'Communication',

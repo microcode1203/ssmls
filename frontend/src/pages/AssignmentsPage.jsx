@@ -1,7 +1,7 @@
 /* @v2-fixed-imports */
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -10,11 +10,411 @@ import {
  Plus, X, Clock, BookOpen, Send, Eye,
  Filter, Trash2, AlertCircle, Award,
  FileText, Image, File, Paperclip, Download,
- CheckCircle, Upload
+ CheckCircle, Upload, Shield, ShieldAlert, ShieldX,
+ Maximize, Lock, AlertTriangle, MonitorX
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { format, isPast, formatDistanceToNow } from 'date-fns'
 import Modal from '../components/ui/Modal'
+
+// ─── Anti-Cheat Exam Mode ─────────────────────────────────────────────────────
+// Only activates for type === 'exam'
+// Rules: 3 tab switches = auto-submit, warn on 2nd, fullscreen enforced
+function ExamMode({ assignment, onClose, onSave }) {
+  const fileRef = useRef()
+  const [text, setText] = useState('')
+  const [file, setFile] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [fileError, setFileError] = useState('')
+
+  // Anti-cheat state
+  const [violations, setViolations] = useState(0)
+  const [showViolationWarning, setShowViolationWarning] = useState(false)
+  const [examEnded, setExamEnded] = useState(false)
+  const [endReason, setEndReason] = useState('')
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [examStarted, setExamStarted] = useState(false)
+  const [timeElapsed, setTimeElapsed] = useState(0)
+  const violationsRef = useRef(0)
+  const autoSubmitRef = useRef(false)
+  const timerRef = useRef(null)
+
+  const MAX_VIOLATIONS = 3
+
+  // ── Fullscreen ──────────────────────────────────────────────────────────────
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen()
+      setIsFullscreen(true)
+    } catch { setIsFullscreen(false) }
+  }
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    setIsFullscreen(false)
+  }
+
+  // ── Auto submit ─────────────────────────────────────────────────────────────
+  const doAutoSubmit = useCallback(async (reason) => {
+    if (autoSubmitRef.current) return
+    autoSubmitRef.current = true
+    setExamEnded(true)
+    setEndReason(reason)
+    exitFullscreen()
+    clearInterval(timerRef.current)
+
+    // Submit whatever has been answered so far
+    try {
+      await api.post('/assignments/submit', {
+        assignmentId: assignment.id,
+        textAnswer: text || `[AUTO-SUBMITTED: ${reason}]`,
+        fileData: file?.base64 || null,
+        fileName: file?.name || null,
+        fileType: file?.type || null,
+        fileSize: file?.size || null,
+        autoSubmitted: true,
+        violationReason: reason,
+      })
+    } catch (err) {
+      console.error('Auto-submit failed:', err)
+    }
+  }, [assignment.id, text, file])
+
+  // ── Violation handler ───────────────────────────────────────────────────────
+  const registerViolation = useCallback((type) => {
+    if (autoSubmitRef.current || !examStarted) return
+    const newCount = violationsRef.current + 1
+    violationsRef.current = newCount
+    setViolations(newCount)
+
+    if (newCount >= MAX_VIOLATIONS) {
+      doAutoSubmit(`${type} — ${MAX_VIOLATIONS} violations reached`)
+    } else {
+      setShowViolationWarning(true)
+    }
+  }, [examStarted, doAutoSubmit])
+
+  // ── Event listeners ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!examStarted) return
+
+    // Tab visibility change
+    const handleVisibility = () => {
+      if (document.hidden) registerViolation('Tab switch detected')
+    }
+
+    // Browser close / refresh
+    const handleBeforeUnload = (e) => {
+      if (!autoSubmitRef.current) {
+        doAutoSubmit('Browser closed or page refreshed')
+        e.preventDefault()
+        e.returnValue = 'Exam in progress — leaving will auto-submit!'
+        return e.returnValue
+      }
+    }
+
+    // Fullscreen exit
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && examStarted && !autoSubmitRef.current) {
+        setIsFullscreen(false)
+        registerViolation('Fullscreen exited')
+      }
+    }
+
+    // Right-click disable
+    const handleContextMenu = (e) => e.preventDefault()
+
+    // Copy/paste/print screen disable
+    const handleKeyDown = (e) => {
+      if (
+        (e.ctrlKey && ['c','v','p','s','a','u'].includes(e.key.toLowerCase())) ||
+        e.key === 'PrintScreen' ||
+        (e.altKey && e.key === 'Tab') ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault()
+        toast.error('This action is not allowed during an exam.')
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('contextmenu', handleContextMenu)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [examStarted, registerViolation, doAutoSubmit])
+
+  // ── Timer ───────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!examStarted || examEnded) return
+    timerRef.current = setInterval(() => setTimeElapsed(t => t + 1), 1000)
+    return () => clearInterval(timerRef.current)
+  }, [examStarted, examEnded])
+
+  const formatTime = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+
+  // ── File handling ────────────────────────────────────────────────────────────
+  const handleFileChange = async (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFileError('')
+    if (f.size > MAX_FILE_BYTES) { setFileError('File too large. Max 2MB.'); return }
+    const allowed = ['image/jpeg','image/png','image/gif','image/webp','application/pdf',
+      'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain']
+    if (!allowed.includes(f.type)) { setFileError('Unsupported file type.'); return }
+    const base64 = await toBase64(f)
+    setFile({ name: f.name, type: f.type, size: f.size, base64 })
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!text.trim() && !file) return toast.error('Add a text answer or attach a file.')
+    setSaving(true)
+    try {
+      await api.post('/assignments/submit', {
+        assignmentId: assignment.id,
+        textAnswer: text.trim() || null,
+        fileData: file?.base64 || null,
+        fileName: file?.name || null,
+        fileType: file?.type || null,
+        fileSize: file?.size || null,
+      })
+      exitFullscreen()
+      clearInterval(timerRef.current)
+      toast.success('Exam submitted successfully!')
+      onSave()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit.')
+    } finally { setSaving(false) }
+  }
+
+  // ── Exam ended screen ────────────────────────────────────────────────────────
+  if (examEnded) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-red-950 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <ShieldX size={64} className="mx-auto mb-6 text-red-400"/>
+          <h2 className="text-2xl font-bold text-white mb-3">Exam Auto-Submitted</h2>
+          <p className="text-red-300 mb-2 text-sm">{endReason}</p>
+          <p className="text-red-400 text-xs mb-6">
+            Your answers have been automatically recorded. The teacher has been notified.
+          </p>
+          <div className="bg-red-900/50 rounded-xl p-4 mb-6 text-left space-y-2">
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Violations:</span> {violations}/{MAX_VIOLATIONS}</p>
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Time in exam:</span> {formatTime(timeElapsed)}</p>
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Assignment:</span> {assignment.title}</p>
+          </div>
+          <button onClick={() => { onClose(); onSave() }} className="bg-white text-red-900 font-bold px-6 py-3 rounded-xl hover:bg-red-100 transition-colors">
+            Return to Assignments
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pre-exam start screen ────────────────────────────────────────────────────
+  if (!examStarted) {
+    return (
+      <Modal onClose={onClose}>
+        <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+          {/* Red header */}
+          <div className="bg-red-600 p-6 text-white text-center">
+            <Shield size={40} className="mx-auto mb-3"/>
+            <h2 className="text-xl font-bold">{assignment.title}</h2>
+            <p className="text-red-200 text-sm mt-1">Exam Mode · Anti-Cheat Active</p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Rules */}
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-800">Before you begin, read these rules:</p>
+              {[
+                { icon: Maximize,  color: 'text-blue-600',  bg: 'bg-blue-50',  text: 'The exam will enter fullscreen mode. Do not exit.' },
+                { icon: MonitorX,  color: 'text-amber-600', bg: 'bg-amber-50', text: `You get ${MAX_VIOLATIONS} violations. Switching tabs counts as 1 violation.` },
+                { icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', text: 'On your 2nd violation you will be warned. On the 3rd, exam auto-submits.' },
+                { icon: ShieldAlert, color: 'text-red-600',  bg: 'bg-red-50',   text: 'Closing the browser or refreshing will immediately auto-submit.' },
+                { icon: Lock,      color: 'text-slate-600', bg: 'bg-slate-50',  text: 'Right-click, copy, and keyboard shortcuts are disabled.' },
+              ].map(({ icon: Icon, color, bg, text }) => (
+                <div key={text} className={`flex items-start gap-3 p-3 rounded-xl ${bg}`}>
+                  <Icon size={16} className={`${color} flex-shrink-0 mt-0.5`}/>
+                  <p className="text-sm text-slate-700">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+              <button
+                onClick={async () => {
+                  await enterFullscreen()
+                  setExamStarted(true)
+                }}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                <Shield size={16}/> Start Exam
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+
+  // ── Violation warning overlay ────────────────────────────────────────────────
+  const ViolationWarning = () => showViolationWarning && (
+    <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-6">
+      <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-500">
+        <ShieldAlert size={48} className="mx-auto mb-4 text-red-500"/>
+        <h3 className="text-xl font-bold text-slate-900 mb-2">
+          ⚠️ Violation {violations}/{MAX_VIOLATIONS}
+        </h3>
+        <p className="text-slate-600 text-sm mb-2">
+          {violations === 1
+            ? 'Tab switch detected! This is your first warning.'
+            : `This is violation ${violations}. One more and your exam will be auto-submitted!`}
+        </p>
+        <p className="text-xs text-slate-400 mb-6">
+          Remaining warnings: {MAX_VIOLATIONS - violations}
+        </p>
+        <button
+          onClick={async () => {
+            setShowViolationWarning(false)
+            await enterFullscreen()
+          }}
+          className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-colors"
+        >
+          I understand — Return to Exam
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── Exam UI ──────────────────────────────────────────────────────────────────
+  return (
+    <>
+      <ViolationWarning />
+      <div className="fixed inset-0 z-[9998] bg-slate-50 flex flex-col select-none">
+        {/* Exam topbar */}
+        <div className="bg-red-600 text-white px-6 py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Shield size={18}/>
+            <div>
+              <p className="font-bold text-sm">{assignment.title}</p>
+              <p className="text-red-200 text-xs">Exam Mode · Anti-Cheat Active</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Violation indicator */}
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: MAX_VIOLATIONS }).map((_, i) => (
+                <div key={i} className={`w-3 h-3 rounded-full border-2 border-white/50 ${i < violations ? 'bg-white' : 'bg-white/20'}`}/>
+              ))}
+              <span className="text-xs text-red-200 ml-1">{violations}/{MAX_VIOLATIONS} violations</span>
+            </div>
+            {/* Timer */}
+            <div className="bg-red-700/50 px-3 py-1.5 rounded-lg font-mono font-bold text-sm">
+              {formatTime(timeElapsed)}
+            </div>
+            {/* Fullscreen status */}
+            {!isFullscreen && (
+              <button
+                onClick={enterFullscreen}
+                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Maximize size={12}/> Enter Fullscreen
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Exam content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Assignment info */}
+            {assignment.description && (
+              <div className="card p-5 mb-5">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Instructions</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{assignment.description}</p>
+              </div>
+            )}
+
+            <div className="card p-5 mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="badge-red">Exam</span>
+                <span className="text-sm text-slate-500">Due: {format(new Date(assignment.due_date), 'MMM d, yyyy h:mm a')}</span>
+              </div>
+              <span className="text-sm font-bold text-slate-700">{assignment.max_score} pts</span>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Text answer */}
+              <div className="card p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-3">Your Answer</label>
+                <textarea
+                  className="input-field h-48 resize-none"
+                  placeholder="Type your answer here…"
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  onCopy={e => e.preventDefault()}
+                  onPaste={e => e.preventDefault()}
+                  onCut={e => e.preventDefault()}
+                  spellCheck={false}
+                />
+              </div>
+
+              {/* File */}
+              <div className="card p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-3">
+                  Attach File <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                </label>
+                {!file ? (
+                  <div onClick={() => fileRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 transition-all">
+                    <Paperclip size={20} className="mx-auto mb-2 text-slate-400"/>
+                    <p className="text-sm text-slate-500">Click to attach · Max 2MB</p>
+                    <input ref={fileRef} type="file" className="hidden"
+                      accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt" onChange={handleFileChange}/>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    {fileIcon(file.type)}
+                    <p className="text-sm font-medium text-slate-700 flex-1 truncate">{file.name}</p>
+                    <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
+                    <button type="button" onClick={() => setFile(null)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg">
+                      <X size={14}/>
+                    </button>
+                  </div>
+                )}
+                {fileError && <p className="text-xs text-red-500 mt-1.5">{fileError}</p>}
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={saving || (!text.trim() && !file)}
+                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl text-base transition-colors"
+              >
+                {saving
+                  ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Submitting…</>
+                  : <><CheckCircle size={18}/> Submit Exam</>
+                }
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
 
 const TYPE_CONFIG = {
  homework: { badge:'badge-blue', bg:'bg-blue-50', label:'Homework' },
@@ -701,6 +1101,11 @@ export default function AssignmentsPage() {
  <div className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-semibold py-2">
  <AlertCircle size={12}/> Submission closed
  </div>
+ ) : a.type === 'exam' ? (
+ <button onClick={() => setSubmitModal(a)}
+ className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2 rounded-lg transition-colors">
+ <ShieldAlert size={12}/> Start Exam
+ </button>
  ) : (
  <button onClick={() => setSubmitModal(a)}
  className="btn-primary w-full justify-center text-xs py-2">
@@ -722,13 +1127,19 @@ export default function AssignmentsPage() {
  onSave={() => { setCreateModal(false); qc.invalidateQueries(['assignments']) }}
  />
  )}
- {submitModal && (
+ {submitModal && submitModal.type === 'exam' ? (
+ <ExamMode
+ assignment={submitModal}
+ onClose={() => setSubmitModal(null)}
+ onSave={() => { setSubmitModal(null); qc.invalidateQueries(['assignments']) }}
+ />
+ ) : submitModal ? (
  <SubmitModal
  assignment={submitModal}
  onClose={() => setSubmitModal(null)}
  onSave={() => { setSubmitModal(null); qc.invalidateQueries(['assignments']) }}
  />
- )}
+ ) : null}
  {submissionsFor && (
  <SubmissionsDrawer
  assignment={submissionsFor}
