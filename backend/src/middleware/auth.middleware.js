@@ -7,11 +7,10 @@ const authenticate = async (req, res, next) => {
     if (!authHeader?.startsWith('Bearer '))
       return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
 
-    const token = authHeader.slice(7); // faster than split
+    const token = authHeader.slice(7);
     if (!token || token.length < 20)
       return res.status(401).json({ success: false, message: 'Invalid token format.' });
 
-    // Verify with issuer + audience checks
     const decoded = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ['HS256'],
       issuer:     'ssmls-api',
@@ -21,16 +20,14 @@ const authenticate = async (req, res, next) => {
     if (!decoded.userId || !decoded.role)
       return res.status(401).json({ success: false, message: 'Malformed token.' });
 
-    // Verify user still exists, is active, and role hasn't changed
-    const [rows] = await pool.execute(
-      `SELECT id, email, role, is_active FROM users WHERE id = ? AND is_active = 1`,
+    const { rows } = await pool.query(
+      `SELECT id, email, role, is_active FROM users WHERE id = $1 AND is_active = TRUE`,
       [decoded.userId]
     );
 
     if (!rows.length)
       return res.status(401).json({ success: false, message: 'Account not found or deactivated.' });
 
-    // Role tampering check — if token role differs from DB role, reject
     if (rows[0].role !== decoded.role)
       return res.status(401).json({ success: false, message: 'Token role mismatch. Please login again.' });
 
