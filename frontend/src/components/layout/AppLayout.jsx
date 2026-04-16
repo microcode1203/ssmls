@@ -9,7 +9,7 @@ import {
   ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield, Search,
   LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
   MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList,
-  Brain, Scan
+  Brain, Scan, TrendingUp, Home
 } from 'lucide-react'
 
 const NAV = {
@@ -29,13 +29,15 @@ const NAV = {
     },
     { group: 'Academic',
       items: [
-        { label: 'Schedules',      icon: CalendarDays,     to: '/schedules' },
-        { label: 'Attendance',     icon: ClipboardList,    to: '/attendance' },
-        { label: 'Assignments',    icon: BookOpen,         to: '/assignments' },
-        { label: 'Grades',         icon: BarChart3,        to: '/grades' },
-        { label: 'Materials',      icon: FileText,         to: '/materials' },
-        { label: 'Learning Hub',   icon: Brain,            to: '/learn' },
-        { label: 'Scanner',        icon: Scan,             to: '/scanner' },
+        { label: 'Schedules',        icon: CalendarDays,  to: '/schedules' },
+        { label: 'Attendance',       icon: ClipboardList, to: '/attendance' },
+        { label: 'Assignments',      icon: BookOpen,      to: '/assignments' },
+        { label: 'Grades',           icon: BarChart3,     to: '/grades' },
+        { label: 'Materials',        icon: FileText,      to: '/materials' },
+        { label: 'Learning Hub',     icon: Brain,         to: '/learn' },
+        { label: 'AI Tutor',         icon: Brain,         to: '/ai-tutor' },
+        { label: 'Grade Prediction', icon: TrendingUp,    to: '/grade-prediction' },
+        { label: 'Scanner',          icon: Scan,          to: '/scanner' },
       ]
     },
     { group: 'Communication',
@@ -77,11 +79,13 @@ const NAV = {
     },
     { group: 'Academic',
       items: [
-        { label: 'Assignments',   icon: BookOpen,  to: '/assignments' },
-        { label: 'Grades',        icon: BarChart3, to: '/grades' },
-        { label: 'Materials',     icon: FileText,  to: '/materials' },
-        { label: 'Learning Hub',  icon: Brain,     to: '/learn' },
-        { label: 'Scanner',       icon: Scan,      to: '/scanner' },
+        { label: 'Assignments',      icon: BookOpen,   to: '/assignments' },
+        { label: 'Grades',           icon: BarChart3,  to: '/grades' },
+        { label: 'Materials',        icon: FileText,   to: '/materials' },
+        { label: 'Learning Hub',     icon: Brain,      to: '/learn' },
+        { label: 'AI Tutor',         icon: Brain,      to: '/ai-tutor' },
+        { label: 'Grade Prediction', icon: TrendingUp, to: '/grade-prediction' },
+        { label: 'Scanner',          icon: Scan,       to: '/scanner' },
       ]
     },
     { group: 'Communication',
@@ -116,11 +120,12 @@ const NAV = {
     },
     { group: 'Learning',
       items: [
-        { label: 'Schedule',      icon: CalendarDays, to: '/schedules' },
-        { label: 'Assignments',   icon: BookOpen,     to: '/assignments' },
-        { label: 'Grades',        icon: BarChart3,    to: '/grades' },
-        { label: 'Materials',     icon: FileText,     to: '/materials' },
-        { label: 'Learning Hub',  icon: Brain,        to: '/learn' },
+        { label: 'Schedule',     icon: CalendarDays, to: '/schedules' },
+        { label: 'Assignments',  icon: BookOpen,     to: '/assignments' },
+        { label: 'Grades',       icon: BarChart3,    to: '/grades' },
+        { label: 'Materials',    icon: FileText,     to: '/materials' },
+        { label: 'Learning Hub', icon: Brain,        to: '/learn' },
+        { label: 'AI Tutor',     icon: Brain,        to: '/ai-tutor' },
       ]
     },
     { group: 'Communication',
@@ -139,6 +144,18 @@ const NAV = {
     { group: 'Other',
       items: [
         { label: 'Settings',      icon: Settings,      to: '/settings' },
+      ]
+    },
+  ],
+  parent: [
+    { group: 'My Child',
+      items: [
+        { label: 'Overview',     icon: Home,          to: '/parent' },
+      ]
+    },
+    { group: 'Other',
+      items: [
+        { label: 'Settings', icon: Settings, to: '/settings' },
       ]
     },
   ],
@@ -165,6 +182,11 @@ const BOTTOM_NAV = {
     { label:'Schedule',icon: CalendarDays,    to: '/schedules' },
     { label:'Grades',  icon: BarChart3,       to: '/grades' },
     { label:'More',    icon: Menu,            to: null },
+  ],
+  parent: [
+    { label:'Home',     icon: Home,        to: '/parent' },
+    { label:'Settings', icon: Settings,    to: '/settings' },
+    { label:'More',     icon: Menu,        to: null },
   ],
 }
 

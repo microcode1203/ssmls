@@ -29,8 +29,11 @@ import AppealsPage        from './pages/AppealsPage'
 import SubjectsPage    from './pages/admin/SubjectsPage'
 import SettingsPage    from './pages/SettingsPage'
 import NotFoundPage    from './pages/NotFoundPage'
-import LearnPage       from './pages/LearnPage'
-import ScannerPage     from './pages/ScannerPage'
+import LearnPage            from './pages/LearnPage'
+import ScannerPage          from './pages/ScannerPage'
+import AITutorPage          from './pages/AITutorPage'
+import GradePredictionPage  from './pages/GradePredictionPage'
+import ParentPortalPage     from './pages/ParentPortalPage'
 
 // Layout
 import AppLayout from './components/layout/AppLayout'
@@ -98,6 +101,19 @@ function AppRoutes() {
         {/* Scanner — teacher and admin only */}
         <Route path="/scanner" element={
           <ProtectedRoute allowedRoles={['teacher','admin']}><ScannerPage /></ProtectedRoute>
+        } />
+
+        {/* AI Tutor — all roles */}
+        <Route path="/ai-tutor" element={<ProtectedRoute><AITutorPage /></ProtectedRoute>} />
+
+        {/* Grade Prediction — teacher and admin only */}
+        <Route path="/grade-prediction" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><GradePredictionPage /></ProtectedRoute>
+        } />
+
+        {/* Parent Portal — parent role only */}
+        <Route path="/parent" element={
+          <ProtectedRoute allowedRoles={['parent']}><ParentPortalPage /></ProtectedRoute>
         } />
       </Route>
 
