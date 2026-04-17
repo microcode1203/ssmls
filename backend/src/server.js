@@ -10,15 +10,41 @@ const { testConnection }   = require('./config/database');
 const { runMigrations }    = require('./config/migrate');
 const { runMigrationsV2 }  = require('./config/migrate_v2');
 const { seedDatabase }     = require('./config/seed');
-const { initSocket }       = require('./socket');
+// Socket.io - safely load
+let initSocket = () => {};
+try {
+  initSocket = require('./socket').initSocket;
+} catch (e) {
+  console.warn('⚠️  socket.js not found — real-time disabled. Add backend/src/socket.js to enable.');
+}
 
-const authRoutes       = require('./routes/auth.routes');
-const studentRoutes    = require('./routes/student.routes');
-const scheduleRoutes   = require('./routes/schedule.routes');
-const attendanceRoutes = require('./routes/attendance.routes');
-const mainRoutes       = require('./routes/main.routes');
-const settingsRoutes   = require('./routes/settings.routes');
-const reportRoutes     = require('./routes/report.routes');
+const authRoutes         = require('./routes/auth.routes');
+const studentRoutes      = require('./routes/student.routes');
+const scheduleRoutes     = require('./routes/schedule.routes');
+const attendanceRoutes   = require('./routes/attendance.routes');
+const settingsRoutes     = require('./routes/settings.routes');
+const adminRoutes        = require('./routes/admin.routes');
+const announcementRoutes = require('./routes/announcement.routes');
+const appealRoutes       = require('./routes/appeal.routes');
+const assignmentRoutes   = require('./routes/assignment.routes');
+const calendarRoutes     = require('./routes/calendar.routes');
+const configRoutes       = require('./routes/config.routes');
+const dashboardRoutes    = require('./routes/dashboard.routes');
+const gradeRoutes        = require('./routes/grade.routes');
+const importRoutes       = require('./routes/import.routes');
+const materialRoutes     = require('./routes/material.routes');
+const messageRoutes      = require('./routes/message.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const promotionRoutes    = require('./routes/promotion.routes');
+// report.routes — new file, safe load
+let reportRoutes = require('express').Router();
+try { reportRoutes = require('./routes/report.routes'); } catch (e) {
+  console.warn('⚠️  report.routes.js not found — /api/reports disabled');
+}
+const searchRoutes       = require('./routes/search.routes');
+const sectionRoutes      = require('./routes/section.routes');
+const subjectRoutes      = require('./routes/subject.routes');
+const teacherRoutes      = require('./routes/teacher.routes');
 
 const app    = express();
 const server = http.createServer(app);
@@ -61,13 +87,29 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/auth',       authRoutes);
-app.use('/api/students',   studentRoutes);
-app.use('/api/schedules',  scheduleRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api',            mainRoutes);
-app.use('/api/settings',   settingsRoutes);
-app.use('/api/reports',    reportRoutes);
+app.use('/api/auth',          authRoutes);
+app.use('/api/students',      studentRoutes);
+app.use('/api/schedules',     scheduleRoutes);
+app.use('/api/attendance',    attendanceRoutes);
+app.use('/api/settings',      settingsRoutes);
+app.use('/api/admin',         adminRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/appeals',       appealRoutes);
+app.use('/api/assignments',   assignmentRoutes);
+app.use('/api/calendar',      calendarRoutes);
+app.use('/api/config',        configRoutes);
+app.use('/api/dashboard',     dashboardRoutes);
+app.use('/api/grades',        gradeRoutes);
+app.use('/api/import',        importRoutes);
+app.use('/api/materials',     materialRoutes);
+app.use('/api/messages',      messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/promotion',     promotionRoutes);
+app.use('/api/reports',       reportRoutes);
+app.use('/api/search',        searchRoutes);
+app.use('/api/sections',      sectionRoutes);
+app.use('/api/subjects',      subjectRoutes);
+app.use('/api/teachers',      teacherRoutes);
 
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found.' }));
 app.use((err, req, res, next) => {
