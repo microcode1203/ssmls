@@ -9,7 +9,7 @@ const { Server } = require('socket.io');
 const { testConnection }  = require('./config/database');
 const { runMigrations }   = require('./config/migrate');
 const { runMigrationsV2 } = require('./config/migrate_v2');
-const { seedDatabase }    = require('./config/seed');
+const { seed: seedDatabase } = require('./config/seed');
 // Socket.io - safely load
 let initSocket = () => {};
 try {
