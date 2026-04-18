@@ -1,53 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1e40af"/>
-      <stop offset="100%" stop-color="#2563eb"/>
-    </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="64" y2="32" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1e3a8a" flood-opacity="0.4"/>
-    </filter>
-  </defs>
-
-  <!-- Background rounded square -->
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <!-- Shine overlay -->
-  <rect width="64" height="32" rx="14" fill="url(#shine)"/>
-  <rect width="64" y="18" height="14" fill="url(#shine)"/>
-
-  <!-- Open book base -->
-  <g filter="url(#shadow)">
-    <!-- Left page -->
-    <path d="M10 44 C10 44 18 40 32 41 L32 20 C18 19 10 23 10 23 Z" fill="white" fill-opacity="0.9"/>
-    <!-- Right page -->
-    <path d="M54 44 C54 44 46 40 32 41 L32 20 C46 19 54 23 54 23 Z" fill="white" fill-opacity="0.75"/>
-    <!-- Book spine line -->
-    <line x1="32" y1="20" x2="32" y2="41" stroke="white" stroke-width="1.2" stroke-opacity="0.5"/>
-    <!-- Book binding bottom -->
-    <path d="M10 44 C10 44 18 42 32 43 C46 42 54 44 54 44" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none" stroke-opacity="0.6"/>
-  </g>
-
-  <!-- Graduation cap on top -->
-  <g filter="url(#shadow)">
-    <!-- Cap board -->
-    <path d="M32 11 L44 16.5 L32 22 L20 16.5 Z" fill="white"/>
-    <!-- Cap top highlight -->
-    <path d="M32 11 L44 16.5 L38 19.2 L32 16.5 Z" fill="white" fill-opacity="0.7"/>
-    <!-- Tassel string -->
-    <line x1="44" y1="16.5" x2="44" y2="23" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.8"/>
-    <circle cx="44" cy="24.5" r="1.5" fill="white" fill-opacity="0.8"/>
-  </g>
-
-  <!-- Lines on left page (text simulation) -->
-  <line x1="14" y1="31" x2="29" y2="30.5" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.35"/>
-  <line x1="14" y1="35" x2="27" y2="34.5" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.25"/>
-  <line x1="14" y1="39" x2="28" y2="38.5" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.2"/>
-
-  <!-- Lines on right page -->
-  <line x1="50" y1="31" x2="35" y2="30.5" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.25"/>
-  <line x1="49" y1="35" x2="35" y2="34.5" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.18"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+  <!-- Stack of books / layers mark -->
+  <rect x="6" y="19" width="20" height="3" rx="1.5" fill="white" opacity="0.4"/>
+  <rect x="6" y="14.5" width="20" height="3" rx="1.5" fill="white" opacity="0.65"/>
+  <rect x="6" y="10" width="20" height="3" rx="1.5" fill="white"/>
+  <!-- Cap dot -->
+  <circle cx="24" cy="8" r="2.5" fill="white" opacity="0.9"/>
 </svg>
