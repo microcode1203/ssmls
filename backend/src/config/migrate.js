@@ -216,7 +216,7 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)`,
 ];
 
-async function migrate() {
+async function runMigrations() {
   console.log('🔄 Running SSMLS PostgreSQL migrations...\n');
   const client = await pool.connect();
   try {
@@ -232,8 +232,13 @@ async function migrate() {
     throw err;
   } finally {
     client.release();
-    process.exit(0);
   }
 }
 
-migrate();
+// Run directly: node migrate.js
+// Import in server.js: const { runMigrations } = require('./migrate')
+if (require.main === module) {
+  runMigrations().then(() => process.exit(0)).catch(() => process.exit(1));
+}
+
+module.exports = { runMigrations };

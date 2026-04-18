@@ -75,4 +75,25 @@ const NEW_TABLES = [
 
 ];
 
-module.exports = { NEW_TABLES };
+const { pool } = require('./database');
+
+async function runMigrationsV2() {
+  const client = await pool.connect();
+  try {
+    for (const sql of NEW_TABLES) {
+      await client.query(sql);
+    }
+    console.log('✅ V2 migrations ready');
+  } catch (err) {
+    console.error('❌ V2 migration error:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+if (require.main === module) {
+  runMigrationsV2().then(() => process.exit(0)).catch(() => process.exit(1));
+}
+
+module.exports = { NEW_TABLES, runMigrationsV2 };
