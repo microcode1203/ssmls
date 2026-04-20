@@ -41,6 +41,12 @@ let reportRoutes = require('express').Router();
 try { reportRoutes = require('./routes/report.routes'); } catch (e) {
   console.warn('⚠️  report.routes.js not found — /api/reports disabled');
 }
+
+// ai.routes — new file, safe load
+let aiRoutes = require('express').Router();
+try { aiRoutes = require('./routes/ai.routes'); } catch (e) {
+  console.warn('⚠️  ai.routes.js not found — /api/ai disabled');
+}
 const searchRoutes       = require('./routes/search.routes');
 const sectionRoutes      = require('./routes/section.routes');
 const subjectRoutes      = require('./routes/subject.routes');
@@ -106,6 +112,7 @@ app.use('/api/messages',      messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/promotion',     promotionRoutes);
 app.use('/api/reports',       reportRoutes);
+app.use('/api/ai',            aiRoutes);
 app.use('/api/search',        searchRoutes);
 app.use('/api/sections',      sectionRoutes);
 app.use('/api/subjects',      subjectRoutes);
