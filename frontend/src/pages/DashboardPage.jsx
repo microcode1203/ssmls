@@ -28,11 +28,11 @@ function LiveClock() {
     return () => clearInterval(t)
   }, [])
   return (
-    <div className="text-right">
-      <p className="text-xl font-bold text-slate-800 tabular-nums tracking-tight">
+    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+      <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
         {now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </p>
-      <p className="text-xs text-slate-400 mt-0.5">
+      <p style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 4, fontWeight: 500 }}>
         {now.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
     </div>
@@ -42,37 +42,41 @@ function LiveClock() {
 // ─── KPI Tile ─────────────────────────────────────────────────────────────────
 function KpiTile({ icon: Icon, label, value, sub, color = 'blue', onClick, trend }) {
   const palette = {
-    blue:   { val: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-100' },
-    green:  { val: 'text-emerald-700',bg: 'bg-emerald-50',border: 'border-emerald-100' },
-    amber:  { val: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-100' },
-    purple: { val: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-100' },
-    red:    { val: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
-    teal:   { val: 'text-teal-700',   bg: 'bg-teal-50',   border: 'border-teal-100' },
-    indigo: { val: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-100' },
+    blue:   { accent: '#4f46e5', bg: 'rgba(79,70,229,.07)',  border: 'rgba(79,70,229,.15)' },
+    green:  { accent: '#16a34a', bg: 'rgba(22,163,74,.07)',  border: 'rgba(22,163,74,.15)' },
+    amber:  { accent: '#d97706', bg: 'rgba(217,119,6,.07)',  border: 'rgba(217,119,6,.15)' },
+    purple: { accent: '#7c3aed', bg: 'rgba(124,58,237,.07)', border: 'rgba(124,58,237,.15)' },
+    red:    { accent: '#dc2626', bg: 'rgba(220,38,38,.07)',  border: 'rgba(220,38,38,.15)' },
+    teal:   { accent: '#0d9488', bg: 'rgba(13,148,136,.07)', border: 'rgba(13,148,136,.15)' },
+    indigo: { accent: '#4f46e5', bg: 'rgba(79,70,229,.07)',  border: 'rgba(79,70,229,.15)' },
   }
   const c = palette[color] || palette.blue
   return (
     <div
       onClick={onClick}
-      className={`bg-white border ${c.border} rounded-2xl p-5 flex items-center gap-4
-        ${onClick ? 'cursor-pointer hover:shadow-md active:scale-[0.99]' : ''} transition-all duration-150`}
+      style={{ background:'white', border:'1px solid var(--border)', borderRadius:12,
+        padding:16, cursor:onClick?'pointer':'default', transition:'all .15s',
+        position:'relative', overflow:'hidden' }}
+      onMouseEnter={e=>{ if(onClick){e.currentTarget.style.borderColor=c.accent; e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.07)'}}}
+      onMouseLeave={e=>{ if(onClick){e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow=''}}}
     >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${c.bg}`}>
-        <Icon size={22} className={c.val} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-3xl font-bold leading-none tabular-nums ${c.val}`}>
-          {value ?? <span className="text-slate-200">—</span>}
-        </p>
-        <p className="text-sm font-semibold text-slate-600 mt-1 truncate">{label}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
-      </div>
-      {trend != null && (
-        <div className={`text-xs font-bold flex items-center gap-0.5 flex-shrink-0 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-          {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-          {Math.abs(trend)}%
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
+        <div style={{ width:34, height:34, borderRadius:8, background:c.bg, border:`1px solid ${c.border}`,
+          display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <Icon size={16} style={{ color:c.accent }}/>
         </div>
-      )}
+        {trend!=null && (
+          <div style={{ display:'flex', alignItems:'center', gap:2, fontSize:11, fontWeight:700, color:trend>=0?'#16a34a':'#dc2626' }}>
+            {trend>=0?<ArrowUpRight size={11}/>:<ArrowDownRight size={11}/>}
+            {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+      <p style={{ fontSize:26, fontWeight:800, color:'var(--text-1)', lineHeight:1, letterSpacing:'-0.04em', fontVariantNumeric:'tabular-nums' }}>
+        {value??<span style={{color:'var(--border)'}}>—</span>}
+      </p>
+      <p style={{ fontSize:12, fontWeight:600, color:'var(--text-3)', marginTop:4 }}>{label}</p>
+      {sub&&<p style={{ fontSize:11, color:'var(--text-4)', marginTop:2 }}>{sub}</p>}
     </div>
   )
 }
@@ -85,13 +89,13 @@ function AttRing({ rate, size = 80 }) {
   const circ = 2 * Math.PI * r
   const pct = Math.min(100, Math.max(0, parseFloat(rate) || 0))
   const offset = circ - (pct / 100) * circ
-  const color = pct >= 90 ? '#10b981' : pct >= 75 ? '#f59e0b' : '#ef4444'
+  const color = pct >= 90 ? '#16a34a' : pct >= 75 ? '#d97706' : '#dc2626'
   // Font size scales with ring size so it always fits
   const fontSize = size <= 60 ? 10 : size <= 80 ? 13 : 15
   const subSize = size <= 60 ? 7 : 9
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="7"/>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth="7"/>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="7"
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round"
@@ -113,33 +117,38 @@ function AttRing({ rate, size = 80 }) {
 function GradeBadge({ grade }) {
   const g = parseFloat(grade)
   if (isNaN(g)) return <span className="text-slate-300 text-sm">—</span>
-  const cls =
-    g >= 90 ? 'bg-emerald-100 text-emerald-700' :
-    g >= 85 ? 'bg-green-100 text-green-700' :
-    g >= 80 ? 'bg-blue-100 text-blue-700' :
-    g >= 75 ? 'bg-amber-100 text-amber-700' :
-    'bg-red-100 text-red-600'
-  return <span className={`text-xs font-bold tabular-nums ${cls} px-2 py-0.5 rounded-md`}>{g.toFixed(0)}</span>
+  const style = g>=90 ? {background:'rgba(22,163,74,.1)',color:'#16a34a',border:'1px solid rgba(22,163,74,.2)'} :
+    g>=85 ? {background:'rgba(22,163,74,.08)',color:'#16a34a',border:'1px solid rgba(22,163,74,.15)'} :
+    g>=80 ? {background:'rgba(79,70,229,.08)',color:'#4f46e5',border:'1px solid rgba(79,70,229,.15)'} :
+    g>=75 ? {background:'rgba(217,119,6,.08)',color:'#d97706',border:'1px solid rgba(217,119,6,.15)'} :
+    {background:'rgba(220,38,38,.08)',color:'#dc2626',border:'1px solid rgba(220,38,38,.15)'}
+  return <span style={{ fontSize:11, fontWeight:700, fontVariantNumeric:'tabular-nums', padding:'2px 7px', borderRadius:5, ...style }}>{g.toFixed(0)}</span>
 }
 
 // ─── Card + Section Header helpers ───────────────────────────────────────────
 const Card = ({ children, className = '', onClick }) => (
   <div onClick={onClick}
-    className={`bg-white border border-slate-100 rounded-xl ${onClick ? 'cursor-pointer hover:shadow-sm' : ''} ${className}`}>
+    style={{ background:'white', border:'1px solid var(--border)', borderRadius:12,
+      boxShadow:'0 1px 3px rgba(9,9,11,.05)', cursor:onClick?'pointer':'default',
+      transition:'box-shadow .15s, border-color .15s' }}
+    className={className}
+    onMouseEnter={e=>{ if(onClick) e.currentTarget.style.boxShadow='0 4px 16px rgba(9,9,11,.07)' }}
+    onMouseLeave={e=>{ if(onClick) e.currentTarget.style.boxShadow='0 1px 3px rgba(9,9,11,.05)' }}
+  >
     {children}
   </div>
 )
 
 function SectionHeader({ title, sub, action, onAction }) {
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
       <div>
-        <p className="text-base font-bold text-slate-800">{title}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        <p style={{ fontSize:13.5, fontWeight:700, color:'var(--text-1)', letterSpacing:'-0.01em' }}>{title}</p>
+        {sub && <p style={{ fontSize:11, color:'var(--text-4)', marginTop:2 }}>{sub}</p>}
       </div>
       {action && (
-        <button onClick={onAction} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">
-          {action} <ChevronRight size={11} />
+        <button onClick={onAction} style={{ fontSize:12, color:'var(--accent)', fontWeight:600, background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:2 }}>
+          {action} <ChevronRight size={11}/>
         </button>
       )}
     </div>
@@ -150,8 +159,8 @@ function SectionHeader({ title, sub, action, onAction }) {
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 10px', fontSize: 11, boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}>
-      <p style={{ fontWeight: 700, color: '#334155', marginBottom: 3 }}>{label}</p>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 11px', fontSize: 11.5, boxShadow: '0 8px 24px rgba(9,9,11,.10)' }}>
+      <p style={{ fontWeight: 700, color: 'var(--text-2)', marginBottom: 3 }}>{label}</p>
       {payload.map((p, i) => <p key={i} style={{ color: p.color, fontWeight: 600 }}>{p.name}: {p.value}</p>)}
     </div>
   )
@@ -175,9 +184,9 @@ function AdminDashboard({ data }) {
   (weeklyAtt || []).forEach(d => { weekMap[d.day_label] = d })
   const weekData = dayOrder.map(d => ({ day: d, attended: Number(weekMap[d]?.attended || 0) }))
 
-  const strandColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+  const strandColors = ['#4f46e5', '#7c3aed', '#0d9488', '#d97706', '#dc2626']
   const strandTotal  = (strandBreakdown || []).reduce((a, b) => a + Number(b.count), 0)
-  const GRADE_COLORS = { 'Outstanding': '#10b981', 'Very Satisfactory': '#3b82f6', 'Satisfactory': '#8b5cf6', 'Fairly Satisfactory': '#f59e0b', 'Did Not Meet': '#ef4444' }
+  const GRADE_COLORS = { 'Outstanding': '#16a34a', 'Very Satisfactory': '#4f46e5', 'Satisfactory': '#7c3aed', 'Fairly Satisfactory': '#d97706', 'Did Not Meet': '#dc2626' }
   const trendData = (monthlyTrend || []).map(m => ({ month: m.month, rate: Number(m.rate || 0) }))
 
   return (
@@ -251,11 +260,11 @@ function AdminDashboard({ data }) {
           <SectionHeader title="This Week's Attendance" sub="Students attended per day" />
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={weekData} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={36} />
+              <Bar dataKey="attended" name="Attended" fill="#4f46e5" radius={[5, 5, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -283,8 +292,8 @@ function AdminDashboard({ data }) {
               {(gradeBreakdown || []).length > 0 && (
                 <div className="flex gap-3 mt-3 pt-3 border-t border-slate-100">
                   {(gradeBreakdown || []).map(g => (
-                    <div key={g.grade_level} className="flex-1 bg-primary/5 rounded-xl p-3 text-center border border-primary/10">
-                      <p className="text-2xl font-bold text-primary tabular-nums">{Number(g.count)}</p>
+                    <div key={g.grade_level} className="flex-1 bg-primary/5 rounded-xl p-3 text-center border ">
+                      <p className="text-2xl font-bold tabular-nums">{Number(g.count)}</p>
                       <p className="text-xs text-slate-500 font-semibold mt-0.5">{g.grade_level?.replace('Grade ', 'G')}</p>
                     </div>
                   ))}
@@ -308,15 +317,15 @@ function AdminDashboard({ data }) {
               <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="attGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#4f46e5" stopOpacity={0.10} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="rate" name="Rate (%)" stroke="#3b82f6" fill="url(#attGrad)" strokeWidth={2.5} dot={{ fill: '#3b82f6', r: 3.5 }} />
+                <Area type="monotone" dataKey="rate" name="Rate (%)" stroke="#4f46e5" fill="url(#attGrad)" strokeWidth={2} dot={{ fill: '#4f46e5', r: 3 }} />
               </AreaChart>
             </ResponsiveContainer>
           ) : <div className="flex items-center justify-center h-44 text-slate-300 text-sm">No monthly data yet</div>}
@@ -498,9 +507,9 @@ function TeacherDashboard({ data }) {
           {weekData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={weekData} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="attended" name="Attended" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={32} />
               </BarChart>
@@ -655,8 +664,8 @@ function StudentDashboard({ data }) {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Monthly Trend</p>
               <ResponsiveContainer width="100%" height={95}>
                 <BarChart data={monthChartData} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: '#cbd5e1' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fontWeight: 600, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: 'var(--text-4)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip content={<ChartTooltip />} />
                   <Bar dataKey="present" name="Present" stackId="a" fill="#10b981" maxBarSize={22} />
                   <Bar dataKey="late"    name="Late"    stackId="a" fill="#f59e0b" maxBarSize={22} />
@@ -771,15 +780,24 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="p-5 sm:p-7 lg:p-9 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6 gap-3">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, gap:12, flexWrap:'wrap' }}>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Welcome back, <span className="font-semibold text-slate-700">{user?.firstName}</span>! Here's what's happening today.
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)' }}/>
+            <span style={{ fontSize:10.5, fontWeight:700, color:'var(--text-4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
+              {user?.role?.charAt(0).toUpperCase()+user?.role?.slice(1)} Dashboard
+            </span>
+          </div>
+          <h1 style={{ fontSize:22, fontWeight:800, color:'var(--text-1)', letterSpacing:'-0.04em', lineHeight:1.1, margin:0 }}>
+            Good {new Date().getHours()<12?'morning':new Date().getHours()<17?'afternoon':'evening'},{' '}
+            <span style={{ color:'var(--accent)' }}>{user?.firstName}.</span>
+          </h1>
+          <p style={{ fontSize:13, color:'var(--text-4)', marginTop:4 }}>
+            Here's what's happening at your school today.
           </p>
         </div>
-        <LiveClock />
+        <LiveClock/>
       </div>
 
       {isLoading && <DashboardSkeleton />}

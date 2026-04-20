@@ -296,7 +296,7 @@ function NotificationBell() {
           zIndex: 9999,
           background: 'white', borderRadius: 12, width: 320,
           boxShadow: '0 12px 40px rgba(15,23,42,.22), 0 2px 8px rgba(15,23,42,.08)',
-          border: '0.5px solid #e2e8f0',
+          border: '1px solid var(--border)',
           overflow: 'hidden',
           maxHeight: 'calc(100vh - ' + dropPos.top + 'px - 16px)',
         }}>
@@ -365,7 +365,7 @@ function NotificationBell() {
                   {!n.is_read && (
                     <div style={{
                       width: 7, height: 7, borderRadius: '50%',
-                      background: '#2563eb', flexShrink: 0, marginTop: 4,
+                      background: 'var(--accent)', flexShrink: 0, marginTop: 4,
                     }}/>
                   )}
                 </div>
@@ -393,15 +393,10 @@ function SidebarContent({ user, onClose, onLogout }) {
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-logo">
-          <svg viewBox="0 0 64 64" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-            {/* Open book */}
-            <path d="M10 44 C10 44 18 40 32 41 L32 20 C18 19 10 23 10 23 Z" fill="white" fillOpacity="0.9"/>
-            <path d="M54 44 C54 44 46 40 32 41 L32 20 C46 19 54 23 54 23 Z" fill="white" fillOpacity="0.65"/>
-            <line x1="32" y1="20" x2="32" y2="41" stroke="white" strokeWidth="1.5" strokeOpacity="0.4"/>
-            {/* Graduation cap */}
-            <path d="M32 11 L44 16.5 L32 22 L20 16.5 Z" fill="white"/>
-            <line x1="44" y1="16.5" x2="44" y2="23" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8"/>
-            <circle cx="44" cy="24.5" r="1.5" fill="white" fillOpacity="0.8"/>
+          <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+            <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
+            <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
+            <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
           </svg>
         </div>
         <div>
@@ -529,12 +524,10 @@ export default function AppLayout() {
           </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
-              <svg viewBox="0 0 64 64" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 44 C10 44 18 40 32 41 L32 20 C18 19 10 23 10 23 Z" fill="white" fillOpacity="0.9"/>
-                <path d="M54 44 C54 44 46 40 32 41 L32 20 C46 19 54 23 54 23 Z" fill="white" fillOpacity="0.65"/>
-                <path d="M32 11 L44 16.5 L32 22 L20 16.5 Z" fill="white"/>
-                <line x1="44" y1="16.5" x2="44" y2="23" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                <circle cx="44" cy="24.5" r="1.5" fill="white"/>
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
+                <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
+                <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
               </svg>
             </div>
             <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>S.S.M.L.S</span>
