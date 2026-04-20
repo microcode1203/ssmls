@@ -5,12 +5,6 @@ import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, ArrowRight, Zap, Shield, BarChart2, Users } from 'lucide-react'
 
-const STATS = [
-  { value: '500+', label: 'Students managed' },
-  { value: '99.9%', label: 'Uptime guaranteed' },
-  { value: '4.9★', label: 'Teacher rating' },
-]
-
 const FEATURES = [
   { icon: Zap,      label: 'QR Attendance',    desc: 'Instant scanning' },
   { icon: BarChart2, label: 'Grade Analytics',  desc: 'DepEd formula' },
@@ -67,18 +61,8 @@ export default function LoginPage() {
           </h1>
 
           <p className="login-subheadline">
-            Attendance, grades, schedules, and learning — unified in one platform built for DepEd.
+            Attendance, grades, schedules, and learning — unified in one platform built for school's modernization.
           </p>
-
-          {/* Stats row */}
-          <div className="login-stats">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="login-stat">
-                <span className="login-stat-value">{value}</span>
-                <span className="login-stat-label">{label}</span>
-              </div>
-            ))}
-          </div>
 
           {/* Feature grid */}
           <div className="login-features">
@@ -295,30 +279,6 @@ export default function LoginPage() {
           line-height: 1.7;
           max-width: 300px;
           margin: 0 0 36px;
-        }
-
-        /* Stats */
-        .login-stats {
-          display: flex;
-          gap: 24px;
-          margin-bottom: 40px;
-          padding-bottom: 36px;
-          border-bottom: 1px solid rgba(255,255,255,.07);
-        }
-        .login-stat {}
-        .login-stat-value {
-          display: block;
-          font-size: 22px;
-          font-weight: 800;
-          color: white;
-          letter-spacing: -0.03em;
-          line-height: 1;
-          margin-bottom: 3px;
-        }
-        .login-stat-label {
-          font-size: 11px;
-          color: rgba(255,255,255,.35);
-          font-weight: 500;
         }
 
         /* Features */
