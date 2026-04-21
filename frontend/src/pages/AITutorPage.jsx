@@ -221,28 +221,21 @@ Answer questions specifically about this lesson. Help the student understand the
     setLoading(true)
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: buildSystemPrompt(),
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-        })
+      const response = await api.post('/ai/chat', {
+        system: buildSystemPrompt(),
+        messages: newMessages.map(m => ({ role: m.role, content: m.content })),
       })
 
-      const data = await response.json()
-      const aiText = data.content?.[0]?.text || 'Sorry, I could not generate a response. Please try again.'
-
+      const aiText = response.data?.reply || 'Sorry, I could not generate a response. Please try again.'
       const aiMsg = { role: 'assistant', content: aiText, timestamp: new Date() }
       const finalMessages = [...newMessages, aiMsg]
       setMessages(finalMessages)
       saveSession(finalMessages)
     } catch (err) {
+      const errMsg = err.response?.data?.message || 'Sorry, I encountered an error. Please try again.'
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please check your connection and try again.',
+        content: errMsg,
         timestamp: new Date()
       }])
     } finally {
