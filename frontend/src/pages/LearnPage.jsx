@@ -36,31 +36,29 @@ function AIGeneratorModal({ onClose, onGenerated }) {
     if (!topic.trim()) return toast.error('Enter a topic first')
     setGenerating(true)
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: [{
-            role: 'user',
-            content: `Generate ${count} ${difficulty} difficulty ${type === 'multiple_choice' ? 'multiple choice (4 options A-D)' : type === 'true_false' ? 'true/false' : 'identification'} questions about: "${topic}".
+      const prompt = `Generate ${count} ${difficulty} difficulty ${
+        type === 'multiple_choice' ? 'multiple choice (4 options A-D)' :
+        type === 'true_false' ? 'true/false' : 'identification'
+      } questions about: "${topic}".
 
-Return ONLY valid JSON array, no markdown, no explanation:
+Return ONLY a valid JSON array, no markdown, no explanation, no extra text:
 [
   {
     "question": "...",
     "type": "${type}",
     "options": ${type === 'multiple_choice' ? '["A. ...", "B. ...", "C. ...", "D. ..."]' : type === 'true_false' ? '["True", "False"]' : 'null'},
     "answer": "correct answer here",
-    "explanation": "brief explanation"
+    "explanation": "brief explanation",
+    "points": 1
   }
 ]`
-          }]
-        })
+
+      const response = await api.post('/ai/chat', {
+        system: 'You are an expert educator creating quiz questions for Philippine Senior High School students. Return ONLY valid JSON arrays with no markdown formatting.',
+        messages: [{ role: 'user', content: prompt }]
       })
-      const data = await response.json()
-      const text = data.content?.[0]?.text || ''
+
+      const text = response.data?.reply || ''
       const clean = text.replace(/```json|```/g, '').trim()
       const questions = JSON.parse(clean)
       onGenerated(questions)

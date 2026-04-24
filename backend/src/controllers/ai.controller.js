@@ -1,4 +1,4 @@
-// ai.controller.js — Google Gemini AI proxy with retry
+// ai.controller.js — Google Gemini AI proxy
 const https = require('https')
 
 const geminiRequest = (apiKey, payload, model) => new Promise((resolve, reject) => {
@@ -25,7 +25,6 @@ const geminiRequest = (apiKey, payload, model) => new Promise((resolve, reject) 
   req.end()
 })
 
-// POST /api/ai/chat
 const chat = async (req, res) => {
   try {
     const { system, messages } = req.body
@@ -37,7 +36,6 @@ const chat = async (req, res) => {
     if (!apiKey)
       return res.status(503).json({ success: false, message: 'AI Tutor is not configured. Contact your administrator.' })
 
-    // Build contents — Gemini uses 'user' and 'model' roles
     const contents = messages.map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: String(m.content || '').slice(0, 4000) }]
@@ -49,14 +47,13 @@ const chat = async (req, res) => {
       generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
     }
 
-    // Try models in order — fallback if one is rate limited
+    // Only use confirmed working free models
     const models = [
-      'gemini-2.0-flash-lite',
       'gemini-2.0-flash',
-      'gemini-1.5-flash-8b',
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
     ]
-
-    let lastError = null
 
     for (const model of models) {
       try {
@@ -64,50 +61,41 @@ const chat = async (req, res) => {
 
         if (result.status === 200) {
           const reply = result.body.candidates?.[0]?.content?.parts?.[0]?.text
-            || 'I could not generate a response. Please try again.'
-          return res.json({ success: true, reply, model })
+            || 'Could not generate a response. Please try again.'
+          return res.json({ success: true, reply })
         }
 
         if (result.status === 429) {
-          // Rate limited — try next model
           console.warn(`Model ${model} rate limited, trying next...`)
-          lastError = 'rate_limit'
-          // Small delay before trying next model
-          await new Promise(r => setTimeout(r, 500))
+          await new Promise(r => setTimeout(r, 300))
           continue
         }
 
         if (result.status === 403) {
-          return res.status(503).json({ success: false, message: 'Invalid API key. Go to Render → Environment and check GEMINI_API_KEY.' })
+          return res.status(503).json({ 
+            success: false, 
+            message: 'Invalid API key. Go to Render → Environment and verify GEMINI_API_KEY.' 
+          })
         }
 
-        console.error(`Gemini ${model} error:`, result.status, JSON.stringify(result.body))
-        lastError = result.body?.error?.message || 'Unknown error'
+        // Model not found or unsupported — try next
+        console.warn(`Model ${model} failed with ${result.status}:`, result.body?.error?.message)
         continue
 
       } catch (err) {
-        console.error(`Model ${model} request failed:`, err.message)
-        lastError = err.message
+        console.warn(`Model ${model} error:`, err.message)
         continue
       }
     }
 
-    // All models failed
-    if (lastError === 'rate_limit') {
-      return res.status(429).json({
-        success: false,
-        message: 'The AI service is currently at capacity. Please wait 1 minute and try again.'
-      })
-    }
-
-    return res.status(503).json({
+    return res.status(429).json({
       success: false,
-      message: `AI service error: ${lastError || 'All models unavailable'}`
+      message: 'AI service is temporarily unavailable. Please try again in a minute.'
     })
 
   } catch (err) {
     console.error('AI chat error:', err.message)
-    res.status(500).json({ success: false, message: 'Failed to reach AI service: ' + err.message })
+    res.status(500).json({ success: false, message: 'Failed to reach AI service.' })
   }
 }
 
