@@ -273,7 +273,7 @@ function CreateContentModal({ onClose, onSave, schedules }) {
                     <option value="">— Select class —</option>
                     {(schedules || []).map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.subject_name || s.subject} · {s.grade_level} {s.section_name}
+                        {s.grade_level} — {s.section_name} · {s.subject_name}
                       </option>
                     ))}
                   </select>
@@ -947,20 +947,12 @@ export default function LearnPage() {
   })
 
   const { data: schedules } = useQuery({
-    queryKey: ['my-schedules-learn'],
-    queryFn: () => api.get('/schedules/my').then(r => r.data.data),
+    queryKey: ['learn-schedules'],
+    queryFn: () => api.get('/learn/schedules').then(r => r.data.data),
     enabled: isTeacher || isAdmin,
   })
 
-  const uniqueClasses = useMemo(() => {
-    const seen = new Map()
-    return (schedules || []).filter(s => {
-      if (s.status !== 'approved') return false
-      const key = `${s.subject_id}_${s.section_id}`
-      if (seen.has(key)) return false
-      seen.set(key, true); return true
-    })
-  }, [schedules])
+  const uniqueClasses = schedules || []
 
   const filtered = useMemo(() => (contents || []).filter(c => {
     if (filter.type && c.type !== filter.type) return false
