@@ -84,7 +84,16 @@ const sanitizeValue = (val) => {
   return val;
 };
 
+<<<<<<< HEAD
 app.use((req, res, next) => {
+=======
+// Exam routes are exempt: exam questions/answers legitimately contain < and > (e.g. "2x < 10"),
+// and the exam pages always render them as plain text (React escapes output), never as raw HTML.
+const SKIP_SANITIZE = ['/api/exams', '/api/exam-online'];
+
+app.use((req, res, next) => {
+  if (SKIP_SANITIZE.some((p) => req.originalUrl.startsWith(p))) return next();
+>>>>>>> 645db23 (V-Smart Update)
   if (req.body)   req.body   = sanitizeValue(req.body);
   if (req.query)  req.query  = sanitizeValue(req.query);
   // Note: do NOT sanitize passwords — they may contain < > & legitimately
@@ -130,7 +139,24 @@ const apiLimiter = rateLimit({
   message:  { success: false, message: 'Rate limit exceeded. Try again shortly.' },
 });
 
+<<<<<<< HEAD
 app.use('/api', apiLimiter);
+=======
+// Online exams send a heartbeat every 10s plus autosaves, and a whole class shares one school IP,
+// so /api/exam-online uses its own per-student limiter (below) instead of this shared one.
+const apiLimiter_skipExam = (req) => req.originalUrl.startsWith('/api/exam-online');
+app.use('/api', (req, res, next) => (apiLimiter_skipExam(req) ? next() : apiLimiter(req, res, next)));
+
+// Exam taking: 600 requests / 15 min per student (keyed by login token, NOT by IP)
+const examLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max:      600,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:  { success: false, message: 'Too many requests. Please wait a moment.' },
+  keyGenerator: (req) => require('crypto').createHash('sha1').update(req.headers.authorization || 'anon').digest('hex'),
+});
+>>>>>>> 645db23 (V-Smart Update)
 
 // ═══════════════════════════════════════════════════════════════
 //  SECURITY LAYER 6 — Request ID (traceability)
@@ -188,6 +214,11 @@ const reportRoutes       = require('./routes/report.routes');
 const searchRoutes       = require('./routes/search.routes');
 const importRoutes       = require('./routes/import.routes');
 const promotionRoutes    = require('./routes/promotion.routes');
+<<<<<<< HEAD
+=======
+const examRoutes         = require('./routes/exam.routes');
+const examOnlineRoutes   = require('./routes/examOnline.routes');
+>>>>>>> 645db23 (V-Smart Update)
 
 app.use('/api/auth',          authLimiter,     authRoutes);
 app.use('/api/students',      writeLimiter,    studentRoutes);
@@ -212,6 +243,11 @@ app.use('/api/reports',                        reportRoutes);
 app.use('/api/search',                         searchRoutes);
 app.use('/api/import',        writeLimiter,    importRoutes);
 app.use('/api/promotion',                      promotionRoutes);
+<<<<<<< HEAD
+=======
+app.use('/api/exams',                          examRoutes);
+app.use('/api/exam-online',   examLimiter,     examOnlineRoutes);
+>>>>>>> 645db23 (V-Smart Update)
 
 // Health check — no auth, no rate limit
 app.get('/api/health', (req, res) => {

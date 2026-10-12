@@ -11,6 +11,10 @@ import {
   RefreshCw, ZoomIn, Check, Upload, Printer,
   BookOpen, Target, TrendingUp, Award
 } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import Modal from '../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const QUESTION_TYPES = {
@@ -941,7 +945,11 @@ export default function ScannerPage() {
 
       {/* Print modal */}
       {showPrint && (
+<<<<<<< HEAD
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+=======
+        <Modal onClose={() => setShowPrint(false)}>
+>>>>>>> 645db23 (V-Smart Update)
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h3 className="font-bold text-slate-900">Answer Sheet Preview</h3>
@@ -956,7 +964,11 @@ export default function ScannerPage() {
             </div>
             <PrintableSheet title={title} answerKey={answerKey}/>
           </div>
+<<<<<<< HEAD
         </div>
+=======
+        </Modal>
+>>>>>>> 645db23 (V-Smart Update)
       )}
     </div>
   )

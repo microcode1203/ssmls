@@ -377,6 +377,7 @@ const getAssignments = async (req, res) => {
 
     if (req.user.role === 'student') {
       const { rows: sRows } = await pool.query(
+<<<<<<< HEAD
         `SELECT section_id FROM students WHERE user_id = $1`, [req.user.id]
       );
       const secId = sRows[0]?.section_id;
@@ -384,11 +385,27 @@ const getAssignments = async (req, res) => {
       p = [secId];
       q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
              u.first_name, u.middle_name, u.last_name
+=======
+        `SELECT id, section_id FROM students WHERE user_id = $1`, [req.user.id]
+      );
+      const secId = sRows[0]?.section_id;
+      const myStudentId = sRows[0]?.id;
+      if (!secId) return res.json({ success: true, data: [] });
+      p = [secId, myStudentId];
+      q = `SELECT a.*, sub.name as subject_name, sec.section_name, sec.grade_level,
+             u.first_name, u.middle_name, u.last_name,
+             my.id as my_submission_id, my.status as my_status, my.is_locked as my_locked,
+             my.lock_reason as my_lock_reason, my.submitted_at as my_submitted_at, my.score as my_score
+>>>>>>> 645db23 (V-Smart Update)
            FROM assignments a
            JOIN schedules s ON s.id = a.schedule_id
            JOIN subjects sub ON sub.id = s.subject_id
            JOIN sections sec ON sec.id = s.section_id
            JOIN users u ON u.id = a.created_by
+<<<<<<< HEAD
+=======
+           LEFT JOIN submissions my ON my.assignment_id = a.id AND my.student_id = $2
+>>>>>>> 645db23 (V-Smart Update)
            WHERE s.section_id = $1 ORDER BY a.due_date ASC`;
 
     } else if (req.user.role === 'teacher') {
@@ -445,16 +462,46 @@ const createAssignment = async (req, res) => {
 
 const submitAssignment = async (req, res) => {
   try {
+<<<<<<< HEAD
     const { assignmentId, textAnswer, fileData, fileName, fileType, fileSize } = req.body;
+=======
+    const { assignmentId, textAnswer, fileData, fileName, fileType, fileSize, autoSubmitted, violationReason } = req.body;
+>>>>>>> 645db23 (V-Smart Update)
     if (fileData && fileData.length > 4000000)
       return res.status(400).json({ success: false, message: 'File too large. Maximum size is 2MB.' });
 
     const { rows: sRows } = await pool.query(`SELECT id FROM students WHERE user_id=$1`, [req.user.id]);
     if (!sRows.length) return res.status(403).json({ success:false, message:'Student not found.' });
+<<<<<<< HEAD
 
     await pool.query(
       `INSERT INTO submissions (assignment_id, student_id, text_answer, file_data, file_name, file_type, file_size, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'submitted')
+=======
+    const studentId = sRows[0].id;
+
+    const { rows: aRows } = await pool.query(`SELECT type FROM assignments WHERE id=$1`, [assignmentId]);
+    if (!aRows.length) return res.status(404).json({ success:false, message:'Assignment not found.' });
+    const isExam = aRows[0].type === 'exam';
+
+    // Exams are locked the moment they are turned in — whether the student
+    // clicked Submit or the anti-cheat system ended the session for them —
+    // so a closed/refreshed browser can never re-open and overwrite it.
+    const { rows: existingRows } = await pool.query(
+      `SELECT id, is_locked FROM submissions WHERE assignment_id=$1 AND student_id=$2`,
+      [assignmentId, studentId]
+    );
+    if (existingRows.length && existingRows[0].is_locked) {
+      return res.status(403).json({ success:false, message:'This exam has already been submitted and is locked.' });
+    }
+
+    const shouldLock = isExam;
+    const lockReason = !isExam ? null : (autoSubmitted ? (violationReason || 'Auto-submitted by anti-cheat system') : 'Submitted by student');
+
+    const { rowCount } = await pool.query(
+      `INSERT INTO submissions (assignment_id, student_id, text_answer, file_data, file_name, file_type, file_size, status, is_locked, lock_reason)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'submitted',$8,$9)
+>>>>>>> 645db23 (V-Smart Update)
        ON CONFLICT (assignment_id, student_id) DO UPDATE SET
          text_answer=EXCLUDED.text_answer,
          file_data=EXCLUDED.file_data,
@@ -462,10 +509,29 @@ const submitAssignment = async (req, res) => {
          file_type=EXCLUDED.file_type,
          file_size=EXCLUDED.file_size,
          submitted_at=NOW(),
+<<<<<<< HEAD
          status='submitted'`,
       [assignmentId, sRows[0].id, textAnswer||null, fileData||null, fileName||null, fileType||null, fileSize||null]
     );
     res.json({ success:true, message:'Assignment submitted successfully.' });
+=======
+         status='submitted',
+         is_locked=EXCLUDED.is_locked,
+         lock_reason=EXCLUDED.lock_reason
+       WHERE submissions.is_locked = FALSE`,
+      [assignmentId, studentId, textAnswer||null, fileData||null, fileName||null, fileType||null, fileSize||null, shouldLock, lockReason]
+    );
+
+    if (rowCount === 0) {
+      return res.status(409).json({ success:false, message:'This submission is locked and cannot be updated.' });
+    }
+
+    res.json({
+      success:true,
+      message: autoSubmitted ? 'Exam auto-submitted and locked.' : (isExam ? 'Exam submitted and locked.' : 'Assignment submitted successfully.'),
+      data: { locked: shouldLock }
+    });
+>>>>>>> 645db23 (V-Smart Update)
   } catch (err) {
     console.error('Submit error:', err.message);
     res.status(500).json({ success: false, message: err.message });

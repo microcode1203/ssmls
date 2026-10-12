@@ -70,7 +70,11 @@ router.post('/admins', async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const [result] = await pool.execute(
       `INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
+<<<<<<< HEAD
        VALUES (?, ?, ?, ?, 'admin', 1, 1)`,
+=======
+       VALUES (?, ?, ?, ?, 'admin', TRUE, TRUE)`,
+>>>>>>> 645db23 (V-Smart Update)
       [firstName.trim(), lastName.trim(), email.toLowerCase().trim(), hash]
     );
 

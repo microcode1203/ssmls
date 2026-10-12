@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 // @v2-fixed-imports
+=======
+// @v3-personal-qr-badges
+>>>>>>> 645db23 (V-Smart Update)
 const QRCode = require('qrcode');
 const crypto = require('crypto');
 const { pool } = require('../config/database');
 const { logAction } = require('../utils/audit');
 
+<<<<<<< HEAD
 const generateQRToken = (classId) => {
   const timestamp = Math.floor(Date.now() / 1000);
   const secret = process.env.QR_SECRET || 'default_qr_secret';
@@ -31,6 +36,106 @@ const validateQRToken = (token) => {
 
 // POST /api/attendance/generate-qr
 const generateQR = async (req, res) => {
+=======
+// ── Personal student QR badge ────────────────────────────────────────────────
+// Every registered student automatically has a permanent, signed QR code
+// derived from their student id — nothing needs to be generated or stored at
+// registration time, it's just computed on demand. The teacher scans this
+// badge (instead of students scanning a projected/rotating code), which is
+// faster for a full class and works offline-first once the camera is open.
+const STUDENT_QR_PREFIX = 'STU';
+
+const generateStudentToken = (studentId) => {
+  const secret = process.env.QR_SECRET || 'default_qr_secret';
+  const payload = `${STUDENT_QR_PREFIX}|${studentId}`;
+  const hash = crypto.createHmac('sha256', secret).update(payload).digest('hex').substring(0, 12).toUpperCase();
+  return `${payload}|${hash}`;
+};
+
+const validateStudentToken = (token) => {
+  try {
+    const secret = process.env.QR_SECRET || 'default_qr_secret';
+    const parts = String(token).trim().split('|');
+    if (parts.length !== 3 || parts[0] !== STUDENT_QR_PREFIX) return { valid: false, studentId: null, reason: 'Not a valid student badge.' };
+    const [, studentId, providedHash] = parts;
+    if (!/^\d+$/.test(studentId)) return { valid: false, studentId: null, reason: 'Malformed student badge.' };
+    const expectedHash = crypto.createHmac('sha256', secret)
+      .update(`${STUDENT_QR_PREFIX}|${studentId}`).digest('hex').substring(0, 12).toUpperCase();
+    if (expectedHash !== providedHash) return { valid: false, studentId: null, reason: 'Invalid or tampered badge.' };
+    return { valid: true, studentId: parseInt(studentId, 10) };
+  } catch {
+    return { valid: false, studentId: null, reason: 'Malformed student badge.' };
+  }
+};
+
+const buildQrImage = (token) => QRCode.toDataURL(token, {
+  width: 320, margin: 2,
+  color: { dark: '#111827', light: '#ffffff' },
+  errorCorrectionLevel: 'H'
+});
+
+// GET /api/attendance/my-qr  (student — their own permanent badge)
+const getMyQR = async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.id, s.lrn, u.first_name, u.middle_name, u.last_name, sec.section_name, sec.grade_level
+       FROM students s JOIN users u ON u.id = s.user_id
+       LEFT JOIN sections sec ON sec.id = s.section_id
+       WHERE s.user_id = $1`,
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(403).json({ success: false, message: 'Student profile not found.' });
+
+    const student = rows[0];
+    const token = generateStudentToken(student.id);
+    const qrImage = await buildQrImage(token);
+
+    res.json({
+      success: true,
+      data: {
+        token, qrImage,
+        student: {
+          lrn: student.lrn,
+          firstName: student.first_name,
+          middleName: student.middle_name,
+          lastName: student.last_name,
+          sectionName: student.section_name,
+          gradeLevel: student.grade_level,
+        }
+      }
+    });
+  } catch (err) {
+    console.error('getMyQR error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate QR code.' });
+  }
+};
+
+// GET /api/attendance/qr/:studentId  (admin/teacher — e.g. to print ID badges)
+const getStudentQR = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT s.id, s.lrn, u.first_name, u.middle_name, u.last_name, sec.section_name, sec.grade_level
+       FROM students s JOIN users u ON u.id = s.user_id
+       LEFT JOIN sections sec ON sec.id = s.section_id
+       WHERE s.id = $1`,
+      [studentId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Student not found.' });
+
+    const student = rows[0];
+    const token = generateStudentToken(student.id);
+    const qrImage = await buildQrImage(token);
+    res.json({ success: true, data: { token, qrImage, student } });
+  } catch (err) {
+    console.error('getStudentQR error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate QR code.' });
+  }
+};
+
+// POST /api/attendance/start-session  (teacher — opens today's class for scanning)
+const startSession = async (req, res) => {
+>>>>>>> 645db23 (V-Smart Update)
   try {
     const { scheduleId } = req.body;
     if (!scheduleId) return res.status(400).json({ success: false, message: 'scheduleId is required.' });
@@ -65,6 +170,7 @@ const generateQR = async (req, res) => {
       await pool.query(`UPDATE classes SET attendance_open = TRUE WHERE id = $1`, [classId]);
     }
 
+<<<<<<< HEAD
     const { token } = generateQRToken(classId);
     const expiresAt = new Date(Date.now() + 60000);
     await pool.query(
@@ -79,21 +185,33 @@ const generateQR = async (req, res) => {
     });
 
     await logAction(req.user.id, 'GENERATE_QR', 'classes', classId, { scheduleId }, req.ip);
+=======
+    await logAction(req.user.id, 'START_ATTENDANCE_SESSION', 'classes', classId, { scheduleId }, req.ip);
+>>>>>>> 645db23 (V-Smart Update)
 
     res.json({
       success: true,
       data: {
+<<<<<<< HEAD
         classId, token, qrImage: qrImageBase64, expiresAt, expiresInSeconds: 60,
+=======
+        classId,
+>>>>>>> 645db23 (V-Smart Update)
         scheduleInfo: {
           subjectName: schedule.subject_name,
           sectionName: schedule.section_name,
           gradeLevel: schedule.grade_level,
           room: schedule.room,
           day: schedule.day_of_week,
+<<<<<<< HEAD
+=======
+          sectionId: schedule.section_id,
+>>>>>>> 645db23 (V-Smart Update)
         }
       }
     });
   } catch (err) {
+<<<<<<< HEAD
     console.error('Generate QR error:', err);
     res.status(500).json({ success: false, message: 'Failed to generate QR code.' });
   }
@@ -126,12 +244,64 @@ const scanQR = async (req, res) => {
     const cls = classRows[0];
     if (student.section_id !== cls.sched_section_id)
       return res.status(403).json({ success: false, message: 'You are not enrolled in this class section.' });
+=======
+    console.error('Start session error:', err);
+    res.status(500).json({ success: false, message: 'Failed to start attendance session.' });
+  }
+};
+
+// POST /api/attendance/scan-student  (teacher — scans a student's personal QR badge)
+const scanStudentQR = async (req, res) => {
+  try {
+    const { token, classId } = req.body;
+    if (!token || !classId) return res.status(400).json({ success: false, message: 'token and classId are required.' });
+
+    const { valid, studentId, reason } = validateStudentToken(token);
+    if (!valid) return res.status(400).json({ success: false, message: reason || 'Invalid student badge.' });
+
+    // Confirm this teacher owns the class/session being scanned into
+    const { rows: classRows } = await pool.query(
+      `SELECT c.*, s.section_id as sched_section_id, s.start_time
+       FROM classes c
+       JOIN schedules s ON s.id = c.schedule_id
+       JOIN teachers t ON t.id = s.teacher_id
+       WHERE c.id = $1 AND t.user_id = $2`,
+      [classId, req.user.id]
+    );
+    if (!classRows.length) return res.status(403).json({ success: false, message: 'Class session not found or unauthorized.' });
+
+    const cls = classRows[0];
+    if (!cls.attendance_open) return res.status(400).json({ success: false, message: 'This attendance session has been closed.' });
+
+    const { rows: studentRows } = await pool.query(
+      `SELECT s.id, s.section_id, s.status, u.first_name, u.middle_name, u.last_name, s.lrn
+       FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = $1`,
+      [studentId]
+    );
+    if (!studentRows.length) return res.status(404).json({ success: false, message: 'Student not found.' });
+
+    const student = studentRows[0];
+    if (student.status !== 'active')
+      return res.status(403).json({ success: false, message: `${student.first_name} ${student.last_name}'s account is not active.` });
+    if (student.section_id !== cls.sched_section_id)
+      return res.status(403).json({ success: false, message: `${student.first_name} ${student.last_name} is not enrolled in this class section.` });
+>>>>>>> 645db23 (V-Smart Update)
 
     const { rows: existing } = await pool.query(
       `SELECT id, status FROM attendance WHERE class_id = $1 AND student_id = $2`, [classId, student.id]
     );
+<<<<<<< HEAD
     if (existing.length > 0)
       return res.status(409).json({ success: false, message: 'Attendance already recorded for this class.' });
+=======
+    if (existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `${student.first_name} ${student.last_name} was already scanned (${existing[0].status}).`,
+        data: { alreadyScanned: true, status: existing[0].status, student }
+      });
+    }
+>>>>>>> 645db23 (V-Smart Update)
 
     const now = new Date();
     const [hours, minutes] = cls.start_time.split(':').map(Number);
@@ -144,6 +314,7 @@ const scanQR = async (req, res) => {
       [classId, student.id, status]
     );
 
+<<<<<<< HEAD
     await logAction(req.user.id, 'SCAN_ATTENDANCE', 'attendance', classId, { status }, req.ip);
     res.json({
       success: true,
@@ -152,6 +323,18 @@ const scanQR = async (req, res) => {
     });
   } catch (err) {
     console.error('Scan QR error:', err);
+=======
+    await logAction(req.user.id, 'SCAN_STUDENT_BADGE', 'attendance', classId, { studentId: student.id, status }, req.ip);
+    res.json({
+      success: true,
+      message: status === 'late'
+        ? `⚠️ ${student.first_name} ${student.last_name} — marked Late`
+        : `✅ ${student.first_name} ${student.last_name} — Present`,
+      data: { status, timeIn: now.toISOString(), classId, student }
+    });
+  } catch (err) {
+    console.error('Scan student QR error:', err);
+>>>>>>> 645db23 (V-Smart Update)
     res.status(500).json({ success: false, message: 'Failed to record attendance.' });
   }
 };
@@ -310,4 +493,11 @@ const closeAttendance = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 module.exports = { generateQR, scanQR, getClassAttendance, getStudentAttendance, closeAttendance };
+=======
+module.exports = {
+  getMyQR, getStudentQR, startSession, scanStudentQR,
+  getClassAttendance, getStudentAttendance, closeAttendance
+};
+>>>>>>> 645db23 (V-Smart Update)

@@ -11,6 +11,10 @@ import {
  FileVideo, File, Presentation
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+<<<<<<< HEAD
+=======
+import Modal from '../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 // ─── Dedup helper — one entry per subject+section ────────────────────────────
 const dedupeSchedules = (schedules) => {
@@ -233,7 +237,11 @@ export default function MaterialsPage() {
  <ConfirmDialog {...confirm} onClose={() => setConfirm(null)}/>
  {/* Upload Modal */}
  {modal && (
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={() => setModal(false)} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -351,7 +359,11 @@ export default function MaterialsPage() {
  </div>
  </form>
  </div>
+<<<<<<< HEAD
  </div>
+=======
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )}
  </div>
  )

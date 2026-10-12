@@ -4,7 +4,11 @@ import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
+<<<<<<< HEAD
 import { Save, Settings, School, Calendar, BookOpen, Bell } from 'lucide-react'
+=======
+import { Save, Settings, School, Calendar, BookOpen, Bell, ImagePlus, Trash2 } from 'lucide-react'
+>>>>>>> 645db23 (V-Smart Update)
 
 export default function SchoolConfigPage() {
  const qc = useQueryClient()
@@ -21,12 +25,62 @@ export default function SchoolConfigPage() {
 
  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
+<<<<<<< HEAD
+=======
+ // ── School logo ───────────────────────────────────────────────
+ const readAsDataURL = (file) => new Promise((resolve, reject) => {
+ const r = new FileReader()
+ r.onload = () => resolve(r.result)
+ r.onerror = () => reject(new Error('Could not read the file.'))
+ r.readAsDataURL(file)
+ })
+
+ const handleLogoFile = async (e) => {
+ const file = e.target.files?.[0]
+ e.target.value = '' // allow picking the same file again
+ if (!file) return
+ if (!['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type))
+ return toast.error('Please choose a PNG, JPG, WEBP or SVG image.')
+ if (file.size > 3 * 1024 * 1024)
+ return toast.error('Image is too large. Please choose one under 3 MB.')
+ try {
+ const dataUrl = await readAsDataURL(file)
+ if (file.type === 'image/svg+xml') {
+ if (dataUrl.length > 500000) return toast.error('SVG is too large (max ~350 KB).')
+ return setForm(p => ({ ...p, school_logo: dataUrl }))
+ }
+ // Shrink to max 256px so it stays small but sharp enough for the tab icon
+ const img = await new Promise((resolve, reject) => {
+ const i = new Image()
+ i.onload = () => resolve(i)
+ i.onerror = () => reject(new Error('Invalid image.'))
+ i.src = dataUrl
+ })
+ const scale = Math.min(1, 256 / Math.max(img.width, img.height))
+ const canvas = document.createElement('canvas')
+ canvas.width = Math.round(img.width * scale)
+ canvas.height = Math.round(img.height * scale)
+ canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+ setForm(p => ({ ...p, school_logo: canvas.toDataURL('image/png') }))
+ } catch (err) {
+ toast.error(err.message || 'Failed to load image.')
+ }
+ }
+
+ const removeLogo = () => setForm(p => ({ ...p, school_logo: '' }))
+
+>>>>>>> 645db23 (V-Smart Update)
  const handleSave = async () => {
  setSaving(true)
  try {
  await api.put('/config', form)
  toast.success('Configuration saved successfully.')
+<<<<<<< HEAD
  qc.invalidateQueries(['school-config'])
+=======
+ qc.invalidateQueries({ queryKey: ['school-config'] })
+ qc.invalidateQueries({ queryKey: ['branding'] })
+>>>>>>> 645db23 (V-Smart Update)
  } catch (err) {
  toast.error(err.response?.data?.message || 'Failed to save.')
  } finally {
@@ -50,7 +104,11 @@ export default function SchoolConfigPage() {
  color: 'text-purple-600 bg-purple-50',
  fields: [
  { key: 'school_year', label: 'School Year', type: 'text', placeholder: 'e.g. 2025-2026' },
+<<<<<<< HEAD
  { key: 'semester', label: 'Semester', type: 'select', options: ['1st Semester', '2nd Semester', 'Summer'] },
+=======
+ { key: 'semester', label: 'School Term', type: 'select', options: ['1st Term', '2nd Term', '3rd Term', 'Summer'] },
+>>>>>>> 645db23 (V-Smart Update)
  ],
  },
  {
@@ -85,6 +143,41 @@ export default function SchoolConfigPage() {
  </div>
  ) : (
  <div className="space-y-5">
+<<<<<<< HEAD
+=======
+ <div className="card p-6">
+ <div className="flex items-center gap-3 mb-5">
+ <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-amber-600 bg-amber-50">
+ <ImagePlus size={16}/>
+ </div>
+ <div>
+ <h3 className="font-display font-bold text-slate-900">School Logo</h3>
+ <p className="text-xs text-slate-400 mt-0.5">Shown on the login page, sidebar and browser tab</p>
+ </div>
+ </div>
+ <div className="flex items-center gap-5 flex-wrap">
+ <div className="w-20 h-20 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+ {form.school_logo
+ ? <img src={form.school_logo} alt="School logo preview" className="w-full h-full object-contain p-1"/>
+ : <School size={28} className="text-slate-300"/>}
+ </div>
+ <div className="space-y-2">
+ <div className="flex gap-2 flex-wrap">
+ <label className="btn-primary cursor-pointer">
+ <ImagePlus size={15}/> {form.school_logo ? 'Change Logo' : 'Upload Logo'}
+ <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={handleLogoFile}/>
+ </label>
+ {form.school_logo && (
+ <button type="button" onClick={removeLogo} className="btn-secondary">
+ <Trash2 size={15}/> Remove
+ </button>
+ )}
+ </div>
+ <p className="text-xs text-slate-400">PNG, JPG, WEBP or SVG. A square image works best. Click <strong>Save All Changes</strong> to apply.</p>
+ </div>
+ </div>
+ </div>
+>>>>>>> 645db23 (V-Smart Update)
  {groups.map(group => (
  <div key={group.label} className="card p-6">
  <div className="flex items-center gap-3 mb-5">

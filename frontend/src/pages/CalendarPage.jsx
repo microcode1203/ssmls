@@ -1,10 +1,18 @@
 // @v2-fixed-imports
+<<<<<<< HEAD
 import { useEffect, useState } from 'react'
+=======
+import { useEffect, useRef, useState } from 'react'
+>>>>>>> 645db23 (V-Smart Update)
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Plus, X, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import Modal from '../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 const TYPE_COLOR = {
  exam: 'bg-red-100 text-red-700 border-red-200',
@@ -21,6 +29,11 @@ export default function CalendarPage() {
  const today = new Date()
  const [current, setCurrent] = useState({ month: today.getMonth()+1, year: today.getFullYear() })
  const [adding, setAdding] = useState(false)
+<<<<<<< HEAD
+=======
+  const [saving, setSaving] = useState(false)
+  const submitting = useRef(false)   // ref guard: state alone is stale when two submits land in the same tick
+>>>>>>> 645db23 (V-Smart Update)
  const [confirm, setConfirm] = useState(null)
  const [form, setForm] = useState({ title:'', description:'', eventDate:'', endDate:'', type:'activity', targetRole:'all' })
 
@@ -45,13 +58,23 @@ export default function CalendarPage() {
 
  const addEvent = async e => {
  e.preventDefault()
+<<<<<<< HEAD
+=======
+ if (submitting.current) return
+ submitting.current = true
+ setSaving(true)
+>>>>>>> 645db23 (V-Smart Update)
  try {
  await api.post('/calendar', form)
  toast.success('Event added!')
  setAdding(false)
  setForm({ title:'', description:'', eventDate:'', endDate:'', type:'activity', targetRole:'all' })
  qc.invalidateQueries(['calendar'])
+<<<<<<< HEAD
  } catch(err) { toast.error(err.response?.data?.message||'Failed.') }
+=======
+ } catch(err) { toast.error(err.response?.data?.message||'Failed.') } finally { submitting.current = false; setSaving(false) }
+>>>>>>> 645db23 (V-Smart Update)
  }
 
  const deleteEvent = async id => {
@@ -162,7 +185,11 @@ export default function CalendarPage() {
 
  {/* Add event modal */}
  {adding&&(
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={()=>setAdding(false)} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Add Event</h2>
@@ -191,11 +218,19 @@ export default function CalendarPage() {
  <textarea className="input-field h-20 resize-none"value={form.description} onChange={set('description')}/></div>
  <div className="flex gap-3">
  <button type="button"onClick={()=>setAdding(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+<<<<<<< HEAD
  <button type="submit"className="btn-primary flex-1 justify-center"><Plus size={15}/>Add Event</button>
  </div>
  </form>
  </div>
  </div>
+=======
+ <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-60"><Plus size={15}/>{saving ? 'Adding…' : 'Add Event'}</button>
+ </div>
+ </form>
+ </div>
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )}
  </div>
  )

@@ -1,0 +1,1105 @@
+/* @v2-fixed-imports */
+import { fullName, formalName, initials } from '../utils/nameUtils'
+import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
+import {
+ Plus, X, Clock, BookOpen, Send, Eye,
+ Filter, Trash2, AlertCircle, Award,
+ FileText, Image, File, Paperclip, Download,
+ CheckCircle, Upload, Shield, ShieldAlert, ShieldX,
+ Maximize, Lock, MonitorX
+} from 'lucide-react'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { format, isPast, formatDistanceToNow } from 'date-fns'
+import Modal from '../components/ui/Modal'
+
+// ─── Anti-Cheat Exam Mode ─────────────────────────────────────────────────────
+// Only activates for type === 'exam'
+// Zero-tolerance rules: a tab/window switch, or closing/refreshing the
+// browser, immediately ends the exam and locks the submission server-side
+// so it can never be reopened or resubmitted.
+function ExamMode({ assignment, onClose, onSave }) {
+  const fileRef = useRef()
+  const [text, setText] = useState('')
+  const [file, setFile] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [fileError, setFileError] = useState('')
+
+  // Anti-cheat state
+  const [examEnded, setExamEnded] = useState(false)
+  const [endReason, setEndReason] = useState('')
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [examStarted, setExamStarted] = useState(false)
+  const [timeElapsed, setTimeElapsed] = useState(0)
+  const autoSubmitRef = useRef(false)
+  const timerRef = useRef(null)
+
+  // ── Fullscreen ──────────────────────────────────────────────────────────────
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen()
+      setIsFullscreen(true)
+    } catch { setIsFullscreen(false) }
+  }
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    setIsFullscreen(false)
+  }
+
+  // ── Auto submit ─────────────────────────────────────────────────────────────
+  const doAutoSubmit = useCallback(async (reason) => {
+    if (autoSubmitRef.current) return
+    autoSubmitRef.current = true
+    setExamEnded(true)
+    setEndReason(reason)
+    exitFullscreen()
+    clearInterval(timerRef.current)
+
+    // Submit whatever has been answered so far
+    try {
+      await api.post('/assignments/submit', {
+        assignmentId: assignment.id,
+        textAnswer: text || `[AUTO-SUBMITTED: ${reason}]`,
+        fileData: file?.base64 || null,
+        fileName: file?.name || null,
+        fileType: file?.type || null,
+        fileSize: file?.size || null,
+        autoSubmitted: true,
+        violationReason: reason,
+      })
+    } catch (err) {
+      console.error('Auto-submit failed:', err)
+    }
+  }, [assignment.id, text, file])
+
+  // ── Event listeners ─────────────────────────────────────────────────────────
+  // Zero-tolerance: the moment the student switches tabs/windows, or
+  // closes/refreshes the browser, the exam ends immediately and locks —
+  // no warnings, no strikes. (Fullscreen exit is handled separately as a
+  // soft nudge, since browsers force it to exit for native dialogs like
+  // the file picker.)
+  useEffect(() => {
+    if (!examStarted) return
+
+    // Tab/window switch or minimize
+    const handleVisibility = () => {
+      if (document.hidden && !autoSubmitRef.current) doAutoSubmit('Tab or window switch detected')
+    }
+
+    // Browser close / refresh
+    const handleBeforeUnload = (e) => {
+      if (!autoSubmitRef.current) {
+        doAutoSubmit('Browser closed or page refreshed')
+        e.preventDefault()
+        e.returnValue = 'Exam in progress — leaving will end and lock it!'
+        return e.returnValue
+      }
+    }
+
+    // Fullscreen exit — soft nudge only (not a lock trigger). Browsers force
+    // fullscreen to exit for native dialogs like the file picker, so treating
+    // this as a hard violation would lock students out for using Attach File.
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false)
+    }
+
+    // Right-click disable
+    const handleContextMenu = (e) => e.preventDefault()
+
+    // Copy/paste/print screen disable
+    const handleKeyDown = (e) => {
+      if (
+        (e.ctrlKey && ['c','v','p','s','a','u'].includes(e.key.toLowerCase())) ||
+        e.key === 'PrintScreen' ||
+        (e.altKey && e.key === 'Tab') ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault()
+        toast.error('This action is not allowed during an exam.')
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('contextmenu', handleContextMenu)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [examStarted, doAutoSubmit])
+
+  // ── Timer ───────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!examStarted || examEnded) return
+    timerRef.current = setInterval(() => setTimeElapsed(t => t + 1), 1000)
+    return () => clearInterval(timerRef.current)
+  }, [examStarted, examEnded])
+
+  const formatTime = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+
+  // ── File handling ────────────────────────────────────────────────────────────
+  const handleFileChange = async (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFileError('')
+    if (f.size > MAX_FILE_BYTES) { setFileError('File too large. Max 2MB.'); return }
+    const allowed = ['image/jpeg','image/png','image/gif','image/webp','application/pdf',
+      'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain']
+    if (!allowed.includes(f.type)) { setFileError('Unsupported file type.'); return }
+    const base64 = await toBase64(f)
+    setFile({ name: f.name, type: f.type, size: f.size, base64 })
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!text.trim() && !file) return toast.error('Add a text answer or attach a file.')
+    setSaving(true)
+    try {
+      await api.post('/assignments/submit', {
+        assignmentId: assignment.id,
+        textAnswer: text.trim() || null,
+        fileData: file?.base64 || null,
+        fileName: file?.name || null,
+        fileType: file?.type || null,
+        fileSize: file?.size || null,
+      })
+      exitFullscreen()
+      clearInterval(timerRef.current)
+      toast.success('Exam submitted successfully!')
+      onSave()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit.')
+    } finally { setSaving(false) }
+  }
+
+  // ── Exam ended screen ────────────────────────────────────────────────────────
+  if (examEnded) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-red-950 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <ShieldX size={64} className="mx-auto mb-6 text-red-400"/>
+          <h2 className="text-2xl font-bold text-white mb-3">Exam Auto-Submitted</h2>
+          <p className="text-red-300 mb-2 text-sm">{endReason}</p>
+          <p className="text-red-400 text-xs mb-6">
+            Your answers have been automatically recorded. The teacher has been notified.
+          </p>
+          <div className="bg-red-900/50 rounded-xl p-4 mb-6 text-left space-y-2">
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Status:</span> Locked — this exam cannot be reopened</p>
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Time in exam:</span> {formatTime(timeElapsed)}</p>
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Assignment:</span> {assignment.title}</p>
+          </div>
+          <button onClick={() => { onClose(); onSave() }} className="bg-white text-red-900 font-bold px-6 py-3 rounded-xl hover:bg-red-100 transition-colors">
+            Return to Assignments
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pre-exam start screen ────────────────────────────────────────────────────
+  if (!examStarted) {
+    return (
+      <Modal onClose={onClose}>
+        <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+          {/* Red header */}
+          <div className="bg-red-600 p-6 text-white text-center">
+            <Shield size={40} className="mx-auto mb-3"/>
+            <h2 className="text-xl font-bold">{assignment.title}</h2>
+            <p className="text-red-200 text-sm mt-1">Exam Mode · Anti-Cheat Active</p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Rules */}
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-800">Before you begin, read these rules:</p>
+              {[
+                { icon: Maximize,  color: 'text-blue-600',  bg: 'bg-blue-50',  text: 'The exam will enter fullscreen mode.' },
+                { icon: MonitorX,  color: 'text-red-600',   bg: 'bg-red-50',   text: 'Switching tabs or windows, even once, immediately ends and locks the exam.' },
+                { icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50',   text: 'Closing the browser or refreshing the page also immediately ends and locks it.' },
+                { icon: ShieldX,   color: 'text-orange-600', bg: 'bg-orange-50', text: 'Once locked, the exam cannot be reopened or resubmitted — whatever was answered so far is what gets graded.' },
+                { icon: Lock,      color: 'text-slate-600', bg: 'bg-slate-50',  text: 'Right-click, copy, and keyboard shortcuts are disabled.' },
+              ].map(({ icon: Icon, color, bg, text }) => (
+                <div key={text} className={`flex items-start gap-3 p-3 rounded-xl ${bg}`}>
+                  <Icon size={16} className={`${color} flex-shrink-0 mt-0.5`}/>
+                  <p className="text-sm text-slate-700">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+              <button
+                onClick={async () => {
+                  await enterFullscreen()
+                  setExamStarted(true)
+                }}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                <Shield size={16}/> Start Exam
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+
+  // ── Exam UI ──────────────────────────────────────────────────────────────────
+  return (
+    <>
+      <div className="fixed inset-0 z-[9998] bg-slate-50 flex flex-col select-none">
+        {/* Exam topbar */}
+        <div className="bg-red-600 text-white px-6 py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Shield size={18}/>
+            <div>
+              <p className="font-bold text-sm">{assignment.title}</p>
+              <p className="text-red-200 text-xs">Exam Mode · Anti-Cheat Active · Zero-tolerance</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Timer */}
+            <div className="bg-red-700/50 px-3 py-1.5 rounded-lg font-mono font-bold text-sm">
+              {formatTime(timeElapsed)}
+            </div>
+            {/* Fullscreen status */}
+            {!isFullscreen && (
+              <button
+                onClick={enterFullscreen}
+                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Maximize size={12}/> Enter Fullscreen
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Exam content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Assignment info */}
+            {assignment.description && (
+              <div className="card p-5 mb-5">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Instructions</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{assignment.description}</p>
+              </div>
+            )}
+
+            <div className="card p-5 mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="badge-red">Exam</span>
+                <span className="text-sm text-slate-500">Due: {format(new Date(assignment.due_date), 'MMM d, yyyy h:mm a')}</span>
+              </div>
+              <span className="text-sm font-bold text-slate-700">{assignment.max_score} pts</span>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Text answer */}
+              <div className="card p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-3">Your Answer</label>
+                <textarea
+                  className="input-field h-48 resize-none"
+                  placeholder="Type your answer here…"
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  onCopy={e => e.preventDefault()}
+                  onPaste={e => e.preventDefault()}
+                  onCut={e => e.preventDefault()}
+                  spellCheck={false}
+                />
+              </div>
+
+              {/* File */}
+              <div className="card p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-3">
+                  Attach File <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                </label>
+                {!file ? (
+                  <div onClick={() => fileRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 transition-all">
+                    <Paperclip size={20} className="mx-auto mb-2 text-slate-400"/>
+                    <p className="text-sm text-slate-500">Click to attach · Max 2MB</p>
+                    <input ref={fileRef} type="file" className="hidden"
+                      accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt" onChange={handleFileChange}/>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    {fileIcon(file.type)}
+                    <p className="text-sm font-medium text-slate-700 flex-1 truncate">{file.name}</p>
+                    <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
+                    <button type="button" onClick={() => setFile(null)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg">
+                      <X size={14}/>
+                    </button>
+                  </div>
+                )}
+                {fileError && <p className="text-xs text-red-500 mt-1.5">{fileError}</p>}
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={saving || (!text.trim() && !file)}
+                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl text-base transition-colors"
+              >
+                {saving
+                  ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Submitting…</>
+                  : <><CheckCircle size={18}/> Submit Exam</>
+                }
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const TYPE_CONFIG = {
+ homework: { badge:'badge-blue', bg:'bg-blue-50', label:'Homework' },
+ quiz: { badge:'badge-amber', bg:'bg-amber-50', label:'Quiz' },
+ activity: { badge:'badge-green', bg:'bg-emerald-50',label:'Activity' },
+ project: { badge:'badge-purple', bg:'bg-violet-50', label:'Project' },
+ exam: { badge:'badge-red', bg:'bg-red-50', label:'Exam' },
+}
+
+const MAX_FILE_BYTES = 2 * 1024 * 1024 // 2MB
+
+// Get icon and color for file type
+const fileIcon = (fileType) => {
+ if (!fileType) return <File size={14}/>
+ if (fileType.startsWith('image/')) return <Image size={14} className="text-blue-500"/>
+ if (fileType === 'application/pdf') return <FileText size={14} className="text-red-500"/>
+ return <File size={14} className="text-slate-500"/>
+}
+
+const formatBytes = (bytes) => {
+ if (!bytes) return ''
+ if (bytes < 1024) return bytes + ' B'
+ if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+ return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// Convert File to Base64
+const toBase64 = (file) => new Promise((resolve, reject) => {
+ const reader = new FileReader()
+ reader.onload = () => resolve(reader.result) // includes data:mime;base64, prefix
+ reader.onerror = reject
+ reader.readAsDataURL(file)
+})
+
+// ─── File Preview / Download helper ──────────────────────────────────────────
+function FileAttachment({ fileName, fileType, fileSize, fileData, compact = false }) {
+ if (!fileName) return null
+
+ const download = () => {
+ if (!fileData) return
+ const a = document.createElement('a')
+ a.href = fileData
+ a.download = fileName
+ a.click()
+ }
+
+ const isImage = fileType?.startsWith('image/')
+
+ if (compact) {
+ return (
+ <button onClick={download}
+ className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium">
+ {fileIcon(fileType)}
+ {fileName}
+ <span className="text-slate-400">({formatBytes(fileSize)})</span>
+ <Download size={11}/>
+ </button>
+ )
+ }
+
+ return (
+ <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden">
+ {isImage && fileData && (
+ <img src={fileData} alt={fileName}
+ className="w-full max-h-48 object-contain bg-slate-50 cursor-pointer"
+ onClick={download}/>
+ )}
+ <div className="flex items-center gap-2 p-2 bg-slate-50">
+ {fileIcon(fileType)}
+ <span className="text-xs font-medium text-slate-700 flex-1 truncate">{fileName}</span>
+ <span className="text-xs text-slate-400">{formatBytes(fileSize)}</span>
+ <button onClick={download}
+ className="p-1 hover:bg-slate-200 rounded transition-colors"title="Download">
+ <Download size={13} className="text-slate-500"/>
+ </button>
+ </div>
+ </div>
+ )
+}
+
+// ─── Create Assignment Modal ──────────────────────────────────────────────────
+function CreateModal({ schedules, onClose, onSave }) {
+ const [form, setForm] = useState({
+ scheduleId:'', title:'', description:'', dueDate:'', maxScore:100, type:'homework'
+ })
+ const [saving, setSaving] = useState(false)
+
+ const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
+
+ const handleSubmit = async (e) => {
+ e.preventDefault(); setSaving(true)
+ try {
+ await api.post('/assignments', form)
+ toast.success('Assignment created.')
+ onSave()
+ } catch (err) {
+ toast.error(err.response?.data?.message || 'Failed.')
+ } finally { setSaving(false) }
+ }
+
+ return (
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+ <div className="flex items-center justify-between p-5 border-b border-slate-100">
+ <h2 className="font-display font-bold text-slate-900">Create Assignment</h2>
+ <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
+ </div>
+ <form onSubmit={handleSubmit} className="p-5 space-y-4">
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class <span className="text-red-500">*</span></label>
+ <select className="input-field"value={form.scheduleId} onChange={set('scheduleId')} required>
+ <option value="">— Select class —</option>
+ {/* Deduplicate: show only one entry per subject+section combo */}
+ {(schedules||[])
+ .filter(s => s.status === 'approved')
+ .reduce((unique, s) => {
+ const key = (s.subject_id || s.subject || s.subject_name) + '_' + s.section_id
+ if (!unique.find(u => (u.subject_id||u.subject||u.subject_name) + '_' + u.section_id === key)) {
+ unique.push(s)
+ }
+ return unique
+ }, [])
+ .sort((a,b) => {
+ const nameA = (a.subject||a.subject_name||'')
+ const nameB = (b.subject||b.subject_name||'')
+ return nameA.localeCompare(nameB) || a.grade_level?.localeCompare(b.grade_level)
+ })
+ .map(s => (
+ <option key={s.subject_id + '_' + s.section_id} value={s.id}>
+ {s.subject||s.subject_name} · {s.grade_level} {s.section_name}
+ </option>
+ ))
+ }
+ </select>
+ </div>
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Type</label>
+ <div className="grid grid-cols-5 gap-2">
+ {Object.entries(TYPE_CONFIG).map(([val, cfg]) => (
+ <button key={val} type="button"
+ onClick={() => setForm(p => ({ ...p, type: val }))}
+ className={`py-2 rounded-lg text-xs font-bold border-2 transition-all
+ ${form.type===val ? 'border-primary bg-primary text-white' : 'border-slate-200 text-slate-600 hover:border-primary/40'}`}>
+ {cfg.label}
+ </button>
+ ))}
+ </div>
+ </div>
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Title <span className="text-red-500">*</span></label>
+ <input className="input-field"placeholder="e.g. Chapter 3 Quiz"value={form.title} onChange={set('title')} required/>
+ </div>
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Instructions</label>
+ <textarea className="input-field h-24 resize-none"
+ placeholder="Describe what students need to do…"
+ value={form.description} onChange={set('description')}/>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Due Date <span className="text-red-500">*</span></label>
+ <input type="datetime-local"className="input-field"value={form.dueDate} onChange={set('dueDate')} required/>
+ </div>
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">Max Score</label>
+ <input type="number"className="input-field"value={form.maxScore} onChange={set('maxScore')} min="1"/>
+ </div>
+ </div>
+ <div className="flex gap-3 pt-2">
+ <button type="button"onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+ <button type="submit"disabled={saving} className="btn-primary flex-1 justify-center">
+ {saving
+ ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</>
+ : <><Plus size={15}/>Create</>}
+ </button>
+ </div>
+ </form>
+ </div>
+ </Modal>
+ )
+}
+
+// ─── Submit Modal (Student) ───────────────────────────────────────────────────
+function SubmitModal({ assignment, onClose, onSave }) {
+ const fileRef = useRef()
+ const [text, setText] = useState('')
+ const [file, setFile] = useState(null) // { name, type, size, base64 }
+ const [saving, setSaving] = useState(false)
+ const [fileError, setFileError] = useState('')
+
+ const handleFileChange = async (e) => {
+ const f = e.target.files?.[0]
+ if (!f) return
+ setFileError('')
+
+ if (f.size > MAX_FILE_BYTES) {
+ setFileError('File is too large. Maximum size is 2MB.')
+ e.target.value = ''
+ return
+ }
+
+ const allowed = ['image/jpeg','image/png','image/gif','image/webp',
+ 'application/pdf','application/msword',
+ 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+ 'text/plain']
+ if (!allowed.includes(f.type)) {
+ setFileError('Unsupported file type. Use JPG, PNG, PDF, DOC, DOCX, or TXT.')
+ e.target.value = ''
+ return
+ }
+
+ const base64 = await toBase64(f)
+ setFile({ name: f.name, type: f.type, size: f.size, base64 })
+ }
+
+ const removeFile = () => {
+ setFile(null)
+ setFileError('')
+ if (fileRef.current) fileRef.current.value = ''
+ }
+
+ const handleSubmit = async (e) => {
+ e.preventDefault()
+ if (!text.trim() && !file) return toast.error('Add a text answer or attach a file.')
+ setSaving(true)
+ try {
+ await api.post('/assignments/submit', {
+ assignmentId: assignment.id,
+ textAnswer: text.trim() || null,
+ fileData: file?.base64 || null,
+ fileName: file?.name || null,
+ fileType: file?.type || null,
+ fileSize: file?.size || null,
+ })
+ toast.success('Assignment submitted!')
+ onSave()
+ } catch (err) {
+ toast.error(err.response?.data?.message || 'Failed to submit.')
+ } finally { setSaving(false) }
+ }
+
+ return (
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+ <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+ <div className="flex items-center justify-between p-5 border-b border-slate-100">
+ <div>
+ <h2 className="font-display font-bold text-slate-900">{assignment.title}</h2>
+ <p className="text-xs text-slate-400 mt-0.5">
+ Due: {format(new Date(assignment.due_date), 'MMM d, yyyy h:mm a')} · {assignment.max_score} pts
+ </p>
+ </div>
+ <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
+ </div>
+
+ <form onSubmit={handleSubmit} className="p-5 space-y-4">
+ {assignment.description && (
+ <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-600 leading-relaxed">
+ {assignment.description}
+ </div>
+ )}
+
+ {/* Text answer */}
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+ Text Answer
+ <span className="ml-1 text-xs font-normal text-slate-400">(optional if you attach a file)</span>
+ </label>
+ <textarea
+ className="input-field h-32 resize-none"
+ placeholder="Type your answer here…"
+ value={text}
+ onChange={e => setText(e.target.value)}
+ />
+ </div>
+
+ {/* File attachment */}
+ <div>
+ <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+ Attach File
+ <span className="ml-1 text-xs font-normal text-slate-400">(optional — max 2MB)</span>
+ </label>
+
+ {!file ? (
+ <div
+ onClick={() => fileRef.current?.click()}
+ className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/3 transition-all group">
+ <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-primary/10 flex items-center justify-center mx-auto mb-2 transition-colors">
+ <Paperclip size={18} className="text-slate-400 group-hover:text-primary transition-colors"/>
+ </div>
+ <p className="text-sm font-medium text-slate-600">Click to attach a file</p>
+ <p className="text-xs text-slate-400 mt-1">JPG, PNG, PDF, DOC, DOCX, TXT · Max 2MB</p>
+ <input
+ ref={fileRef}
+ type="file"
+ accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt"
+ onChange={handleFileChange}
+ className="hidden"
+ />
+ </div>
+ ) : (
+ <div className="border border-slate-200 rounded-xl overflow-hidden">
+ {file.type.startsWith('image/') && (
+ <img src={file.base64} alt={file.name}
+ className="w-full max-h-40 object-contain bg-slate-50"/>
+ )}
+ <div className="flex items-center gap-2.5 p-3 bg-slate-50">
+ {fileIcon(file.type)}
+ <div className="flex-1 min-w-0">
+ <p className="text-xs font-semibold text-slate-700 truncate">{file.name}</p>
+ <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
+ </div>
+ <button type="button"onClick={removeFile}
+ className="p-1.5 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-lg transition-colors">
+ <X size={14}/>
+ </button>
+ </div>
+ </div>
+ )}
+
+ {fileError && (
+ <p className="text-xs text-red-500 font-medium mt-1.5 flex items-center gap-1">
+ <AlertCircle size={12}/> {fileError}
+ </p>
+ )}
+ </div>
+
+ <div className="flex gap-3 pt-1">
+ <button type="button"onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+ <button type="submit"disabled={saving || (!text.trim() && !file)}
+ className="btn-primary flex-1 justify-center"
+ style={{ opacity: (!text.trim() && !file) ? 0.5 : 1 }}>
+ {saving
+ ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Submitting…</>
+ : <><Send size={15}/>Submit</>}
+ </button>
+ </div>
+ </form>
+ </div>
+ </Modal>
+ )
+}
+
+// ─── Submissions Drawer (Teacher/Admin) ───────────────────────────────────────
+function SubmissionsDrawer({ assignment, onClose }) {
+ const qc = useQueryClient()
+ const { data, isLoading } = useQuery({
+ queryKey: ['submissions', assignment.id],
+ queryFn: () => api.get(`/assignments/${assignment.id}/submissions`).then(r => r.data.data),
+ staleTime: 0,
+ })
+ const [grading, setGrading] = useState(null)
+ const [score, setScore] = useState('')
+ const [feedback, setFeedback] = useState('')
+ const [savingGrade, setSavingGrade] = useState(false)
+
+ const handleGrade = async () => {
+ if (score === '') return toast.error('Enter a score.')
+ setSavingGrade(true)
+ try {
+ await api.patch(`/assignments/submissions/${grading.id}/grade`, { score, feedback })
+ toast.success('Graded!')
+ setGrading(null); setScore(''); setFeedback('')
+ qc.invalidateQueries(['submissions', assignment.id])
+ } catch { toast.error('Failed to grade.') }
+ finally { setSavingGrade(false) }
+ }
+
+ const submitted = (data||[]).length
+ const graded = (data||[]).filter(s => s.status === 'graded').length
+
+ return (
+ <Modal onClose={onClose}>
+ <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92vh] flex flex-col">
+ {/* Header */}
+ <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
+ <div>
+ <h2 className="font-display font-bold text-slate-900">{assignment.title}</h2>
+ <p className="text-xs text-slate-400 mt-0.5">
+ {assignment.subject_name} · Due {format(new Date(assignment.due_date), 'MMM d, h:mm a')}
+ </p>
+ </div>
+ <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18}/></button>
+ </div>
+
+ {/* Stats */}
+ <div className="grid grid-cols-3 gap-3 p-4 border-b border-slate-100 flex-shrink-0">
+ {[
+ { label:'Submitted', value: submitted, color:'text-blue-600' },
+ { label:'Graded', value: graded, color:'text-emerald-600' },
+ { label:'Pending', value: submitted - graded,color:'text-amber-600' },
+ ].map(({ label, value, color }) => (
+ <div key={label} className="text-center bg-slate-50 rounded-xl p-3">
+ <p className={'text-2xl font-bold ' + color}>{value}</p>
+ <p className="text-xs text-slate-500 font-semibold mt-0.5">{label}</p>
+ </div>
+ ))}
+ </div>
+
+ {/* List */}
+ <div className="flex-1 overflow-y-auto p-4 space-y-3">
+ {isLoading ? <CardGridSkeleton count={6}/> : !(data||[]).length ? (
+ <div className="text-center py-12 text-slate-400">
+ <FileText size={28} className="mx-auto mb-2 opacity-20"/>
+ <p>No submissions yet.</p>
+ </div>
+ ) : (
+ (data||[]).map(sub => (
+ <div key={sub.id} className={`p-4 rounded-xl border ${
+ sub.status==='graded' ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
+ }`}>
+ <div className="flex items-start justify-between gap-3">
+ <div className="flex items-center gap-3">
+ <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+ {initials(sub.first_name, sub.last_name)}
+ </div>
+ <div>
+ <p className="font-semibold text-slate-800 text-sm">
+ {formalName(sub.first_name, sub.middle_name, sub.last_name)}
+ </p>
+ <p className="text-xs text-slate-400">
+ {formatDistanceToNow(new Date(sub.submitted_at), { addSuffix: true })}
+ </p>
+ </div>
+ </div>
+ <div className="flex items-center gap-2 flex-shrink-0">
+ {sub.status === 'graded'
+ ? <span className="text-sm font-bold text-emerald-600">
+ {sub.score}/{assignment.max_score}
+ </span>
+ : <span className="badge-amber">Pending</span>
+ }
+ {sub.status !== 'graded' && (
+ <button
+ onClick={() => { setGrading(sub); setScore(''); setFeedback('') }}
+ className="btn-primary text-xs py-1.5 px-3">
+ <Award size={12}/> Grade
+ </button>
+ )}
+ </div>
+ </div>
+
+ {/* Text answer */}
+ {sub.text_answer && (
+ <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200 text-xs text-slate-600 max-h-28 overflow-y-auto leading-relaxed">
+ {sub.text_answer}
+ </div>
+ )}
+
+ {/* File attachment */}
+ {sub.file_name && (
+ <FileAttachment
+ fileName={sub.file_name}
+ fileType={sub.file_type}
+ fileSize={sub.file_size}
+ fileData={sub.file_data}
+ />
+ )}
+
+ {/* Feedback */}
+ {sub.feedback && (
+ <p className="mt-2 text-xs text-emerald-700 font-medium">
+ Feedback: {sub.feedback}
+ </p>
+ )}
+ </div>
+ ))
+ )}
+ </div>
+
+ {/* Grade panel */}
+ {grading && (
+ <div className="border-t border-slate-200 p-4 bg-slate-50 flex-shrink-0">
+ <p className="text-xs font-bold text-slate-600 mb-3 uppercase tracking-wider">
+ Grading: {formalName(grading.first_name, grading.middle_name, grading.last_name)}
+ </p>
+ {grading.text_answer && (
+ <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 mb-3 max-h-20 overflow-y-auto">
+ {grading.text_answer}
+ </div>
+ )}
+ {grading.file_name && (
+ <div className="mb-3">
+ <FileAttachment compact
+ fileName={grading.file_name}
+ fileType={grading.file_type}
+ fileSize={grading.file_size}
+ fileData={grading.file_data}
+ />
+ </div>
+ )}
+ <div className="flex gap-3 mb-3">
+ <div className="w-28 flex-shrink-0">
+ <label className="block text-xs font-semibold text-slate-600 mb-1">
+ Score / {assignment.max_score}
+ </label>
+ <input type="number"className="input-field text-center font-bold"
+ min="0"max={assignment.max_score}
+ value={score} onChange={e => setScore(e.target.value)}
+ placeholder="0"autoFocus/>
+ </div>
+ <div className="flex-1">
+ <label className="block text-xs font-semibold text-slate-600 mb-1">
+ Feedback (optional)
+ </label>
+ <input className="input-field"
+ placeholder="e.g. Good work, but review section 3"
+ value={feedback} onChange={e => setFeedback(e.target.value)}/>
+ </div>
+ </div>
+ <div className="flex gap-2">
+ <button onClick={() => setGrading(null)} className="btn-secondary text-xs flex-1 justify-center">Cancel</button>
+ <button onClick={handleGrade} disabled={savingGrade} className="btn-primary text-xs flex-1 justify-center">
+ {savingGrade ? 'Saving…' : <><Award size={13}/> Submit Grade</>}
+ </button>
+ </div>
+ </div>
+ )}
+ </div>
+ </Modal>
+ )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function AssignmentsPage() {
+ const { user } = useAuth()
+ const qc = useQueryClient()
+ const [confirm, setConfirm] = useState(null)
+ const [createModal, setCreateModal] = useState(false)
+ const [submitModal, setSubmitModal] = useState(null)
+ const [submissionsFor, setSubmissionsFor] = useState(null)
+ const [filter, setFilter] = useState({ type:'', status:'' })
+
+ const { data: assignments, isLoading } = useQuery({
+ queryKey: ['assignments'],
+ queryFn: () => api.get('/assignments').then(r => r.data.data),
+ staleTime: 0,
+ })
+
+ const { data: mySchedules } = useQuery({
+ queryKey: ['my-schedules-assignments'],
+ queryFn: () => api.get('/schedules/my').then(r => r.data.data),
+ enabled: user?.role === 'teacher',
+ })
+
+ const { data: allSchedules } = useQuery({
+ queryKey: ['all-schedules-for-assignments'],
+ queryFn: () => api.get('/schedules/pending').then(r => r.data.data),
+ enabled: user?.role === 'admin',
+ })
+
+ const schedules = user?.role === 'admin' ? allSchedules : mySchedules
+
+ const filtered = useMemo(() => (assignments||[]).filter(a => {
+ if (filter.type && a.type !== filter.type) return false
+ if (filter.status === 'overdue' && !isPast(new Date(a.due_date))) return false
+ if (filter.status === 'active' && isPast(new Date(a.due_date))) return false
+ return true
+ }), [assignments, filter])
+
+ const deleteAssignment = async (id) => {
+ setConfirm({
+ title: 'Delete Assignment?',
+ message: 'All student submissions will be permanently deleted.',
+ confirmLabel: 'Delete', variant: 'danger',
+ onConfirm: async () => {
+ try {
+ await api.delete(`/assignments/${id}`)
+ toast.success('Assignment deleted.')
+ qc.invalidateQueries(['assignments'])
+ } catch { toast.error('Failed to delete.') }
+ }
+ })
+ }
+
+ const activeCount = (assignments||[]).filter(a => !isPast(new Date(a.due_date))).length
+ const overdueCount = (assignments||[]).filter(a => isPast(new Date(a.due_date))).length
+
+ return (
+ <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+ <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+ <div>
+ <h1 className="page-title">Assignments</h1>
+ <p className="text-slate-500 text-sm mt-1">
+ {activeCount} active · {overdueCount} overdue
+ </p>
+ </div>
+ {(user?.role === 'teacher' || user?.role === 'admin') && (
+ <button onClick={() => setCreateModal(true)} className="btn-primary">
+ <Plus size={16}/> Create Assignment
+ </button>
+ )}
+ </div>
+
+ {/* Filters */}
+ <div className="card p-4 mb-5 flex gap-3 flex-wrap items-center">
+ <Filter size={14} className="text-slate-400 flex-shrink-0"/>
+ <select className="input-field w-36 text-sm"value={filter.type}
+ onChange={e => setFilter(p => ({ ...p, type: e.target.value }))}>
+ <option value="">All Types</option>
+ {Object.entries(TYPE_CONFIG).map(([val, cfg]) => (
+ <option key={val} value={val}>{cfg.label}</option>
+ ))}
+ </select>
+ <select className="input-field w-36 text-sm"value={filter.status}
+ onChange={e => setFilter(p => ({ ...p, status: e.target.value }))}>
+ <option value="">All Status</option>
+ <option value="active">Active</option>
+ <option value="overdue">Overdue</option>
+ </select>
+ {(filter.type || filter.status) && (
+ <button onClick={() => setFilter({ type:'', status:'' })} className="btn-ghost text-xs">
+ <X size={12}/> Clear
+ </button>
+ )}
+ <span className="ml-auto text-xs text-slate-400">
+ {filtered.length} of {assignments?.length||0} assignments
+ </span>
+ </div>
+
+ {/* Grid */}
+ {isLoading ? <CardGridSkeleton count={6}/> : filtered.length === 0 ? (
+ <div className="card p-16 text-center text-slate-400">
+ <BookOpen size={36} className="mx-auto mb-3 opacity-20"/>
+ <p className="font-semibold">No assignments found.</p>
+ </div>
+ ) : (
+ <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+ {filtered.map(a => {
+ const overdue = isPast(new Date(a.due_date))
+ const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.homework
+ const timeLeft = overdue
+ ? 'Overdue ' + formatDistanceToNow(new Date(a.due_date), { addSuffix: true })
+ : 'Due ' + formatDistanceToNow(new Date(a.due_date), { addSuffix: true })
+
+ return (
+ <div key={a.id} className={`card p-5 flex flex-col gap-3 hover:shadow-md transition-all
+ ${overdue ? 'border-red-100' : ''}`}>
+ <div className="flex items-start justify-between gap-2">
+ <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+ <BookOpen size={16} className="text-slate-600"/>
+ </div>
+ <div className="flex items-center gap-1.5">
+ <span className={cfg.badge}>{cfg.label}</span>
+ {(user?.role==='teacher'||user?.role==='admin') && (
+ <button onClick={() => deleteAssignment(a.id)}
+ className="p-1 hover:bg-red-50 text-slate-300 hover:text-red-400 rounded-lg transition-colors">
+ <Trash2 size={13}/>
+ </button>
+ )}
+ </div>
+ </div>
+
+ <div className="flex-1">
+ <h3 className="font-bold text-slate-900 text-sm leading-snug">{a.title}</h3>
+ <p className="text-xs text-slate-500 mt-0.5 font-medium">{a.subject_name}</p>
+ {a.section_name && (
+ <p className="text-xs text-slate-400">{a.grade_level} · {a.section_name}</p>
+ )}
+ {a.description && (
+ <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+ {a.description}
+ </p>
+ )}
+ </div>
+
+ <div className="pt-3 border-t border-slate-100 space-y-2">
+ <div className="flex items-center justify-between">
+ <div className={`flex items-center gap-1.5 text-xs font-semibold
+ ${overdue ? 'text-red-500' : 'text-slate-500'}`}>
+ <Clock size={11}/> {timeLeft}
+ </div>
+ <span className="text-xs font-bold text-slate-400">{a.max_score} pts</span>
+ </div>
+
+ {(user?.role==='teacher'||user?.role==='admin') && (
+ <button onClick={() => setSubmissionsFor(a)}
+ className="btn-secondary w-full justify-center text-xs py-2">
+ <Eye size={13}/> View Submissions
+ </button>
+ )}
+
+ {user?.role==='student' && (
+ a.type === 'exam' && a.my_locked ? (
+ <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-semibold py-2 bg-slate-50 rounded-lg border border-slate-100">
+ <Lock size={12}/> Exam Ended{a.my_score != null ? ` · ${a.my_score}/${a.max_score}` : ' · Awaiting grade'}
+ </div>
+ ) : overdue ? (
+ <div className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-semibold py-2">
+ <AlertCircle size={12}/> Submission closed
+ </div>
+ ) : a.type === 'exam' ? (
+ <button onClick={() => setSubmitModal(a)}
+ className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2 rounded-lg transition-colors">
+ <ShieldAlert size={12}/> Start Exam
+ </button>
+ ) : (
+ <button onClick={() => setSubmitModal(a)}
+ className="btn-primary w-full justify-center text-xs py-2">
+ <Paperclip size={13}/> Submit Answer / File
+ </button>
+ )
+ )}
+ </div>
+ </div>
+ )
+ })}
+ </div>
+ )}
+
+ {createModal && (
+ <CreateModal
+ schedules={schedules}
+ onClose={() => setCreateModal(false)}
+ onSave={() => { setCreateModal(false); qc.invalidateQueries(['assignments']) }}
+ />
+ )}
+ {submitModal && submitModal.type === 'exam' ? (
+ <ExamMode
+ assignment={submitModal}
+ onClose={() => setSubmitModal(null)}
+ onSave={() => { setSubmitModal(null); qc.invalidateQueries(['assignments']) }}
+ />
+ ) : submitModal ? (
+ <SubmitModal
+ assignment={submitModal}
+ onClose={() => setSubmitModal(null)}
+ onSave={() => { setSubmitModal(null); qc.invalidateQueries(['assignments']) }}
+ />
+ ) : null}
+ {submissionsFor && (
+ <SubmissionsDrawer
+ assignment={submissionsFor}
+ onClose={() => setSubmissionsFor(null)}
+ />
+ )}
+ </div>
+ )
+}

@@ -6,11 +6,33 @@ import { useAuth } from '../../context/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
 import toast from 'react-hot-toast'
+<<<<<<< HEAD
 import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield, KeyRound, Eye, EyeOff, Copy, Check, LayoutList, LayoutGrid, Filter, GraduationCap, Users } from 'lucide-react'
+=======
+import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Shield, KeyRound, Eye, EyeOff, Copy, Check, LayoutList, LayoutGrid, Filter, GraduationCap, Users, QrCode } from 'lucide-react'
+>>>>>>> 645db23 (V-Smart Update)
 import Modal from '../../components/ui/Modal'
 
 const CONFIRM_PHRASE = 'DELETE'
 
+<<<<<<< HEAD
+=======
+// Fetches a student's permanent QR badge and saves it named by LRN, ready
+// to be dropped into a future ID-card layout.
+async function downloadStudentQR(s) {
+  try {
+    const res = await api.get(`/attendance/qr/${s.id}`)
+    const { qrImage } = res.data.data
+    const a = document.createElement('a')
+    a.href = qrImage
+    a.download = `${s.lrn || s.id}-qr.png`
+    a.click()
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to download QR code.')
+  }
+}
+
+>>>>>>> 645db23 (V-Smart Update)
 // ─── Reset Password Modal ─────────────────────────────────────────────────────
 function PasswordModal({ student, onClose }) {
  const [password, setPassword] = useState('Student@2026')
@@ -736,6 +758,12 @@ export default function StudentsPage() {
  </td>
  <td className="px-4 py-3">
  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<<<<<<< HEAD
+=======
+ <button onClick={() => downloadStudentQR(s)} className="p-1.5 hover:bg-primary/10 text-primary rounded-lg" title="Download QR code (named by LRN)">
+ <QrCode size={13}/>
+ </button>
+>>>>>>> 645db23 (V-Smart Update)
  {!isTeacher && (
  <button onClick={() => setModal(s)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"title="Edit">
  <Edit2 size={13}/>

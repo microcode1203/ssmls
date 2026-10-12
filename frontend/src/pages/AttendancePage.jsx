@@ -1,14 +1,29 @@
+<<<<<<< HEAD
 /* @v2-fixed-imports */
+=======
+/* @v3-personal-qr-badges */
+>>>>>>> 645db23 (V-Smart Update)
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../components/ui/Skeleton'
 import { fullName, formalName, initials } from '../utils/nameUtils'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
+<<<<<<< HEAD
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import {
  QrCode, RefreshCw, StopCircle, Users,
  CheckCircle, Clock, XCircle, BookOpen
+=======
+import { Html5Qrcode } from 'html5-qrcode'
+import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
+import {
+ QrCode, StopCircle, Users, Camera, Download,
+ CheckCircle, Clock, XCircle, BookOpen, ScanLine
+>>>>>>> 645db23 (V-Smart Update)
 } from 'lucide-react'
 
 const dedupeSchedules = (schedules) => {
@@ -27,6 +42,7 @@ const dedupeSchedules = (schedules) => {
  })
 }
 
+<<<<<<< HEAD
 function QRGenerator() {
  const [schedules, setSchedules] = useState([])
  const [selectedId, setSelectedId] = useState('')
@@ -42,6 +58,23 @@ function QRGenerator() {
  const countRef = useRef(60)
 
  useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
+=======
+function TeacherScanner() {
+  const [confirmDialog, ask] = useConfirm()
+ const [schedules, setSchedules] = useState([])
+ const [selectedId, setSelectedId] = useState('')
+ const [session, setSession] = useState(null) // { classId, scheduleInfo }
+ const [scanning, setScanning] = useState(false)
+ const [starting, setStarting] = useState(false)
+ const [attLog, setAttLog] = useState([])
+ const [lastResult, setLastResult] = useState(null)
+ const [loadingSch, setLoadingSch] = useState(true)
+
+ const html5QrRef = useRef(null)
+ const classIdRef = useRef(null)
+ const pollRef = useRef(null)
+ const lastScanRef = useRef({ token: null, time: 0 })
+>>>>>>> 645db23 (V-Smart Update)
 
  useEffect(() => {
  api.get('/schedules/my')
@@ -64,6 +97,7 @@ function QRGenerator() {
  }, 4000)
  }, [])
 
+<<<<<<< HEAD
  const stopTimers = useCallback(() => {
  if (intervalRef.current) clearInterval(intervalRef.current)
  if (pollRef.current) clearInterval(pollRef.current)
@@ -112,6 +146,89 @@ function QRGenerator() {
 
  const stopSession = async () => {
  stopTimers()
+=======
+ const stopPolling = useCallback(() => {
+ if (pollRef.current) clearInterval(pollRef.current)
+ pollRef.current = null
+ }, [])
+
+ const submitScan = useCallback(async (token, classId) => {
+ try {
+ const res = await api.post('/attendance/scan-student', { token, classId })
+ const student = res.data.data?.student
+ setLastResult({ ok: true, message: res.data.message, name: student ? fullName(student.first_name, student.middle_name, student.last_name) : null })
+ toast.success(res.data.message, { duration: 2200 })
+ } catch (err) {
+ const data = err.response?.data
+ if (data?.data?.alreadyScanned) {
+ // Not a real error — the student (or someone else) simply re-presented an already-scanned badge.
+ setLastResult({ ok: null, message: data.message })
+ } else {
+ setLastResult({ ok: false, message: data?.message || 'Scan failed.' })
+ toast.error(data?.message || 'Scan failed.')
+ }
+ }
+ }, [])
+
+ const startCamera = useCallback(async (classId) => {
+ try {
+ const html5Qr = new Html5Qrcode('qr-reader-teacher')
+ html5QrRef.current = html5Qr
+ await html5Qr.start(
+ { facingMode: 'environment' },
+ { fps: 12, qrbox: { width: 260, height: 260 } },
+ async (decodedText) => {
+ const now = Date.now()
+ // Debounce: ignore the same badge if it's still sitting in frame within 3s
+ if (lastScanRef.current.token === decodedText && now - lastScanRef.current.time < 3000) return
+ lastScanRef.current = { token: decodedText, time: now }
+ await submitScan(decodedText, classId)
+ },
+ () => {} // ignore per-frame "no QR found" errors
+ )
+ setScanning(true)
+ } catch (err) {
+ toast.error('Could not access camera. Please allow camera permission.')
+ console.error(err)
+ }
+ }, [submitScan])
+
+ const stopCamera = useCallback(async () => {
+ if (html5QrRef.current) {
+ try { await html5QrRef.current.stop(); await html5QrRef.current.clear() } catch {}
+ html5QrRef.current = null
+ }
+ setScanning(false)
+ }, [])
+
+ const startSession = async () => {
+ if (!selectedId) return toast.error('Please select a class first.')
+ setStarting(true)
+ try {
+ const res = await api.post('/attendance/start-session', { scheduleId: selectedId })
+ const data = res.data.data
+ setLastResult(null)
+ startPolling(data.classId)
+ setSession(data) // camera starts via effect once the viewfinder div is in the DOM
+ } catch (err) {
+ toast.error(err.response?.data?.message || 'Failed to start session.')
+ } finally {
+ setStarting(false)
+ }
+ }
+
+ // The camera can only attach once React has actually rendered the
+ // #qr-reader-teacher div, which only exists after `session` is set.
+ useEffect(() => {
+ if (session && !html5QrRef.current) {
+ startCamera(session.classId)
+ }
+ }, [session, startCamera])
+
+ const endSession = async () => {
+ await stopCamera()
+ stopPolling()
+>>>>>>> 645db23 (V-Smart Update)
  if (classIdRef.current) {
  try {
  const res = await api.patch(`/attendance/close/${classIdRef.current}`)
@@ -126,6 +243,7 @@ function QRGenerator() {
  }
  }
  classIdRef.current = null
+<<<<<<< HEAD
  setQrData(null)
  setAttLog([])
  setCountdown(60)
@@ -133,6 +251,14 @@ function QRGenerator() {
  }
 
  useEffect(() => () => stopTimers(), [stopTimers])
+=======
+ setSession(null)
+ setAttLog([])
+ setLastResult(null)
+ }
+
+ useEffect(() => () => { stopCamera(); stopPolling() }, [stopCamera, stopPolling])
+>>>>>>> 645db23 (V-Smart Update)
 
  const present = attLog.filter(r => r.status === 'present').length
  const late = attLog.filter(r => r.status === 'late').length
@@ -140,6 +266,7 @@ function QRGenerator() {
 
  return (
  <div className="grid lg:grid-cols-2 gap-6">
+<<<<<<< HEAD
  <div className="card p-6 space-y-5">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -148,6 +275,18 @@ function QRGenerator() {
  <h3 className="font-display font-bold text-slate-800">Generate QR Attendance</h3>
  </div>
 
+=======
+   {confirmDialog}
+ <div className="card p-6 space-y-5">
+ <div className="flex items-center gap-3">
+ <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+ <ScanLine size={18} className="text-primary"/>
+ </div>
+ <h3 className="font-display font-bold text-slate-800">Scan Student Badges</h3>
+ </div>
+
+ {!session && (
+>>>>>>> 645db23 (V-Smart Update)
  <div>
  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Class</label>
  {loadingSch ? (
@@ -159,7 +298,11 @@ function QRGenerator() {
  <select
  className="input-field"
  value={selectedId}
+<<<<<<< HEAD
  onChange={e => { setSelectedId(e.target.value); setQrData(null); stopTimers(); setAttLog([]) }}
+=======
+ onChange={e => setSelectedId(e.target.value)}
+>>>>>>> 645db23 (V-Smart Update)
  >
  <option value="">— Choose a class —</option>
  {dedupeSchedules(schedules).map(s => (
@@ -175,6 +318,7 @@ function QRGenerator() {
  </p>
  )}
  </div>
+<<<<<<< HEAD
 
  {!qrData ? (
  <button onClick={generateQR} disabled={!selectedId} className="btn-primary w-full justify-center py-3">
@@ -223,6 +367,66 @@ function QRGenerator() {
  </button>
  </div>
  </div>
+=======
+ )}
+
+ {!session ? (
+ <button onClick={startSession} disabled={!selectedId || starting} className="btn-primary w-full justify-center py-3">
+ {starting
+ ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Starting…</>
+ : <><Camera size={18}/> Start Scanning</>}
+ </button>
+ ) : (
+ <div className="flex flex-col items-center gap-4">
+ <div className="w-full p-3 bg-primary/5 rounded-xl border border-primary/20 text-center">
+ <p className="text-xs font-semibold text-slate-700">
+ {session.scheduleInfo?.subjectName} · {session.scheduleInfo?.gradeLevel} {session.scheduleInfo?.sectionName}
+ </p>
+ <p className="text-xs font-mono text-slate-400 mt-0.5">Room: {session.scheduleInfo?.room}</p>
+ </div>
+
+ {/* Camera viewfinder */}
+ <div className="relative w-full bg-slate-900 aspect-square rounded-2xl overflow-hidden border-2 border-primary/20 shadow-lg">
+ <div id="qr-reader-teacher" className="w-full h-full"/>
+ {scanning && (
+ <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+ <div className="relative w-56 h-56">
+ <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-white rounded-tl-lg"/>
+ <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-white rounded-tr-lg"/>
+ <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-white rounded-bl-lg"/>
+ <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-white rounded-br-lg"/>
+ </div>
+ </div>
+ )}
+ </div>
+
+ {lastResult && (
+ <div className={`w-full p-3 rounded-xl flex items-start gap-2.5 text-sm font-semibold
+ ${lastResult.ok === true ? 'bg-green-50 border border-green-200 text-green-800'
+ : lastResult.ok === false ? 'bg-red-50 border border-red-200 text-red-800'
+ : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+ {lastResult.ok === true ? <CheckCircle size={16} className="flex-shrink-0 mt-0.5"/>
+ : lastResult.ok === false ? <XCircle size={16} className="flex-shrink-0 mt-0.5"/>
+ : <Clock size={16} className="flex-shrink-0 mt-0.5"/>}
+ <span>{lastResult.message}</span>
+ </div>
+ )}
+
+ <p className="text-xs text-slate-400 text-center -mt-1">
+ Keep pointing the camera at each student's badge — scanning continues automatically.
+ </p>
+
+ <button
+ onClick={async () => {
+ if (await ask({ title: 'End attendance session?', message: 'Students who have not been scanned will be automatically marked ABSENT.', confirmLabel: 'End session' })) {
+   endSession()
+ }
+}}
+ className="btn-danger w-full justify-center">
+ <StopCircle size={15}/> End Session
+ </button>
+ </div>
+>>>>>>> 645db23 (V-Smart Update)
  )}
  </div>
 
@@ -230,7 +434,11 @@ function QRGenerator() {
  <div className="flex items-center justify-between mb-4">
  <h3 className="font-display font-bold text-slate-800">Live Attendance Log</h3>
  <div className="flex items-center gap-2">
+<<<<<<< HEAD
  {qrData && (
+=======
+ {session && (
+>>>>>>> 645db23 (V-Smart Update)
  <div className="flex items-center gap-1.5">
  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/>
  <span className="text-xs font-semibold text-slate-500">Live</span>
@@ -263,7 +471,11 @@ function QRGenerator() {
  <Users size={36} className="mb-3 opacity-30"/>
  <p className="text-sm font-semibold">No scans yet</p>
  <p className="text-xs mt-1 text-center">
+<<<<<<< HEAD
  {qrData ? 'Students will appear here as they scan' : 'Generate a QR code to start attendance'}
+=======
+ {session ? 'Students will appear here as their badges are scanned' : 'Start scanning to open attendance'}
+>>>>>>> 645db23 (V-Smart Update)
  </p>
  </div>
  ) : (
@@ -295,8 +507,61 @@ function QRGenerator() {
  )
 }
 
+<<<<<<< HEAD
 function StudentAttendance() {
  const { user } = useAuth()
+=======
+function MyQRCard() {
+ const { data, isLoading } = useQuery({
+ queryKey: ['my-qr-badge'],
+ queryFn: () => api.get('/attendance/my-qr').then(r => r.data.data),
+ staleTime: 5 * 60 * 1000,
+ })
+
+ const download = () => {
+ if (!data?.qrImage) return
+ const a = document.createElement('a')
+ a.href = data.qrImage
+ a.download = `${data.student?.lrn || 'my'}-attendance-qr.png`
+ a.click()
+ }
+
+ return (
+ <div className="card p-6 flex flex-col sm:flex-row items-center gap-6">
+ <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center sm:hidden">
+ <QrCode size={18} className="text-primary"/>
+ </div>
+ {isLoading ? (
+ <div className="w-40 h-40 rounded-2xl bg-slate-100 animate-pulse flex-shrink-0"/>
+ ) : (
+ <div className="p-3 bg-white rounded-2xl border-2 border-primary/20 shadow-sm flex-shrink-0">
+ <img src={data?.qrImage} alt="My attendance QR code" className="w-36 h-36"/>
+ </div>
+ )}
+ <div className="flex-1 text-center sm:text-left">
+ <div className="hidden sm:flex items-center gap-2 mb-1">
+ <QrCode size={16} className="text-primary"/>
+ <h3 className="font-display font-bold text-slate-800">My Attendance QR Code</h3>
+ </div>
+ <p className="text-sm text-slate-500 leading-relaxed">
+ This is your personal badge — it's permanent and unique to you. Show it to your teacher
+ at the start of class and they'll scan it to mark you present. No need to open the camera yourself.
+ </p>
+ {data?.student && (
+ <p className="text-xs text-slate-400 font-mono mt-2">LRN: {data.student.lrn}</p>
+ )}
+ <button onClick={download} disabled={!data?.qrImage} className="btn-secondary mt-3 text-xs py-2 px-3 mx-auto sm:mx-0">
+ <Download size={13}/> Save to Photos
+ </button>
+ </div>
+ </div>
+ )
+}
+
+function StudentAttendance() {
+ const { user } = useAuth()
+ const isStudent = user?.role === 'student'
+>>>>>>> 645db23 (V-Smart Update)
  const { data, isLoading } = useQuery({
  queryKey: ['my-attendance', user?.studentId],
  queryFn: () => api.get(`/attendance/student/${user.studentId}`).then(r => r.data.data),
@@ -317,6 +582,10 @@ function StudentAttendance() {
 
  return (
  <div className="space-y-5">
+<<<<<<< HEAD
+=======
+ {isStudent && <MyQRCard/>}
+>>>>>>> 645db23 (V-Smart Update)
  {!isLoading && total > 0 && (
  <div className="grid grid-cols-4 gap-4">
  {[
@@ -392,11 +661,19 @@ export default function AttendancePage() {
  <h1 className="page-title">Attendance</h1>
  <p className="text-slate-500 text-sm mt-1">
  {user?.role === 'teacher'
+<<<<<<< HEAD
  ? 'Generate QR codes for students to scan. Live updates every 4 seconds.'
  : 'View your attendance history across all subjects.'}
  </p>
  </div>
  {user?.role === 'teacher' && <QRGenerator/>}
+=======
+ ? "Scan each student's personal QR badge with your camera. Live updates every 4 seconds."
+ : 'View your attendance history and your personal QR badge.'}
+ </p>
+ </div>
+ {user?.role === 'teacher' && <TeacherScanner/>}
+>>>>>>> 645db23 (V-Smart Update)
  {(user?.role === 'student' || user?.role === 'admin') && <StudentAttendance/>}
  </div>
  )

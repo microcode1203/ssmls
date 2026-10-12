@@ -1,0 +1,591 @@
+// @v2-fixed-imports
+import { useState, useEffect, useRef } from 'react'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import api from '../../api/client'
+import GlobalSearch from './GlobalSearch'
+import { useDialogBehavior } from '../ui/Modal'
+import BrandLogo from '../BrandLogo'
+import {
+  LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
+  ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield, Search,
+  LogOut, Menu, X, School, Settings, BookMarked, Crown, ChevronRight,
+  MessageSquare, Trophy, Printer, MessageCircle, Cog, Upload, Layers, LayoutList,
+  Brain, Scan, TrendingUp, Home
+} from 'lucide-react'
+
+const NAV = {
+  admin: [
+    { group: 'Overview',
+      items: [
+        { label: 'Dashboard',      icon: LayoutDashboard, to: '/dashboard' },
+      ]
+    },
+    { group: 'Management',
+      items: [
+        { label: 'Students',       icon: GraduationCap,   to: '/students' },
+        { label: 'Teachers',       icon: Users,            to: '/teachers' },
+        { label: 'Sections',       icon: School,           to: '/sections' },
+        { label: 'Subjects',       icon: BookMarked,       to: '/subjects' },
+      ]
+    },
+    { group: 'Academic',
+      items: [
+        { label: 'Schedules',        icon: CalendarDays,  to: '/schedules' },
+        { label: 'Attendance',       icon: ClipboardList, to: '/attendance' },
+        { label: 'Assignments',      icon: BookOpen,      to: '/assignments' },
+        { label: 'Grades',           icon: BarChart3,     to: '/grades' },
+        { label: 'Materials',        icon: FileText,      to: '/materials' },
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+        { label: 'Learning Hub',     icon: Brain,         to: '/learn' },
+        { label: 'AI Tutor',         icon: Brain,         to: '/ai-tutor' },
+        { label: 'Grade Prediction', icon: TrendingUp,    to: '/grade-prediction' },
+        { label: 'Scanner',          icon: Scan,          to: '/scanner' },
+        { label: 'Exams',            icon: ClipboardList, to: '/exams' },
+      ]
+    },
+    { group: 'Communication',
+      items: [
+        { label: 'Announcements',  icon: Bell,            to: '/announcements' },
+        { label: 'Messages',       icon: MessageSquare,   to: '/messages' },
+        { label: 'Calendar',       icon: CalendarDays,    to: '/calendar' },
+      ]
+    },
+    { group: 'Reports',
+      items: [
+        { label: 'Report Card',    icon: Printer,         to: '/report-card' },
+        { label: 'Rankings',       icon: Trophy,          to: '/rankings' },
+        { label: 'Grade Appeals',  icon: MessageCircle,   to: '/appeals' },
+      ]
+    },
+    { group: 'System',
+      items: [
+        { label: 'School Config',    icon: Cog,      to: '/school-config' },
+        { label: 'Import Students',  icon: Upload,   to: '/import-students' },
+        { label: 'Year Promotion',      icon: Layers,      to: '/promotion' },
+        { label: 'Assign Sections',      icon: LayoutList,  to: '/section-assignment' },
+        { label: 'Admin Accounts',   icon: Crown,    to: '/admin-accounts' },
+        { label: 'Audit Logs',       icon: Shield,   to: '/audit-logs' },
+        { label: 'Settings',         icon: Settings, to: '/settings' },
+      ]
+    },
+  ],
+  teacher: [
+    { group: 'Overview',
+      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' }]
+    },
+    { group: 'Classes',
+      items: [
+        { label: 'Students',      icon: GraduationCap, to: '/students' },
+        { label: 'Schedules',     icon: CalendarDays,  to: '/schedules' },
+        { label: 'Attendance',    icon: ClipboardList, to: '/attendance' },
+      ]
+    },
+    { group: 'Academic',
+      items: [
+        { label: 'Assignments',      icon: BookOpen,   to: '/assignments' },
+        { label: 'Grades',           icon: BarChart3,  to: '/grades' },
+        { label: 'Materials',        icon: FileText,   to: '/materials' },
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+        { label: 'Learning Hub',     icon: Brain,      to: '/learn' },
+        { label: 'AI Tutor',         icon: Brain,      to: '/ai-tutor' },
+        { label: 'Grade Prediction', icon: TrendingUp, to: '/grade-prediction' },
+        { label: 'Scanner',          icon: Scan,       to: '/scanner' },
+        { label: 'Exams',            icon: ClipboardList, to: '/exams' },
+      ]
+    },
+    { group: 'Communication',
+      items: [
+        { label: 'Announcements', icon: Bell,           to: '/announcements' },
+        { label: 'Messages',      icon: MessageSquare,  to: '/messages' },
+        { label: 'Calendar',      icon: CalendarDays,   to: '/calendar' },
+      ]
+    },
+    { group: 'Reports',
+      items: [
+        { label: 'Report Card',   icon: Printer,        to: '/report-card' },
+        { label: 'Rankings',      icon: Trophy,         to: '/rankings' },
+        { label: 'Grade Appeals', icon: MessageCircle,  to: '/appeals' },
+      ]
+    },
+    { group: 'Other',
+      items: [
+        { label: 'Settings',      icon: Settings,       to: '/settings' },
+      ]
+    },
+  ],
+  student: [
+    { group: 'Overview',
+      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' }]
+    },
+    { group: 'Attendance',
+      items: [
+        { label: 'My QR Code', icon: QrCode,      to: '/scan-qr' },
+        { label: 'Attendance',icon: ClipboardList,to: '/attendance' },
+      ]
+    },
+    { group: 'Learning',
+      items: [
+        { label: 'Schedule',     icon: CalendarDays, to: '/schedules' },
+        { label: 'Assignments',  icon: BookOpen,     to: '/assignments' },
+        { label: 'Take Exam',    icon: ClipboardList, to: '/take-exam' },
+        { label: 'Grades',       icon: BarChart3,    to: '/grades' },
+        { label: 'Materials',    icon: FileText,     to: '/materials' },
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+        { label: 'Learning Hub', icon: Brain,        to: '/learn' },
+        { label: 'AI Tutor',     icon: Brain,        to: '/ai-tutor' },
+      ]
+    },
+    { group: 'Communication',
+      items: [
+        { label: 'Announcements', icon: Bell,          to: '/announcements' },
+        { label: 'Messages',      icon: MessageSquare, to: '/messages' },
+        { label: 'Calendar',      icon: CalendarDays,  to: '/calendar' },
+      ]
+    },
+    { group: 'Academic',
+      items: [
+        { label: 'Report Card',   icon: Printer,       to: '/report-card' },
+        { label: 'Grade Appeals', icon: MessageCircle, to: '/appeals' },
+      ]
+    },
+    { group: 'Other',
+      items: [
+        { label: 'Settings',      icon: Settings,      to: '/settings' },
+      ]
+    },
+  ],
+  parent: [
+    { group: 'My Child',
+      items: [
+        { label: 'Overview',     icon: Home,          to: '/parent' },
+      ]
+    },
+    { group: 'Other',
+      items: [
+        { label: 'Settings', icon: Settings, to: '/settings' },
+      ]
+    },
+  ],
+}
+
+const BOTTOM_NAV = {
+  admin:   [
+    { label:'Home',       icon: LayoutDashboard, to: '/dashboard' },
+    { label:'Students',   icon: GraduationCap,   to: '/students' },
+    { label:'Schedules',  icon: CalendarDays,    to: '/schedules' },
+    { label:'Attendance', icon: ClipboardList,   to: '/attendance' },
+    { label:'More',       icon: Menu,            to: null },
+  ],
+  teacher: [
+    { label:'Home',       icon: LayoutDashboard, to: '/dashboard' },
+    { label:'Attendance', icon: ClipboardList,   to: '/attendance' },
+    { label:'Schedules',  icon: CalendarDays,    to: '/schedules' },
+    { label:'Grades',     icon: BarChart3,       to: '/grades' },
+    { label:'More',       icon: Menu,            to: null },
+  ],
+  student: [
+    { label:'Home',    icon: LayoutDashboard, to: '/dashboard' },
+    { label:'My QR', icon: QrCode,          to: '/scan-qr' },
+    { label:'Schedule',icon: CalendarDays,    to: '/schedules' },
+    { label:'Grades',  icon: BarChart3,       to: '/grades' },
+    { label:'More',    icon: Menu,            to: null },
+  ],
+  parent: [
+    { label:'Home',     icon: Home,        to: '/parent' },
+    { label:'Settings', icon: Settings,    to: '/settings' },
+    { label:'More',     icon: Menu,        to: null },
+  ],
+}
+
+// ─── Notification Bell Component ─────────────────────────────────────────────
+function NotificationBell() {
+  const [open,   setOpen]   = useState(false)
+  const [notifs, setNotifs] = useState([])
+  const [unread, setUnread] = useState(0)
+  const ref      = useRef(null)
+  const btnRef   = useRef(null)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await api.get('/notifications')
+      setNotifs(res.data.data || [])
+      setUnread(res.data.unread || 0)
+    } catch {}
+  }
+
+  useEffect(() => {
+    fetchNotifs()
+    const interval = setInterval(fetchNotifs, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const markAllRead = async () => {
+    try {
+      await api.patch('/notifications/read-all')
+      setUnread(0)
+      setNotifs(p => p.map(n => ({ ...n, is_read: 1 })))
+    } catch {}
+  }
+
+  const markRead = async (id) => {
+    try {
+      await api.patch(`/notifications/${id}/read`)
+      setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: 1 } : n))
+      setUnread(p => Math.max(0, p - 1))
+    } catch {}
+  }
+
+  const TYPE_ICON = {
+    grade:       '📊',
+    attendance:  '📋',
+    assignment:  '📝',
+    announcement:'📢',
+    alert:       '⚠️',
+    message:     '💬',
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => {
+          if (!open && btnRef.current) {
+            const rect = btnRef.current.getBoundingClientRect()
+            // Place dropdown to the right of sidebar, below the button
+            setDropPos({
+              top:  rect.bottom + 8,
+              left: rect.left + rect.width + 8,
+            })
+          }
+          setOpen(p => !p)
+          if (!open) fetchNotifs()
+        }}
+        ref={btnRef}
+        style={{
+          position: 'relative', background: 'rgba(255,255,255,.08)',
+          border: 'none', borderRadius: 8, width: 32, height: 32,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'rgba(255,255,255,.7)',
+          transition: 'background .15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.15)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}
+        title="Notifications"
+      >
+        {unread > 0 ? <BellDot size={16}/> : <Bell size={16}/>}
+        {unread > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            background: '#ef4444', color: 'white',
+            fontSize: 9, fontWeight: 800,
+            minWidth: 16, height: 16, borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px', border: '1.5px solid #0f172a',
+          }}>
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'fixed',
+          top:  dropPos.top,
+          left: dropPos.left,
+          zIndex: 9999,
+          background: 'white', borderRadius: 12, width: 320,
+          boxShadow: '0 12px 40px rgba(15,23,42,.22), 0 2px 8px rgba(15,23,42,.08)',
+          border: '1px solid var(--border)',
+          overflow: 'hidden',
+          maxHeight: 'calc(100vh - ' + dropPos.top + 'px - 16px)',
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px', borderBottom: '0.5px solid #f1f5f9',
+          }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+              Notifications {unread > 0 && <span style={{ color: '#ef4444' }}>({unread})</span>}
+            </span>
+            {unread > 0 && (
+              <button onClick={markAllRead} style={{
+                fontSize: 11, color: '#2563eb', background: 'none',
+                border: 'none', cursor: 'pointer', fontWeight: 600,
+              }}>
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {notifs.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>No notifications yet</p>
+                <p style={{ fontSize: 11, marginTop: 4 }}>You're all caught up!</p>
+              </div>
+            ) : (
+              notifs.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => markRead(n.id)}
+                  style={{
+                    display: 'flex', gap: 10, padding: '10px 14px',
+                    cursor: 'pointer', transition: 'background .1s',
+                    background: n.is_read ? 'white' : '#eff6ff',
+                    borderBottom: '0.5px solid #f8fafc',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={e => e.currentTarget.style.background = n.is_read ? 'white' : '#eff6ff'}
+                >
+                  <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>
+                    {TYPE_ICON[n.type] || '🔔'}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: 12, fontWeight: n.is_read ? 500 : 700,
+                      color: '#1e293b', margin: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{n.title}</p>
+                    {n.body && (
+                      <p style={{
+                        fontSize: 11, color: '#64748b', margin: '2px 0 0',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{n.body}</p>
+                    )}
+                    <p style={{ fontSize: 10, color: '#94a3b8', margin: '3px 0 0' }}>
+                      {new Date(n.created_at).toLocaleString('en-PH', {
+                        month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  {!n.is_read && (
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: 'var(--accent)', flexShrink: 0, marginTop: 4,
+                    }}/>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ROLE_BADGE = {
+  admin:   { label: 'Admin',   bg: 'bg-violet-500' },
+  teacher: { label: 'Teacher', bg: 'bg-blue-500' },
+  student: { label: 'Student', bg: 'bg-emerald-500' },
+}
+
+function SidebarContent({ user, onClose, onLogout }) {
+  const groups = NAV[user?.role] || []
+  const badge  = ROLE_BADGE[user?.role] || { label: user?.role, bg: 'bg-slate-500' }
+
+  return (
+    <div className="sidebar h-full overflow-y-auto flex-col flex">
+      {/* Brand */}
+      <div className="sidebar-brand">
+        <BrandLogo className="sidebar-logo">
+          <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+            <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
+            <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
+            <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
+          </svg>
+        </BrandLogo>
+        <div>
+          <div className="sidebar-brand-name">S.S.M.L.S</div>
+          <div className="sidebar-brand-sub">Smart School Management &amp; Learning System</div>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="ml-auto p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors lg:hidden">
+            <X size={16}/>
+          </button>
+        )}
+      </div>
+
+      {/* User */}
+      <div style={{padding:'8px'}}>
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">
+            {user?.firstName?.[0]}{user?.lastName?.[0]}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="sidebar-user-name">{user?.firstName} {user?.lastName}</div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm text-white ${badge.bg} mt-0.5 inline-block`}>
+              {badge.label.toUpperCase()}
+            </span>
+          </div>
+          <NotificationBell/>
+        </div>
+      </div>
+
+      {/* Global search */}
+      <GlobalSearch/>
+
+      {/* Nav groups */}
+      <nav className="flex-1 pb-4 overflow-y-auto">
+        {groups.map((group, gi) => (
+          <div key={gi}>
+            {gi > 0 && <div className="nav-item-divider"/>}
+            <div className="sidebar-section">{group.group}</div>
+            {group.items.map(({ label, icon: Icon, to }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={onClose}
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              >
+                <Icon size={15}/>
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      {/* Logout */}
+      <div style={{padding:'8px', borderTop:'1px solid rgba(255,255,255,.06)'}}>
+        <button
+          onClick={onLogout}
+          className="nav-item w-full text-left"
+          style={{margin:0, color:'rgba(255,255,255,.4)'}}
+          onMouseEnter={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.background='rgba(239,68,68,.1)'}}
+          onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,.4)';e.currentTarget.style.background=''}}
+        >
+          <LogOut size={15}/>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function AppLayout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const drawerRef = useRef(null)
+  useDialogBehavior(drawerRef, { active: open, onClose: () => setOpen(false) })
+  const bottomItems = BOTTOM_NAV[user?.role] || []
+
+  const handleLogout = () => { logout(); navigate('/login') }
+
+  // Lock main scroll container when any modal is open
+  useEffect(() => {
+    const mainEl = document.querySelector('main.page-transition')
+    if (!mainEl) return
+
+    const observer = new MutationObserver(() => {
+      const hasModal = document.querySelector('.modal-active') !== null
+      mainEl.style.overflow = hasModal ? 'hidden' : ''
+    })
+
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--surface-2)'}}>
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex flex-col flex-shrink-0" style={{width:'var(--sidebar-width)'}}>
+        <SidebarContent user={user} onLogout={handleLogout}/>
+      </div>
+
+      {/* Mobile overlay */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-50 flex" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0" style={{background:'rgba(15,23,42,.6)',backdropFilter:'blur(4px)'}}/>
+          <div ref={drawerRef} role="dialog" aria-modal="true" aria-label="Navigation menu" className="relative flex flex-col shadow-2xl animate-slide-in" style={{width:'260px',maxWidth:'85vw'}} onClick={e=>e.stopPropagation()}>
+            <SidebarContent user={user} onClose={()=>setOpen(false)} onLogout={handleLogout}/>
+          </div>
+        </div>
+      )}
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Mobile topbar */}
+        <header className="lg:hidden topbar">
+          <button onClick={()=>setOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 -ml-1 transition-colors">
+            <Menu size={20} className="text-slate-600"/>
+          </button>
+          <button
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { metaKey: true, key: 'k', bubbles: true }))}
+            className="search-trigger topbar-search">
+            <Search size={13}/>
+            <span>Search…</span>
+            <kbd>⌘K</kbd>
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <BrandLogo className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
+                <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
+                <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
+              </svg>
+            </BrandLogo>
+            <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>S.S.M.L.S</span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <NotificationBell/>
+            <button onClick={()=>navigate('/settings')}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{background:'var(--primary)'}}>
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </button>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main id="ssmls-main" className="flex-1 overflow-y-auto page-transition">
+          <div className="page-transition">
+            <Outlet/>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="mobile-nav">
+        {bottomItems.map(({ label, icon: Icon, to }) => {
+          if (!to) return (
+            <button key={label} onClick={()=>setOpen(true)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <Icon size={20}/>
+              <span style={{fontSize:10,fontWeight:600}}>{label}</span>
+            </button>
+          )
+          return (
+            <NavLink key={to} to={to}
+              className={({isActive})=>`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${isActive?'text-primary':'text-slate-400'}`}>
+              {({isActive})=>(
+                <>
+                  <div className={`p-1.5 rounded-xl transition-all ${isActive?'bg-primary/10':''}`}>
+                    <Icon size={19} strokeWidth={isActive?2.5:2}/>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:isActive?700:600}}>{label}</span>
+                </>
+              )}
+            </NavLink>
+          )
+        })}
+      </nav>
+    </div>
+
+  )
+}

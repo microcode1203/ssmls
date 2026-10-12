@@ -11,7 +11,11 @@ import {
  Filter, Trash2, AlertCircle, Award,
  FileText, Image, File, Paperclip, Download,
  CheckCircle, Upload, Shield, ShieldAlert, ShieldX,
+<<<<<<< HEAD
  Maximize, Lock, AlertTriangle, MonitorX
+=======
+ Maximize, Lock, MonitorX
+>>>>>>> 645db23 (V-Smart Update)
 } from 'lucide-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { format, isPast, formatDistanceToNow } from 'date-fns'
@@ -19,7 +23,13 @@ import Modal from '../components/ui/Modal'
 
 // ─── Anti-Cheat Exam Mode ─────────────────────────────────────────────────────
 // Only activates for type === 'exam'
+<<<<<<< HEAD
 // Rules: 3 tab switches = auto-submit, warn on 2nd, fullscreen enforced
+=======
+// Zero-tolerance rules: a tab/window switch, or closing/refreshing the
+// browser, immediately ends the exam and locks the submission server-side
+// so it can never be reopened or resubmitted.
+>>>>>>> 645db23 (V-Smart Update)
 function ExamMode({ assignment, onClose, onSave }) {
   const fileRef = useRef()
   const [text, setText] = useState('')
@@ -28,19 +38,28 @@ function ExamMode({ assignment, onClose, onSave }) {
   const [fileError, setFileError] = useState('')
 
   // Anti-cheat state
+<<<<<<< HEAD
   const [violations, setViolations] = useState(0)
   const [showViolationWarning, setShowViolationWarning] = useState(false)
+=======
+>>>>>>> 645db23 (V-Smart Update)
   const [examEnded, setExamEnded] = useState(false)
   const [endReason, setEndReason] = useState('')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [examStarted, setExamStarted] = useState(false)
   const [timeElapsed, setTimeElapsed] = useState(0)
+<<<<<<< HEAD
   const violationsRef = useRef(0)
   const autoSubmitRef = useRef(false)
   const timerRef = useRef(null)
 
   const MAX_VIOLATIONS = 3
 
+=======
+  const autoSubmitRef = useRef(false)
+  const timerRef = useRef(null)
+
+>>>>>>> 645db23 (V-Smart Update)
   // ── Fullscreen ──────────────────────────────────────────────────────────────
   const enterFullscreen = async () => {
     try {
@@ -80,6 +99,7 @@ function ExamMode({ assignment, onClose, onSave }) {
     }
   }, [assignment.id, text, file])
 
+<<<<<<< HEAD
   // ── Violation handler ───────────────────────────────────────────────────────
   const registerViolation = useCallback((type) => {
     if (autoSubmitRef.current || !examStarted) return
@@ -101,6 +121,20 @@ function ExamMode({ assignment, onClose, onSave }) {
     // Tab visibility change
     const handleVisibility = () => {
       if (document.hidden) registerViolation('Tab switch detected')
+=======
+  // ── Event listeners ─────────────────────────────────────────────────────────
+  // Zero-tolerance: the moment the student switches tabs/windows, or
+  // closes/refreshes the browser, the exam ends immediately and locks —
+  // no warnings, no strikes. (Fullscreen exit is handled separately as a
+  // soft nudge, since browsers force it to exit for native dialogs like
+  // the file picker.)
+  useEffect(() => {
+    if (!examStarted) return
+
+    // Tab/window switch or minimize
+    const handleVisibility = () => {
+      if (document.hidden && !autoSubmitRef.current) doAutoSubmit('Tab or window switch detected')
+>>>>>>> 645db23 (V-Smart Update)
     }
 
     // Browser close / refresh
@@ -108,17 +142,29 @@ function ExamMode({ assignment, onClose, onSave }) {
       if (!autoSubmitRef.current) {
         doAutoSubmit('Browser closed or page refreshed')
         e.preventDefault()
+<<<<<<< HEAD
         e.returnValue = 'Exam in progress — leaving will auto-submit!'
+=======
+        e.returnValue = 'Exam in progress — leaving will end and lock it!'
+>>>>>>> 645db23 (V-Smart Update)
         return e.returnValue
       }
     }
 
+<<<<<<< HEAD
     // Fullscreen exit
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && examStarted && !autoSubmitRef.current) {
         setIsFullscreen(false)
         registerViolation('Fullscreen exited')
       }
+=======
+    // Fullscreen exit — soft nudge only (not a lock trigger). Browsers force
+    // fullscreen to exit for native dialogs like the file picker, so treating
+    // this as a hard violation would lock students out for using Attach File.
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false)
+>>>>>>> 645db23 (V-Smart Update)
     }
 
     // Right-click disable
@@ -150,7 +196,11 @@ function ExamMode({ assignment, onClose, onSave }) {
       document.removeEventListener('contextmenu', handleContextMenu)
       document.removeEventListener('keydown', handleKeyDown)
     }
+<<<<<<< HEAD
   }, [examStarted, registerViolation, doAutoSubmit])
+=======
+  }, [examStarted, doAutoSubmit])
+>>>>>>> 645db23 (V-Smart Update)
 
   // ── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -209,7 +259,11 @@ function ExamMode({ assignment, onClose, onSave }) {
             Your answers have been automatically recorded. The teacher has been notified.
           </p>
           <div className="bg-red-900/50 rounded-xl p-4 mb-6 text-left space-y-2">
+<<<<<<< HEAD
             <p className="text-xs text-red-300"><span className="font-bold text-white">Violations:</span> {violations}/{MAX_VIOLATIONS}</p>
+=======
+            <p className="text-xs text-red-300"><span className="font-bold text-white">Status:</span> Locked — this exam cannot be reopened</p>
+>>>>>>> 645db23 (V-Smart Update)
             <p className="text-xs text-red-300"><span className="font-bold text-white">Time in exam:</span> {formatTime(timeElapsed)}</p>
             <p className="text-xs text-red-300"><span className="font-bold text-white">Assignment:</span> {assignment.title}</p>
           </div>
@@ -238,10 +292,17 @@ function ExamMode({ assignment, onClose, onSave }) {
             <div className="space-y-3">
               <p className="text-sm font-bold text-slate-800">Before you begin, read these rules:</p>
               {[
+<<<<<<< HEAD
                 { icon: Maximize,  color: 'text-blue-600',  bg: 'bg-blue-50',  text: 'The exam will enter fullscreen mode. Do not exit.' },
                 { icon: MonitorX,  color: 'text-amber-600', bg: 'bg-amber-50', text: `You get ${MAX_VIOLATIONS} violations. Switching tabs counts as 1 violation.` },
                 { icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', text: 'On your 2nd violation you will be warned. On the 3rd, exam auto-submits.' },
                 { icon: ShieldAlert, color: 'text-red-600',  bg: 'bg-red-50',   text: 'Closing the browser or refreshing will immediately auto-submit.' },
+=======
+                { icon: Maximize,  color: 'text-blue-600',  bg: 'bg-blue-50',  text: 'The exam will enter fullscreen mode.' },
+                { icon: MonitorX,  color: 'text-red-600',   bg: 'bg-red-50',   text: 'Switching tabs or windows, even once, immediately ends and locks the exam.' },
+                { icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50',   text: 'Closing the browser or refreshing the page also immediately ends and locks it.' },
+                { icon: ShieldX,   color: 'text-orange-600', bg: 'bg-orange-50', text: 'Once locked, the exam cannot be reopened or resubmitted — whatever was answered so far is what gets graded.' },
+>>>>>>> 645db23 (V-Smart Update)
                 { icon: Lock,      color: 'text-slate-600', bg: 'bg-slate-50',  text: 'Right-click, copy, and keyboard shortcuts are disabled.' },
               ].map(({ icon: Icon, color, bg, text }) => (
                 <div key={text} className={`flex items-start gap-3 p-3 rounded-xl ${bg}`}>
@@ -269,6 +330,7 @@ function ExamMode({ assignment, onClose, onSave }) {
     )
   }
 
+<<<<<<< HEAD
   // ── Violation warning overlay ────────────────────────────────────────────────
   const ViolationWarning = () => showViolationWarning && (
     <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-6">
@@ -302,6 +364,11 @@ function ExamMode({ assignment, onClose, onSave }) {
   return (
     <>
       <ViolationWarning />
+=======
+  // ── Exam UI ──────────────────────────────────────────────────────────────────
+  return (
+    <>
+>>>>>>> 645db23 (V-Smart Update)
       <div className="fixed inset-0 z-[9998] bg-slate-50 flex flex-col select-none">
         {/* Exam topbar */}
         <div className="bg-red-600 text-white px-6 py-3 flex items-center justify-between flex-shrink-0">
@@ -309,6 +376,7 @@ function ExamMode({ assignment, onClose, onSave }) {
             <Shield size={18}/>
             <div>
               <p className="font-bold text-sm">{assignment.title}</p>
+<<<<<<< HEAD
               <p className="text-red-200 text-xs">Exam Mode · Anti-Cheat Active</p>
             </div>
           </div>
@@ -320,6 +388,12 @@ function ExamMode({ assignment, onClose, onSave }) {
               ))}
               <span className="text-xs text-red-200 ml-1">{violations}/{MAX_VIOLATIONS} violations</span>
             </div>
+=======
+              <p className="text-red-200 text-xs">Exam Mode · Anti-Cheat Active · Zero-tolerance</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+>>>>>>> 645db23 (V-Smart Update)
             {/* Timer */}
             <div className="bg-red-700/50 px-3 py-1.5 rounded-lg font-mono font-bold text-sm">
               {formatTime(timeElapsed)}
@@ -516,7 +590,11 @@ function CreateModal({ schedules, onClose, onSave }) {
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Create Assignment</h2>
@@ -657,7 +735,11 @@ function SubmitModal({ assignment, onClose, onSave }) {
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div>
@@ -1097,7 +1179,15 @@ export default function AssignmentsPage() {
  )}
 
  {user?.role==='student' && (
+<<<<<<< HEAD
  overdue ? (
+=======
+ a.type === 'exam' && a.my_locked ? (
+ <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-semibold py-2 bg-slate-50 rounded-lg border border-slate-100">
+ <Lock size={12}/> Exam Ended{a.my_score != null ? ` · ${a.my_score}/${a.max_score}` : ' · Awaiting grade'}
+ </div>
+ ) : overdue ? (
+>>>>>>> 645db23 (V-Smart Update)
  <div className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-semibold py-2">
  <AlertCircle size={12}/> Submission closed
  </div>

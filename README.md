@@ -232,9 +232,17 @@ npm run dev
 | Role    | Email                              | Password      |
 |---------|------------------------------------|---------------|
 | Admin   | admin@ssmls.edu.ph                 | Admin@2026    |
+<<<<<<< HEAD
 | Teacher | mlcruz@ssmls.edu.ph                | Teacher@2026  |
 | Teacher | jdelavega@ssmls.edu.ph             | Teacher@2026  |
 | Student | juan.dela@student.ssmls.edu.ph     | Student@2026  |
+=======
+
+Only the admin account is created automatically. Add teachers and students from the admin pages
+(Teachers, Students, Import Students). New teachers get the default password `Teacher@2026`,
+new students `Student@2026`. You can change the admin login with `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `backend/.env`
+before the first run.
+>>>>>>> 645db23 (V-Smart Update)
 
 ---
 

@@ -1,6 +1,7 @@
 // learn.controller.js
 const { pool } = require('../config/database');
 
+<<<<<<< HEAD
 // Ensure learn_content table exists
 const ensureTable = async () => {
   await pool.query(`
@@ -23,6 +24,9 @@ const ensureTable = async () => {
   `);
 };
 ensureTable().catch(err => console.warn('learn_content table warning:', err.message));
+=======
+// NOTE: the learn_content table is created in config/migrate_v3.js
+>>>>>>> 645db23 (V-Smart Update)
 
 // GET /api/learn/content
 const getContent = async (req, res) => {

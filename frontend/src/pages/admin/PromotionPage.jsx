@@ -8,6 +8,10 @@ import {
  GraduationCap, ArrowRight, AlertTriangle, CheckCircle,
  RefreshCw, Users, ChevronRight, Shield
 } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import Modal from '../../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 export default function PromotionPage() {
  const qc = useQueryClient()
@@ -180,7 +184,11 @@ export default function PromotionPage() {
 
  {/* Confirmation modal */}
  {confirm && (
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={() => { setConfirm(false); setPhrase('') }}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
  <AlertTriangle size={28} className="text-red-500"/>
@@ -223,7 +231,11 @@ export default function PromotionPage() {
  </button>
  </div>
  </div>
+<<<<<<< HEAD
  </div>
+=======
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )}
  </div>
  )

@@ -4,6 +4,11 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/client'
 import GlobalSearch from './GlobalSearch'
+<<<<<<< HEAD
+=======
+import { useDialogBehavior } from '../ui/Modal'
+import BrandLogo from '../BrandLogo'
+>>>>>>> 645db23 (V-Smart Update)
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
   ClipboardList, BarChart3, FileText, Bell, BellDot, QrCode, Shield, Search,
@@ -34,10 +39,18 @@ const NAV = {
         { label: 'Assignments',      icon: BookOpen,      to: '/assignments' },
         { label: 'Grades',           icon: BarChart3,     to: '/grades' },
         { label: 'Materials',        icon: FileText,      to: '/materials' },
+<<<<<<< HEAD
+=======
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+>>>>>>> 645db23 (V-Smart Update)
         { label: 'Learning Hub',     icon: Brain,         to: '/learn' },
         { label: 'AI Tutor',         icon: Brain,         to: '/ai-tutor' },
         { label: 'Grade Prediction', icon: TrendingUp,    to: '/grade-prediction' },
         { label: 'Scanner',          icon: Scan,          to: '/scanner' },
+<<<<<<< HEAD
+=======
+        { label: 'Exams',            icon: ClipboardList, to: '/exams' },
+>>>>>>> 645db23 (V-Smart Update)
       ]
     },
     { group: 'Communication',
@@ -82,10 +95,18 @@ const NAV = {
         { label: 'Assignments',      icon: BookOpen,   to: '/assignments' },
         { label: 'Grades',           icon: BarChart3,  to: '/grades' },
         { label: 'Materials',        icon: FileText,   to: '/materials' },
+<<<<<<< HEAD
+=======
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+>>>>>>> 645db23 (V-Smart Update)
         { label: 'Learning Hub',     icon: Brain,      to: '/learn' },
         { label: 'AI Tutor',         icon: Brain,      to: '/ai-tutor' },
         { label: 'Grade Prediction', icon: TrendingUp, to: '/grade-prediction' },
         { label: 'Scanner',          icon: Scan,       to: '/scanner' },
+<<<<<<< HEAD
+=======
+        { label: 'Exams',            icon: ClipboardList, to: '/exams' },
+>>>>>>> 645db23 (V-Smart Update)
       ]
     },
     { group: 'Communication',
@@ -114,7 +135,11 @@ const NAV = {
     },
     { group: 'Attendance',
       items: [
+<<<<<<< HEAD
         { label: 'Scan QR',   icon: QrCode,      to: '/scan-qr' },
+=======
+        { label: 'My QR Code', icon: QrCode,      to: '/scan-qr' },
+>>>>>>> 645db23 (V-Smart Update)
         { label: 'Attendance',icon: ClipboardList,to: '/attendance' },
       ]
     },
@@ -122,8 +147,15 @@ const NAV = {
       items: [
         { label: 'Schedule',     icon: CalendarDays, to: '/schedules' },
         { label: 'Assignments',  icon: BookOpen,     to: '/assignments' },
+<<<<<<< HEAD
         { label: 'Grades',       icon: BarChart3,    to: '/grades' },
         { label: 'Materials',    icon: FileText,     to: '/materials' },
+=======
+        { label: 'Take Exam',    icon: ClipboardList, to: '/take-exam' },
+        { label: 'Grades',       icon: BarChart3,    to: '/grades' },
+        { label: 'Materials',    icon: FileText,     to: '/materials' },
+        { label: 'Forms Library',   icon: ClipboardList, to: '/forms' },
+>>>>>>> 645db23 (V-Smart Update)
         { label: 'Learning Hub', icon: Brain,        to: '/learn' },
         { label: 'AI Tutor',     icon: Brain,        to: '/ai-tutor' },
       ]
@@ -178,7 +210,11 @@ const BOTTOM_NAV = {
   ],
   student: [
     { label:'Home',    icon: LayoutDashboard, to: '/dashboard' },
+<<<<<<< HEAD
     { label:'Scan QR', icon: QrCode,          to: '/scan-qr' },
+=======
+    { label:'My QR', icon: QrCode,          to: '/scan-qr' },
+>>>>>>> 645db23 (V-Smart Update)
     { label:'Schedule',icon: CalendarDays,    to: '/schedules' },
     { label:'Grades',  icon: BarChart3,       to: '/grades' },
     { label:'More',    icon: Menu,            to: null },
@@ -391,13 +427,20 @@ function SidebarContent({ user, onClose, onLogout }) {
   return (
     <div className="sidebar h-full overflow-y-auto flex-col flex">
       {/* Brand */}
+<<<<<<< HEAD
       <div className="sidebar-brand">
         <div className="sidebar-logo">
           <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+=======
+      <div className="sidebar-brand" style={{ height: 'auto', minHeight: 0, padding: '24px 16px 20px', gap: 10, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
+        <BrandLogo className="sidebar-logo" style={{ width: 52, height: 52, minWidth: 52, borderRadius: 14, flexShrink: 0 }}>
+          <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+>>>>>>> 645db23 (V-Smart Update)
             <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
             <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
             <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
           </svg>
+<<<<<<< HEAD
         </div>
         <div>
           <div className="sidebar-brand-name">S.S.M.L.S</div>
@@ -405,6 +448,12 @@ function SidebarContent({ user, onClose, onLogout }) {
         </div>
         {onClose && (
           <button onClick={onClose} className="ml-auto p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors lg:hidden">
+=======
+        </BrandLogo>
+        <div className="sidebar-brand-name" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>V-SMART</div>
+        {onClose && (
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors lg:hidden" style={{ position: 'absolute', top: 12, right: 12 }}>
+>>>>>>> 645db23 (V-Smart Update)
             <X size={16}/>
           </button>
         )}
@@ -471,6 +520,11 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+<<<<<<< HEAD
+=======
+  const drawerRef = useRef(null)
+  useDialogBehavior(drawerRef, { active: open, onClose: () => setOpen(false) })
+>>>>>>> 645db23 (V-Smart Update)
   const bottomItems = BOTTOM_NAV[user?.role] || []
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -501,7 +555,11 @@ export default function AppLayout() {
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex" onClick={() => setOpen(false)}>
           <div className="absolute inset-0" style={{background:'rgba(15,23,42,.6)',backdropFilter:'blur(4px)'}}/>
+<<<<<<< HEAD
           <div className="relative flex flex-col shadow-2xl animate-slide-in" style={{width:'260px',maxWidth:'85vw'}} onClick={e=>e.stopPropagation()}>
+=======
+          <div ref={drawerRef} role="dialog" aria-modal="true" aria-label="Navigation menu" className="relative flex flex-col shadow-2xl animate-slide-in" style={{width:'260px',maxWidth:'85vw'}} onClick={e=>e.stopPropagation()}>
+>>>>>>> 645db23 (V-Smart Update)
             <SidebarContent user={user} onClose={()=>setOpen(false)} onLogout={handleLogout}/>
           </div>
         </div>
@@ -523,14 +581,24 @@ export default function AppLayout() {
             <kbd>⌘K</kbd>
           </button>
           <div className="flex items-center gap-2 flex-1">
+<<<<<<< HEAD
             <div className="sidebar-logo" style={{width:28,height:28,borderRadius:8}}>
               <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+=======
+            <BrandLogo className="sidebar-logo" style={{width:38,height:38,minWidth:38,borderRadius:10}}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+>>>>>>> 645db23 (V-Smart Update)
                 <rect x="3" y="5.5" width="18" height="2.5" rx="1.25" fill="white"/>
                 <rect x="3" y="10.75" width="18" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
                 <rect x="3" y="16" width="18" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
               </svg>
+<<<<<<< HEAD
             </div>
             <span style={{fontWeight:800,fontSize:14,color:'var(--text-1)',letterSpacing:'-0.3px'}}>S.S.M.L.S</span>
+=======
+            </BrandLogo>
+            <span style={{fontWeight:800,fontSize:18,color:'var(--text-1)',letterSpacing:'-0.4px'}}>V-SMART</span>
+>>>>>>> 645db23 (V-Smart Update)
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <NotificationBell/>

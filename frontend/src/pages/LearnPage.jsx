@@ -73,7 +73,11 @@ Return ONLY a valid JSON array, no markdown, no explanation, no extra text:
   }
 
   return (
+<<<<<<< HEAD
     <Modal onClose={onClose}>
+=======
+    <Modal onClose={onClose} closeOnEscape={!generating} closeOnBackdrop={!generating}>
+>>>>>>> 645db23 (V-Smart Update)
       <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -209,7 +213,11 @@ function CreateContentModal({ onClose, onSave, schedules }) {
   return (
     <>
       {showAI && <AIGeneratorModal onClose={() => setShowAI(false)} onGenerated={handleAIGenerated}/>}
+<<<<<<< HEAD
       <Modal onClose={onClose}>
+=======
+      <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
         <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
@@ -1098,7 +1106,11 @@ export default function LearnPage() {
         <FlashcardPlayer content={playing} onClose={() => setPlaying(null)}/>
       )}
       {playing && playing.type === 'video' && (
+<<<<<<< HEAD
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+=======
+        <Modal onClose={() => setPlaying(null)} backdrop="rgba(0,0,0,0.9)">
+>>>>>>> 645db23 (V-Smart Update)
           <div className="w-full max-w-3xl">
             <div className="flex justify-end mb-2">
               <button onClick={() => setPlaying(null)} className="text-white p-2 hover:bg-white/10 rounded-lg"><X size={20}/></button>
@@ -1112,10 +1124,17 @@ export default function LearnPage() {
               <div className="mt-4 p-4 bg-white/10 rounded-xl text-white text-sm">{playing.content}</div>
             )}
           </div>
+<<<<<<< HEAD
         </div>
       )}
       {playing && (playing.type === 'lesson' || playing.type === 'reading') && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+=======
+        </Modal>
+      )}
+      {playing && (playing.type === 'lesson' || playing.type === 'reading') && (
+        <Modal onClose={() => setPlaying(null)} backdrop="rgba(0,0,0,0.8)">
+>>>>>>> 645db23 (V-Smart Update)
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <h2 className="font-bold text-slate-900">{playing.title}</h2>
@@ -1125,7 +1144,11 @@ export default function LearnPage() {
               {playing.content?.split('\n').map((line, i) => <p key={i}>{line}</p>)}
             </div>
           </div>
+<<<<<<< HEAD
         </div>
+=======
+        </Modal>
+>>>>>>> 645db23 (V-Smart Update)
       )}
     </div>
   )

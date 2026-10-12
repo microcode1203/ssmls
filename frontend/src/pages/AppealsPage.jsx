@@ -7,6 +7,10 @@ import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { X, MessageSquare, CheckCircle, XCircle, Clock } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import Modal from '../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 const STATUS_BADGE = { pending:'badge-amber', reviewed:'badge-blue', resolved:'badge-green', rejected:'badge-red' }
 const STATUS_ICON = { pending:<Clock size={14} className="text-amber-500"/>, resolved:<CheckCircle size={14} className="text-green-500"/>, rejected:<XCircle size={14} className="text-red-500"/> }
@@ -94,7 +98,11 @@ export default function AppealsPage() {
  )}
 
  {respondingTo&&(
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={()=>setRespondingTo(null)} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Respond to Appeal</h2>
@@ -122,7 +130,11 @@ export default function AppealsPage() {
  </div>
  </div>
  </div>
+<<<<<<< HEAD
  </div>
+=======
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )}
  </div>
  )

@@ -80,16 +80,28 @@ router.post('/promote', async (req, res) => {
     await conn.execute(
       `INSERT INTO school_config (config_key, config_value, updated_by)
        VALUES ('school_year', ?, ?)
+<<<<<<< HEAD
        ON DUPLICATE KEY UPDATE config_value=?, updated_by=?`,
       [nextYear, req.user.id, nextYear, req.user.id]
+=======
+       ON CONFLICT (config_key) DO UPDATE
+         SET config_value = EXCLUDED.config_value, updated_by = EXCLUDED.updated_by, updated_at = NOW()`,
+      [nextYear, req.user.id]
+>>>>>>> 645db23 (V-Smart Update)
     );
 
     // 5. Reset semester to 1st
     await conn.execute(
       `INSERT INTO school_config (config_key, config_value, updated_by)
        VALUES ('semester', '1st Semester', ?)
+<<<<<<< HEAD
        ON DUPLICATE KEY UPDATE config_value='1st Semester', updated_by=?`,
       [req.user.id, req.user.id]
+=======
+       ON CONFLICT (config_key) DO UPDATE
+         SET config_value = EXCLUDED.config_value, updated_by = EXCLUDED.updated_by, updated_at = NOW()`,
+      [req.user.id]
+>>>>>>> 645db23 (V-Smart Update)
     );
 
     await conn.commit();

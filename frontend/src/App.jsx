@@ -1,6 +1,10 @@
 // @v2-fixed-imports
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+<<<<<<< HEAD
+=======
+import { BrandingSync } from './hooks/useBranding'
+>>>>>>> 645db23 (V-Smart Update)
 
 // Pages
 import LoginPage       from './pages/auth/LoginPage'
@@ -14,6 +18,10 @@ import QRScannerPage   from './pages/student/QRScannerPage'
 import AssignmentsPage from './pages/AssignmentsPage'
 import GradesPage      from './pages/GradesPage'
 import MaterialsPage   from './pages/MaterialsPage'
+<<<<<<< HEAD
+=======
+import FormsLibraryPage from './pages/FormsLibraryPage'
+>>>>>>> 645db23 (V-Smart Update)
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import AuditLogsPage      from './pages/admin/AuditLogsPage'
 import AdminAccountsPage  from './pages/admin/AdminAccountsPage'
@@ -34,6 +42,14 @@ import ScannerPage          from './pages/ScannerPage'
 import AITutorPage          from './pages/AITutorPage'
 import GradePredictionPage  from './pages/GradePredictionPage'
 import ParentPortalPage     from './pages/ParentPortalPage'
+<<<<<<< HEAD
+=======
+import ExamsPage from './pages/ExamsPage'
+import ExamSheetPage from './pages/ExamSheetPage'
+import ExamScanPage from './pages/ExamScanPage'
+import ExamAttemptsPage from './pages/ExamAttemptsPage'
+import TakeExamPage from './pages/TakeExamPage'
+>>>>>>> 645db23 (V-Smart Update)
 
 // Layout
 import AppLayout from './components/layout/AppLayout'
@@ -70,6 +86,10 @@ function AppRoutes() {
         <Route path="/assignments"   element={<AssignmentsPage />} />
         <Route path="/grades"        element={<GradesPage />} />
         <Route path="/materials"     element={<MaterialsPage />} />
+<<<<<<< HEAD
+=======
+        <Route path="/forms"         element={<FormsLibraryPage />} />
+>>>>>>> 645db23 (V-Smart Update)
         <Route path="/announcements" element={<AnnouncementsPage />} />
 
         {/* Student only */}
@@ -102,6 +122,26 @@ function AppRoutes() {
         <Route path="/scanner" element={
           <ProtectedRoute allowedRoles={['teacher','admin']}><ScannerPage /></ProtectedRoute>
         } />
+<<<<<<< HEAD
+=======
+        <Route path="/exams" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><ExamsPage /></ProtectedRoute>
+          } />
+        <Route path="/exams/scan" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><ExamScanPage /></ProtectedRoute>
+          } />
+        <Route path="/exams/:id/print" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><ExamSheetPage /></ProtectedRoute>
+          } />
+        <Route path="/exams/:id/attempts" element={
+          <ProtectedRoute allowedRoles={['teacher','admin']}><ExamAttemptsPage /></ProtectedRoute>
+          } />
+
+        {/* Online exams — students enter the exam code here */}
+        <Route path="/take-exam" element={
+          <ProtectedRoute allowedRoles={['student']}><TakeExamPage /></ProtectedRoute>
+          } />
+>>>>>>> 645db23 (V-Smart Update)
 
         {/* AI Tutor — all roles */}
         <Route path="/ai-tutor" element={<ProtectedRoute><AITutorPage /></ProtectedRoute>} />
@@ -125,6 +165,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+<<<<<<< HEAD
+=======
+      <BrandingSync />
+>>>>>>> 645db23 (V-Smart Update)
       <AppRoutes />
     </AuthProvider>
   )

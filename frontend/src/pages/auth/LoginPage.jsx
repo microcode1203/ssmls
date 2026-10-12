@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
+<<<<<<< HEAD
+=======
+import BrandLogo from '../../components/BrandLogo'
+>>>>>>> 645db23 (V-Smart Update)
 import { Eye, EyeOff, ArrowRight, Zap, Shield, BarChart2, Users } from 'lucide-react'
 
 const FEATURES = [
@@ -37,6 +41,7 @@ export default function LoginPage() {
     <div className="login-root">
       {/* ── Left — Brand Panel ── */}
       <div className="login-left">
+<<<<<<< HEAD
         {/* Top bar */}
         <div className="login-topbar">
           <div className="login-logo-mark">
@@ -45,11 +50,22 @@ export default function LoginPage() {
             </svg>
           </div>
           <span className="login-brand-text">S.S.M.L.S</span>
+=======
+        {/* Brand block — centered logo, name + version underneath */}
+        <div className="login-topbar">
+          <BrandLogo className="login-logo-mark login-logo-lg">
+            <svg viewBox="0 0 24 24" fill="none" width="36" height="36">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </BrandLogo>
+          <span className="login-brand-text">V-SMART</span>
+>>>>>>> 645db23 (V-Smart Update)
           <span className="login-version-badge">v3.0</span>
         </div>
 
         {/* Main content */}
         <div className="login-left-content">
+<<<<<<< HEAD
           <div className="login-eyebrow">
             <span className="login-eyebrow-dot"/>
             Philippine Senior High School Platform
@@ -64,6 +80,15 @@ export default function LoginPage() {
             Attendance, grades, schedules, and learning — unified in one platform built for school's modernization.
           </p>
 
+=======
+          <div className="login-title-block">
+            <h1 className="login-school">Vedasto R. Santiago High School</h1>
+            <span className="login-title-rule"/>
+            <p className="login-system">Smart School Management and Learning System</p>
+            <p className="login-level">Senior High School</p>
+          </div>
+
+>>>>>>> 645db23 (V-Smart Update)
           {/* Feature grid */}
           <div className="login-features">
             {FEATURES.map(({ icon: Icon, label, desc }) => (
@@ -81,7 +106,11 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom */}
+<<<<<<< HEAD
         <p className="login-left-footer">© 2026 S.S.M.L.S · Capstone Project</p>
+=======
+        <p className="login-left-footer">© 2026 V-SMART · Capstone Project</p>
+>>>>>>> 645db23 (V-Smart Update)
       </div>
 
       {/* ── Right — Form Panel ── */}
@@ -89,12 +118,21 @@ export default function LoginPage() {
         <div className="login-form-card">
           {/* Mobile logo */}
           <div className="login-mobile-logo">
+<<<<<<< HEAD
             <div className="login-logo-mark">
               <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>S.S.M.L.S</span>
+=======
+            <BrandLogo className="login-logo-mark">
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </BrandLogo>
+            <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>V-SMART</span>
+>>>>>>> 645db23 (V-Smart Update)
           </div>
 
           <div className="login-form-header">
@@ -151,7 +189,11 @@ export default function LoginPage() {
           </form>
 
           <p className="login-form-footer">
+<<<<<<< HEAD
             S.S.M.L.S © 2026 · Senior High School Capstone Project
+=======
+            V-SMART © 2026 · Senior High School Capstone Project
+>>>>>>> 645db23 (V-Smart Update)
           </p>
         </div>
       </div>
@@ -200,6 +242,7 @@ export default function LoginPage() {
           pointer-events: none;
         }
 
+<<<<<<< HEAD
         .login-topbar {
           display: flex;
           align-items: center;
@@ -207,6 +250,19 @@ export default function LoginPage() {
           position: relative;
           z-index: 1;
           margin-bottom: 60px;
+=======
+        /* Brand block: logo centered, name + version stacked underneath */
+        .login-topbar {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          position: relative;
+          z-index: 1;
+          margin-bottom: 56px;
+          text-align: center;
+>>>>>>> 645db23 (V-Smart Update)
         }
         .login-logo-mark {
           width: 30px; height: 30px;
@@ -216,6 +272,7 @@ export default function LoginPage() {
           flex-shrink: 0;
           box-shadow: 0 0 0 1px rgba(79,70,229,.5);
         }
+<<<<<<< HEAD
         .login-brand-text {
           font-size: 14px;
           font-weight: 800;
@@ -225,11 +282,33 @@ export default function LoginPage() {
         .login-version-badge {
           margin-left: 2px;
           font-size: 10px;
+=======
+        /* Larger logo for the brand panel only (mobile logo keeps the small size) */
+        .login-logo-lg {
+          width: 88px; height: 88px;
+          border-radius: 20px;
+        }
+        .login-logo-lg img,
+        .login-logo-lg svg { width: 100%; height: 100%; object-fit: contain; }
+        .login-brand-text {
+          font-size: 26px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+        .login-version-badge {
+          font-size: 11px;
+>>>>>>> 645db23 (V-Smart Update)
           font-weight: 600;
           color: rgba(255,255,255,.35);
           background: rgba(255,255,255,.07);
           border: 1px solid rgba(255,255,255,.1);
+<<<<<<< HEAD
           padding: 2px 7px;
+=======
+          padding: 3px 9px;
+>>>>>>> 645db23 (V-Smart Update)
           border-radius: 100px;
         }
 
@@ -239,6 +318,7 @@ export default function LoginPage() {
           z-index: 1;
         }
 
+<<<<<<< HEAD
         .login-eyebrow {
           display: inline-flex;
           align-items: center;
@@ -279,6 +359,38 @@ export default function LoginPage() {
           line-height: 1.7;
           max-width: 300px;
           margin: 0 0 36px;
+=======
+        /* Title block */
+        .login-title-block { margin-bottom: 36px; }
+        .login-school {
+          font-size: 30px;
+          font-weight: 800;
+          color: white;
+          line-height: 1.15;
+          letter-spacing: -0.03em;
+          margin: 0;
+        }
+        .login-title-rule {
+          display: block;
+          width: 36px; height: 3px;
+          border-radius: 3px;
+          background: #4f46e5;
+          margin: 16px 0 14px;
+        }
+        .login-system {
+          font-size: 17px;
+          font-weight: 600;
+          color: #a5b4fc;
+          line-height: 1.35;
+          letter-spacing: -0.01em;
+          margin: 0 0 6px;
+        }
+        .login-level {
+          font-size: 13px;
+          font-weight: 500;
+          color: rgba(255,255,255,.45);
+          margin: 0;
+>>>>>>> 645db23 (V-Smart Update)
         }
 
         /* Features */

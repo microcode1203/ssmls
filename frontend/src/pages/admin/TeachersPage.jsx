@@ -1,5 +1,9 @@
 // @v2-fixed-imports
+<<<<<<< HEAD
 import { useState, useEffect } from 'react'
+=======
+import { useState, useEffect, useRef } from 'react'
+>>>>>>> 645db23 (V-Smart Update)
 import { TableSkeleton, CardGridSkeleton, PageSkeleton } from '../../components/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
@@ -9,7 +13,11 @@ import {
  Search, ChevronRight, CalendarDays, BookOpen,
  Users, GraduationCap, Clock, Filter
 } from 'lucide-react'
+<<<<<<< HEAD
 import Modal from '../../components/ui/Modal'
+=======
+import Modal, { useDialogBehavior } from '../../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 const CONFIRM_PHRASE = 'DELETE'
 
@@ -45,7 +53,11 @@ function TeacherModal({ onClose, onSave }) {
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <h2 className="font-display font-bold text-slate-900">Add Teacher</h2>
@@ -104,7 +116,11 @@ function DeleteTeacherModal({ teacher, onClose, onConfirm, deleting }) {
  }, [isMatch, deleting, onClose, onConfirm])
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!deleting} closeOnBackdrop={!deleting}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -188,6 +204,11 @@ function DeleteTeacherModal({ teacher, onClose, onConfirm, deleting }) {
 
 // ─── Teacher Detail Drawer ────────────────────────────────────────────────────
 function TeacherDrawer({ teacher, onClose, onDelete }) {
+<<<<<<< HEAD
+=======
+  const drawerRef = useRef(null)
+  useDialogBehavior(drawerRef, { onClose })
+>>>>>>> 645db23 (V-Smart Update)
  const [filterSection, setFilterSection] = useState('')
  const [filterSubject, setFilterSubject] = useState('')
 
@@ -227,7 +248,11 @@ function TeacherDrawer({ teacher, onClose, onDelete }) {
  <div className="absolute inset-0 bg-black/40"onClick={onClose}/>
 
  {/* Drawer */}
+<<<<<<< HEAD
  <div className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col h-full overflow-hidden animate-slide-in">
+=======
+ <div ref={drawerRef} role="dialog" aria-modal="true" className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col h-full overflow-hidden animate-slide-in">
+>>>>>>> 645db23 (V-Smart Update)
  {/* Header */}
  <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
  <div className="flex items-center gap-3">

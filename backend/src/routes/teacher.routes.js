@@ -18,6 +18,10 @@ router.get('/', authorize('admin'), async (req, res) => {
     );
     res.json({ success: true, data: rows });
   } catch (err) {
+<<<<<<< HEAD
+=======
+    console.error('Teacher route error:', err);
+>>>>>>> 645db23 (V-Smart Update)
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
@@ -34,6 +38,10 @@ router.get('/:id', authorize('admin', 'teacher'), async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     res.json({ success: true, data: rows[0] });
   } catch (err) {
+<<<<<<< HEAD
+=======
+    console.error('Teacher route error:', err);
+>>>>>>> 645db23 (V-Smart Update)
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
@@ -41,6 +49,7 @@ router.get('/:id', authorize('admin', 'teacher'), async (req, res) => {
 // POST create teacher
 router.post('/', authorize('admin'), async (req, res) => {
   const bcrypt = require('bcryptjs');
+<<<<<<< HEAD
   const conn   = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -62,6 +71,50 @@ router.post('/', authorize('admin'), async (req, res) => {
     if (err.code === 'ER_DUP_ENTRY')
       return res.status(409).json({ success: false, message: 'Email or Employee ID already exists.' });
     res.status(500).json({ success: false, message: 'Server error.' });
+=======
+  const { firstName, lastName, email, employeeId, department, phone } = req.body;
+
+  if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !employeeId?.trim())
+    return res.status(400).json({ success: false, message: 'First name, last name, email and Employee ID are required.' });
+
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanEmp   = employeeId.trim();
+  const conn = await pool.getConnection();
+  try {
+    // Friendly duplicate checks (deactivated teachers have their email freed on delete)
+    const [emailRows] = await conn.execute(
+      `SELECT id FROM users WHERE email = ? AND is_active = 1`, [cleanEmail]);
+    if (emailRows.length)
+      return res.status(409).json({ success: false, message: 'Email is already in use by an active account.' });
+
+    const [empRows] = await conn.execute(
+      `SELECT t.id FROM teachers t JOIN users u ON u.id = t.user_id
+       WHERE t.employee_id = ? AND u.is_active = 1`, [cleanEmp]);
+    if (empRows.length)
+      return res.status(409).json({ success: false, message: 'Employee ID is already assigned to an active teacher.' });
+
+    const hash = await bcrypt.hash(process.env.DEFAULT_TEACHER_PASSWORD || 'Teacher@2026', 12);
+
+    await conn.beginTransaction();
+    const [u] = await conn.execute(
+      `INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, email_verified)
+       VALUES (?, ?, ?, ?, 'teacher', TRUE, TRUE)`,
+      [firstName.trim(), lastName.trim(), cleanEmail, hash]
+    );
+    await conn.execute(
+      `INSERT INTO teachers (user_id, employee_id, department, phone) VALUES (?, ?, ?, ?)`,
+      [u.insertId, cleanEmp, department?.trim() || null, phone?.trim() || null]
+    );
+    await conn.commit();
+    await logAction(req.user.id, 'CREATE_TEACHER', 'teachers', u.insertId, { employeeId: cleanEmp }, req.ip);
+    res.status(201).json({ success: true, message: 'Teacher created. Default password: Teacher@2026' });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    console.error('Create teacher error:', err);
+    if (err.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ success: false, message: 'Email or Employee ID already exists (possibly on a deactivated account).' });
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+>>>>>>> 645db23 (V-Smart Update)
   } finally { conn.release(); }
 });
 
@@ -72,7 +125,11 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
 
     // Get teacher info
     const [rows] = await pool.execute(
+<<<<<<< HEAD
       `SELECT t.id, t.user_id, u.first_name, u.last_name
+=======
+      `SELECT t.id, t.user_id, t.employee_id, u.first_name, u.last_name
+>>>>>>> 645db23 (V-Smart Update)
        FROM teachers t JOIN users u ON u.id = t.user_id
        WHERE t.id = ?`,
       [id]
@@ -108,6 +165,13 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
       'UPDATE users SET is_active = 0, email = ? WHERE id = ?',
       [freedEmail, teacher.user_id]
     );
+<<<<<<< HEAD
+=======
+    // Free the Employee ID too (it is UNIQUE) so it can be reused
+    const freedEmp = ('DEL' + String(Date.now()).slice(-6) + '_' + (teacher.employee_id || '')).slice(0, 30);
+    await pool.execute('UPDATE teachers SET employee_id = ? WHERE id = ?', [freedEmp, id]);
+
+>>>>>>> 645db23 (V-Smart Update)
     await logAction(
       req.user.id, 'DELETE_TEACHER', 'teachers', id,
       { name: teacher.first_name + ' ' + teacher.last_name }, req.ip
@@ -139,6 +203,10 @@ router.get('/:id/schedules', authorize('admin'), async (req, res) => {
     );
     res.json({ success: true, data: rows });
   } catch (err) {
+<<<<<<< HEAD
+=======
+    console.error('Teacher route error:', err);
+>>>>>>> 645db23 (V-Smart Update)
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });

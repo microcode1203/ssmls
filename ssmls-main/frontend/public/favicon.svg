@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+  <!-- Stack of books / layers mark -->
+  <rect x="6" y="19" width="20" height="3" rx="1.5" fill="white" opacity="0.4"/>
+  <rect x="6" y="14.5" width="20" height="3" rx="1.5" fill="white" opacity="0.65"/>
+  <rect x="6" y="10" width="20" height="3" rx="1.5" fill="white"/>
+  <!-- Cap dot -->
+  <circle cx="24" cy="8" r="2.5" fill="white" opacity="0.9"/>
+</svg>

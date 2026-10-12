@@ -62,7 +62,11 @@ function AddAdminModal({ onClose, onSave }) {
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -217,7 +221,11 @@ function ResetPasswordModal({ admin, onClose }) {
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">
@@ -292,7 +300,11 @@ function DeleteAdminModal({ admin, onClose, onConfirm, deleting }) {
  }, [isMatch, deleting])
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!deleting} closeOnBackdrop={!deleting}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
  <div className="flex items-center gap-3">

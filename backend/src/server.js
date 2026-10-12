@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+require('dotenv').config();
+>>>>>>> 645db23 (V-Smart Update)
 // server.js — with Socket.io real-time notifications
 const express    = require('express');
 const cors       = require('cors');
@@ -9,6 +13,12 @@ const { Server } = require('socket.io');
 const { testConnection }  = require('./config/database');
 const { runMigrations }   = require('./config/migrate');
 const { runMigrationsV2 } = require('./config/migrate_v2');
+<<<<<<< HEAD
+=======
+const { runMigrationsV3 } = require('./config/migrate_v3');
+const { runMigrationsExams }       = require('./config/migrate_exams');
+const { runMigrationsExamsOnline } = require('./config/migrate_exams_online');
+>>>>>>> 645db23 (V-Smart Update)
 const { seed: seedDatabase } = require('./config/seed');
 // Socket.io - safely load
 let initSocket = () => {};
@@ -30,6 +40,10 @@ const assignmentRoutes   = require('./routes/assignment.routes');
 const calendarRoutes     = require('./routes/calendar.routes');
 const configRoutes       = require('./routes/config.routes');
 const dashboardRoutes    = require('./routes/dashboard.routes');
+<<<<<<< HEAD
+=======
+const formsRoutes        = require('./routes/forms.routes');
+>>>>>>> 645db23 (V-Smart Update)
 const gradeRoutes        = require('./routes/grade.routes');
 const importRoutes       = require('./routes/import.routes');
 const materialRoutes     = require('./routes/material.routes');
@@ -57,6 +71,11 @@ const searchRoutes       = require('./routes/search.routes');
 const sectionRoutes      = require('./routes/section.routes');
 const subjectRoutes      = require('./routes/subject.routes');
 const teacherRoutes      = require('./routes/teacher.routes');
+<<<<<<< HEAD
+=======
+const examRoutes         = require('./routes/exam.routes');
+const examOnlineRoutes   = require('./routes/examOnline.routes');
+>>>>>>> 645db23 (V-Smart Update)
 
 const app    = express();
 const server = http.createServer(app);
@@ -111,6 +130,10 @@ app.use('/api/assignments',   assignmentRoutes);
 app.use('/api/calendar',      calendarRoutes);
 app.use('/api/config',        configRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
+<<<<<<< HEAD
+=======
+app.use('/api/forms',         formsRoutes);
+>>>>>>> 645db23 (V-Smart Update)
 app.use('/api/grades',        gradeRoutes);
 app.use('/api/import',        importRoutes);
 app.use('/api/materials',     materialRoutes);
@@ -124,6 +147,11 @@ app.use('/api/search',        searchRoutes);
 app.use('/api/sections',      sectionRoutes);
 app.use('/api/subjects',      subjectRoutes);
 app.use('/api/teachers',      teacherRoutes);
+<<<<<<< HEAD
+=======
+app.use('/api/exams',         examRoutes);
+app.use('/api/exam-online',   examOnlineRoutes);
+>>>>>>> 645db23 (V-Smart Update)
 
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found.' }));
 app.use((err, req, res, next) => {
@@ -136,6 +164,12 @@ const PORT = process.env.PORT || 5000;
   await testConnection();
   await runMigrations();
   await runMigrationsV2();
+<<<<<<< HEAD
+=======
+  await runMigrationsV3();
+  await runMigrationsExams();
+  await runMigrationsExamsOnline();
+>>>>>>> 645db23 (V-Smart Update)
   await seedDatabase();
   server.listen(PORT, () => {
     console.log(`🚀 SSMLS running on port ${PORT}`);

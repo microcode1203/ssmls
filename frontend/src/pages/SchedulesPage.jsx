@@ -183,7 +183,11 @@ function ScheduleModal({ onClose, onSave, sections, subjects, teachers, userRole
  }
 
  return (
+<<<<<<< HEAD
  <Modal onClose={onClose}>
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[94vh] flex flex-col">
 
  {/* Header */}

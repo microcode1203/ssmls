@@ -9,6 +9,11 @@ import {
   Lightbulb, GraduationCap, Brain, X,
   FileText, Trash2, Plus, History
 } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import AiMessage from '../components/AiMessage'
+import CreditBar from '../components/CreditBar'
+>>>>>>> 645db23 (V-Smart Update)
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ msg }) {
@@ -65,11 +70,15 @@ function MessageBubble({ msg }) {
             ? 'bg-white border border-slate-200 text-slate-700 shadow-sm rounded-tl-sm'
             : 'bg-primary text-white rounded-tr-sm'
         }`}>
+<<<<<<< HEAD
           {isAI ? (
             <div className="space-y-0.5">{renderContent(msg.content)}</div>
           ) : (
             <p>{msg.content}</p>
           )}
+=======
+          {isAI ? <AiMessage text={msg.content} /> : <p>{msg.content}</p>}
+>>>>>>> 645db23 (V-Smart Update)
         </div>
 
         {/* Actions */}
@@ -115,6 +124,10 @@ export default function AITutorPage() {
   const [showHistory, setShowHistory] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+<<<<<<< HEAD
+=======
+  const [usage, setUsage] = useState(null)
+>>>>>>> 645db23 (V-Smart Update)
 
   // Fetch materials/lessons for context
   const { data: materials } = useQuery({
@@ -226,12 +239,20 @@ Answer questions specifically about this lesson. Help the student understand the
         messages: newMessages.map(m => ({ role: m.role, content: m.content })),
       })
 
+<<<<<<< HEAD
+=======
+      setUsage(response.data?.usage || null)
+>>>>>>> 645db23 (V-Smart Update)
       const aiText = response.data?.reply || 'Sorry, I could not generate a response. Please try again.'
       const aiMsg = { role: 'assistant', content: aiText, timestamp: new Date() }
       const finalMessages = [...newMessages, aiMsg]
       setMessages(finalMessages)
       saveSession(finalMessages)
     } catch (err) {
+<<<<<<< HEAD
+=======
+      if (err.response?.data?.usage) setUsage(err.response.data.usage)
+>>>>>>> 645db23 (V-Smart Update)
       const errMsg = err.response?.data?.message || 'Sorry, I encountered an error. Please try again.'
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -467,6 +488,10 @@ Answer questions specifically about this lesson. Help the student understand the
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
+      <CreditBar usage={usage} />
+>>>>>>> 645db23 (V-Smart Update)
       {/* Input area */}
       <div className="flex-shrink-0 border-t border-slate-100 bg-white px-4 sm:px-6 py-4">
         <div className="max-w-4xl mx-auto">

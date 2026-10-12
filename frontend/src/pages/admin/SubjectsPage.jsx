@@ -8,6 +8,10 @@ import {
  Plus, X, Edit2, Trash2, BookMarked,
  AlertTriangle, Search, Hash, Layers
 } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import Modal from '../../components/ui/Modal'
+>>>>>>> 645db23 (V-Smart Update)
 
 const GRADE_COLORS = {
  'Grade 11': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -59,7 +63,11 @@ function SubjectModal({ subject, onClose, onSave }) {
  }
 
  return (
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={onClose} closeOnEscape={!saving} closeOnBackdrop={!saving}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
  {/* Header */}
  <div className="flex items-center justify-between p-5 border-b border-slate-100">
@@ -179,14 +187,22 @@ function SubjectModal({ subject, onClose, onSave }) {
  </div>
  </form>
  </div>
+<<<<<<< HEAD
  </div>
+=======
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )
 }
 
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 function DeleteSubjectModal({ subject, onClose, onConfirm, deleting }) {
  return (
+<<<<<<< HEAD
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm modal-active">
+=======
+ <Modal onClose={onClose} closeOnEscape={!deleting} closeOnBackdrop={!deleting}>
+>>>>>>> 645db23 (V-Smart Update)
  <div className="modal-card bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
  <div className="flex flex-col items-center text-center gap-3 mb-6">
  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
@@ -230,7 +246,11 @@ function DeleteSubjectModal({ subject, onClose, onConfirm, deleting }) {
  </button>
  </div>
  </div>
+<<<<<<< HEAD
  </div>
+=======
+ </Modal>
+>>>>>>> 645db23 (V-Smart Update)
  )
 }
 

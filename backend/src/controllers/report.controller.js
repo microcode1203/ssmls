@@ -169,4 +169,144 @@ const getClassReport = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 module.exports = { getStudentReport, getClassReport };
+=======
+// ── helpers ─────────────────────────────────────────────────────────────────
+const getConfigMap = async () => {
+  const { rows } = await pool.query(`SELECT config_key, config_value FROM school_config`);
+  const cfg = {};
+  rows.forEach(r => { cfg[r.config_key] = r.config_value; });
+  return cfg;
+};
+
+// GET /api/reports/ranking/:sectionId — students in a section ranked by GWA
+const getRanking = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT s.id, s.lrn, u.first_name, u.middle_name, u.last_name,
+              ROUND(AVG(g.final_grade)::numeric, 2) AS gwa,
+              COUNT(g.id)::int AS "gradeCount"
+       FROM students s
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN grades g ON g.student_id = s.id AND g.final_grade IS NOT NULL
+       WHERE s.section_id = $1 AND s.status = 'active' AND u.is_active = TRUE
+       GROUP BY s.id, s.lrn, u.first_name, u.middle_name, u.last_name
+       ORDER BY gwa DESC NULLS LAST, u.last_name, u.first_name`,
+      [sectionId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getRanking error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+// GET /api/reports/at-risk — failing grades (admin: all, teacher: own classes)
+const getAtRisk = async (req, res) => {
+  try {
+    const cfg = await getConfigMap();
+    const passingGrade = parseFloat(cfg.passing_grade || cfg.grade_passing || 75);
+    const params = [passingGrade];
+    let teacherFilter = '';
+    if (req.user.role === 'teacher') {
+      params.push(req.user.id);
+      teacherFilter = `AND sc.teacher_id = (SELECT id FROM teachers WHERE user_id = $2)`;
+    }
+    const { rows } = await pool.query(
+      `SELECT u.first_name, u.middle_name, u.last_name,
+              sec.grade_level, sec.section_name,
+              sub.name AS subject_name, g.quarter, g.final_grade
+       FROM grades g
+       JOIN students s   ON s.id  = g.student_id
+       JOIN users u      ON u.id  = s.user_id
+       JOIN schedules sc ON sc.id = g.schedule_id
+       JOIN subjects sub ON sub.id = sc.subject_id
+       LEFT JOIN sections sec ON sec.id = s.section_id
+       WHERE g.final_grade IS NOT NULL AND g.final_grade < $1
+         AND s.status = 'active' AND u.is_active = TRUE
+         ${teacherFilter}
+       ORDER BY g.final_grade ASC, u.last_name
+       LIMIT 200`,
+      params
+    );
+    res.json({ success: true, passingGrade, data: rows });
+  } catch (err) {
+    console.error('getAtRisk error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+// GET /api/reports/report-card/:studentId — Form 138 data
+const getReportCard = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { rows: st } = await pool.query(
+      `SELECT s.id, s.user_id, s.lrn, u.first_name, u.middle_name, u.last_name,
+              COALESCE(sec.grade_level, s.grade_level) AS grade_level,
+              COALESCE(s.strand, sec.strand) AS strand, sec.section_name
+       FROM students s
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN sections sec ON sec.id = s.section_id
+       WHERE s.id = $1`,
+      [studentId]
+    );
+    if (!st.length) return res.status(404).json({ success: false, message: 'Student not found.' });
+    const student = st[0];
+
+    // Students may only open their own report card
+    if (req.user.role === 'student' && student.user_id !== req.user.id)
+      return res.status(403).json({ success: false, message: 'You can only view your own report card.' });
+
+    const { rows: grades } = await pool.query(
+      `SELECT sub.name AS subject_name, g.quarter, g.final_grade
+       FROM grades g
+       JOIN schedules sc ON sc.id = g.schedule_id
+       JOIN subjects sub ON sub.id = sc.subject_id
+       WHERE g.student_id = $1
+       ORDER BY sub.name, g.quarter`,
+      [studentId]
+    );
+    const bySubject = {};
+    grades.forEach(g => {
+      if (!bySubject[g.subject_name]) bySubject[g.subject_name] = { name: g.subject_name, quarters: {} };
+      bySubject[g.subject_name].quarters[g.quarter] = { final_grade: g.final_grade };
+    });
+    const vals = grades.map(g => parseFloat(g.final_grade)).filter(n => !isNaN(n));
+    const gwa = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
+
+    const { rows: att } = await pool.query(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE status IN ('present','late'))::int AS present,
+              COUNT(*) FILTER (WHERE status = 'absent')::int AS absent
+       FROM attendance WHERE student_id = $1`,
+      [studentId]
+    );
+
+    const cfg = await getConfigMap();
+    const { user_id, ...studentOut } = student;
+    res.json({
+      success: true,
+      data: {
+        student: studentOut,
+        subjects: Object.values(bySubject),
+        gwa,
+        attendance: att[0],
+        schoolConfig: {
+          school_name:    cfg.school_name,
+          school_address: cfg.school_address,
+          school_year:    cfg.school_year,
+          semester:       cfg.semester,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('getReportCard error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+module.exports = { getStudentReport, getClassReport, getRanking, getAtRisk, getReportCard };
+
+>>>>>>> 645db23 (V-Smart Update)

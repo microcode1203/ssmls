@@ -25,6 +25,7 @@ const createSchedule = async (req, res) => {
   try {
     const { subjectId, sectionId, room, dayOfWeek, startTime, endTime, schoolYear } = req.body;
 
+<<<<<<< HEAD
     const { rows: teacherRows } = await pool.query(
       `SELECT id FROM teachers WHERE user_id = $1`, [req.user.id]
     );
@@ -32,17 +33,50 @@ const createSchedule = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Teacher profile not found.' });
 
     const teacherId = teacherRows[0].id;
+=======
+    const isAdmin = req.user.role === 'admin';
+    let teacherId;
+    if (isAdmin) {
+      // Admins have no teacher profile of their own: they schedule on behalf of the teacher chosen in the form.
+      const wanted = parseInt(req.body.teacherId, 10);
+      if (!Number.isInteger(wanted))
+        return res.status(400).json({ success: false, message: 'Please choose a teacher for this schedule.' });
+      const { rows: picked } = await pool.query(
+        `SELECT t.id FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = $1 AND u.is_active = TRUE`, [wanted]
+      );
+      if (picked.length === 0)
+        return res.status(404).json({ success: false, message: 'Teacher not found or inactive.' });
+      teacherId = picked[0].id;
+    } else {
+      const { rows: teacherRows } = await pool.query(
+        `SELECT id FROM teachers WHERE user_id = $1`, [req.user.id]
+      );
+      if (teacherRows.length === 0)
+        return res.status(403).json({ success: false, message: 'Teacher profile not found.' });
+      teacherId = teacherRows[0].id;
+    }
+>>>>>>> 645db23 (V-Smart Update)
 
     const conflicts = await checkConflict(teacherId, dayOfWeek, startTime, endTime);
     if (conflicts.length > 0) {
       return res.status(409).json({
         success: false,
+<<<<<<< HEAD
         message: '⚠️ Schedule Conflict Detected! You already have a class at this time.',
+=======
+        message: isAdmin
+          ? '⚠️ Schedule Conflict Detected! This teacher already has a class at this time.'
+          : '⚠️ Schedule Conflict Detected! You already have a class at this time.',
+>>>>>>> 645db23 (V-Smart Update)
         conflicts: conflicts.map(c => ({ day: c.day_of_week, start: c.start_time, end: c.end_time }))
       });
     }
 
+<<<<<<< HEAD
     const status = req.user.role === 'admin' ? 'approved' : 'pending';
+=======
+    const status = isAdmin ? 'approved' : 'pending';
+>>>>>>> 645db23 (V-Smart Update)
     const { rows: result } = await pool.query(
       `INSERT INTO schedules (teacher_id, subject_id, section_id, room, day_of_week, start_time, end_time, status, school_year)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
